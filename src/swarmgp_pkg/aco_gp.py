@@ -44,7 +44,7 @@ class acogp:
         return d, attr_keys
 
     @staticmethod
-    def run_ant_colony(f_path, min_supp, evaporation_factor=cfg.EVAPORATION_FACTOR, max_iteration=cfg.MAX_ITERATIONS):
+    def run_ant_colony(f_path, min_supp=cfg.MIN_SUPPORT, evaporation_factor=cfg.EVAPORATION_FACTOR, max_iteration=cfg.MAX_ITERATIONS):
 
         # 0. Initialize and prepare data set
         d_set = Dataset(f_path, min_supp)

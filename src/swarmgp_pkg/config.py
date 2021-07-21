@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 # Global Configurations
+MIN_SUPPORT = 0.5
 MAX_ITERATIONS = 100
 
 # ACO-GRAD Configurations:

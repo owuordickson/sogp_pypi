@@ -1,2 +1,63 @@
-# swarmgp_pypi
-Algorithm implementations of swarm-based optimization algorithms for mining gradual patterns.
+
+# Swarm Intelligence for GPs
+We provide Python algorithm implementations of swarm-based optimization algorithms for mining gradual patterns. The algorithm implementations include:
+
+* Ant Colony Optimization
+<!--- * Genetic Algorithm
+* Particle Swarm Optimization
+* Wasp Swarm Optimization
+* Pure Random Search
+* Pure Local Search --->
+
+### Requirements:
+You will be required to install the following Python dependencies:
+
+```
+install python (version => 3.6)
+```
+
+<!---
+### Usage:
+Use it a command line program with the local package to mine gradual patterns:
+
+For example, we executed the <em><strong>GA</strong>-GRAANK</em> algorithm on a sample data-set
+
+```
+$python3 src/main.py -a 'ga' -f data/DATASET.csv
+```
+
+where you specify the input parameters as follows:
+
+* <strong>algorithm</strong> - [required] select algorithm ```ga, pso, wso, prs, pls```
+* <strong>filename.csv</strong> - [required] a file in csv format
+* <strong>minSup</strong> - [optional] minimum support ```default = 0.5```
+
+<strong>Output</strong><br>
+```
+1. Age
+2. Salary
+3. Cars
+4. Expenses
+
+File: ../data/DATASET.csv
+
+Pattern : Support
+[('2', '+'), ('4', '-')] : 0.6
+[('1', '-'), ('2', '-')] : 0.6
+[('1', '-'), ('4', '+')] : 1.0
+[('1', '+'), ('2', '+'), ('4', '-')] : 0.6
+[('1', '+'), ('4', '-')] : 1.0
+[('2', '-'), ('4', '+')] : 0.6
+[('1', '+'), ('2', '+')] : 0.6
+[('1', '-'), ('2', '-'), ('4', '+')] : 0.6
+
+0.08473014831542969 seconds
+```
+--->
+
+### License:
+* MIT
+
+### References
+* Dickson Owuor, Anne Laurent, and Joseph Orero (2019). Mining Fuzzy-temporal Gradual Patterns. In the proceedings of the 2019 IEEE International Conference on Fuzzy Systems (FuzzIEEE). IEEE. https://doi.org/10.1109/FUZZ-IEEE.2019.8858883.
+* Owuor, D., Runkler T., Laurent A., Menya E., Orero J (2021), Ant Colony Optimization for Mining Gradual Patterns. International Journal of Machine Learning and Cybernetics.

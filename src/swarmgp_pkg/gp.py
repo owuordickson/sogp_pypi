@@ -2,10 +2,10 @@
 """
 @author: "Dickson OWUOR"
 @credits: "Anne LAURENT and Joseph ORERO"
-@version: "4.8"
+@version: "5.0"
 @email: "owuordickson@gmail.com"
 @created: "20 May 2020"
-@modified: "10 Mar 2021"
+@modified: "21 Jul 2021"
 
 GI: Gradual Item (0, +)
 GP: Gradual Pattern {(0, +), (1, -), (3, +)}
@@ -154,3 +154,15 @@ class GP:
         for gi in self.gradual_items:
             gi_dict.update({gi.as_string(): 0})
         return gi_dict
+
+    def print(self, columns):
+        pattern = list()
+        for item in self.gradual_items:
+            col_title = columns[item.attribute_col]
+            try:
+               col = str(col_title.value.decode())
+            except AttributeError:
+               col = str(col_title[1].decode())
+            pat = str(col + item.symbol)
+            pattern.append(pat)  # (item.to_string())
+        return [pattern, self.support]

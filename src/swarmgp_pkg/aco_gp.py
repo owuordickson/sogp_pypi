@@ -14,7 +14,6 @@ Modification: generates distance matrix (d_matrix)
 
 """
 import numpy as np
-from ypstruct import structure
 from gp import GI, GP
 from dataset_bfs import Dataset
 import config as cfg
@@ -112,12 +111,9 @@ class acogp:
             it_count += 1
 
         # Output
-        out = structure()
-        out.best_patterns = str_winner_gps
-        out.iterations = it_count
+        out = {'Best Patterns': str_winner_gps, 'Iterations': it_count}
 
         return out
-        # return winner_gps
 
     @staticmethod
     def generate_aco_gp(attr_keys, d, p_matrix, e_factor):

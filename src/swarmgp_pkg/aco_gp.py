@@ -3,14 +3,16 @@
 @author: "Dickson Owuor"
 @credits: "Thomas Runkler, Edmond Menya, and Anne Laurent,"
 @license: "MIT"
-@version: "4.0"
+@version: "0.0.1"
 @email: "owuordickson@gmail.com"
-@created: "12 July 2019"
+@created: "21 July 2021"
 @modified: "21 Jul 2021"
 
-Breath-First Search for gradual patterns (ACO-GRAANK)
+SWARM OPTIMIZATION FOR GRADUAL PATTERNS:
+Swarm optimization algorithms for mining gradual patterns
 
-Modification: generates distance matrix (d_matrix)
+Modifications:
+ACO: generates distance matrix (d_matrix)
 
 """
 import numpy as np
@@ -19,7 +21,7 @@ from dataset_bfs import Dataset
 import config as cfg
 
 
-class acogp:
+class so4gp:
 
     @staticmethod
     def generate_d(valid_bins):
@@ -51,7 +53,7 @@ class acogp:
         d_set.init_gp_attributes()
         # attr_index = d_set.attr_cols
         # e_factor = evaporation_factor
-        d, attr_keys = acogp.generate_d(d_set.valid_bins)  # distance matrix (d) & attributes corresponding to d
+        d, attr_keys = so4gp.generate_d(d_set.valid_bins)  # distance matrix (d) & attributes corresponding to d
 
         a = d_set.attr_size
         winner_gps = list()  # subsets
@@ -81,25 +83,25 @@ class acogp:
         # 4. Iterations for ACO
         # while repeated < 1:
         while it_count < max_it:
-            rand_gp, pheromones = acogp.generate_aco_gp(attr_keys, d, pheromones, evaporation_factor)
+            rand_gp, pheromones = so4gp.generate_aco_gp(attr_keys, d, pheromones, evaporation_factor)
             if len(rand_gp.gradual_items) > 1:
                 # print(rand_gp.get_pattern())
-                exits = acogp.is_duplicate(rand_gp, winner_gps, loser_gps)
+                exits = so4gp.is_duplicate(rand_gp, winner_gps, loser_gps)
                 if not exits:
                     repeated = 0
                     # check for anti-monotony
-                    is_super = acogp.check_anti_monotony(loser_gps, rand_gp, subset=False)
-                    is_sub = acogp.check_anti_monotony(winner_gps, rand_gp, subset=True)
+                    is_super = so4gp.check_anti_monotony(loser_gps, rand_gp, subset=False)
+                    is_sub = so4gp.check_anti_monotony(winner_gps, rand_gp, subset=True)
                     if is_super or is_sub:
                         continue
-                    gen_gp = acogp.validate_gp(d_set, rand_gp)
-                    is_present = acogp.is_duplicate(gen_gp, winner_gps, loser_gps)
-                    is_sub = acogp.check_anti_monotony(winner_gps, gen_gp, subset=True)
+                    gen_gp = so4gp.validate_gp(d_set, rand_gp)
+                    is_present = so4gp.is_duplicate(gen_gp, winner_gps, loser_gps)
+                    is_sub = so4gp.check_anti_monotony(winner_gps, gen_gp, subset=True)
                     if is_present or is_sub:
                         repeated += 1
                     else:
                         if gen_gp.support >= min_supp:
-                            pheromones = acogp.update_pheromones(attr_keys, gen_gp, pheromones)
+                            pheromones = so4gp.update_pheromones(attr_keys, gen_gp, pheromones)
                             winner_gps.append(gen_gp)
                             str_winner_gps.append(gen_gp.print(d_set.titles))
                         else:

@@ -12,7 +12,7 @@ SWARM OPTIMIZATION FOR GRADUAL PATTERNS:
 Swarm optimization algorithms for mining gradual patterns
 
 Modifications:
-ACO: generates distance matrix (d_matrix)
+ACO: generates distance matrix (d_matrix), uses static methods
 
 """
 import numpy as np

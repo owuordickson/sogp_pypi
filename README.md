@@ -1,5 +1,7 @@
 
 # Swarm Intelligence for GPs
+**SO4GP:** Swarm Optimization for Gradual Patterns.
+
 We provide Python algorithm implementations of swarm-based optimization algorithms for mining gradual patterns. The algorithm implementations include:
 
 * Ant Colony Optimization

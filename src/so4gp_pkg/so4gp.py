@@ -143,10 +143,10 @@ class Dataset:
                 f.close()
 
             if len(raw_data) <= 1:
-                print("Unable to read CSV file")
+                # print("Unable to read CSV file")
                 raise Exception("CSV file read error. File has little or no data")
             else:
-                print("Data fetched from CSV file")
+                # print("Data fetched from CSV file")
                 # 2. Get table headers
                 if raw_data[0][0].replace('.', '', 1).isdigit() or raw_data[0][0].isdigit():
                     titles = np.array([])
@@ -162,7 +162,7 @@ class Dataset:
                 return titles, np.asarray(raw_data)
                 # return Dataset.get_tbl_headers(temp)
         except Exception as error:
-            print("Unable to read CSV file")
+            # print("Unable to read CSV file")
             raise Exception("CSV file read error. " + str(error))
 
     @staticmethod

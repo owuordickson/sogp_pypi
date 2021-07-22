@@ -160,9 +160,9 @@ class GP:
         for item in self.gradual_items:
             col_title = columns[item.attribute_col]
             try:
-               col = str(col_title.value.decode())
+                col = str(col_title.value.decode())
             except AttributeError:
-               col = str(col_title[1].decode())
+                col = str(col_title[1].decode())
             pat = str(col + item.symbol)
             pattern.append(pat)  # (item.to_string())
         return [pattern, self.support]

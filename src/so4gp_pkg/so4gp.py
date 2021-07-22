@@ -6,19 +6,363 @@
 @version: "0.0.1"
 @email: "owuordickson@gmail.com"
 @created: "21 July 2021"
-@modified: "21 Jul 2021"
+@modified: "22 July 2021"
 
 SWARM OPTIMIZATION FOR GRADUAL PATTERNS:
 Swarm optimization algorithms for mining gradual patterns
 
-Modifications:
-ACO: generates distance matrix (d_matrix), uses plain methods
 
 """
+
+import csv
+from dateutil.parser import parse
+import time
+import gc
 import numpy as np
-from gp import GI, GP
-from dataset_bfs import Dataset
-import config as cfg
+
+
+# -------- CONFIGURATION (START)-------------
+
+# Global Configurations
+MIN_SUPPORT = 0.5
+MAX_ITERATIONS = 100
+
+# ACO-GRAD Configurations:
+EVAPORATION_FACTOR = 0.1
+
+# GA-GRAD Configurations:
+N_POPULATION = 3
+PC = 0.5
+
+# PSO-GRAD Configurations:
+VELOCITY = 0.5
+PERSONAL_COEFF = 0.5
+GLOBAL_COEFF = 0.1
+TARGET = 1
+TARGET_ERROR = 1e-6
+N_PARTICLES = 5
+
+
+# -------- CONFIGURATION (START)-------------
+
+
+# -------- DATA SET PREPARATION (START)-------------
+
+"""
+@created: "12 July 2019"
+@modified: "17 Feb 2021"
+
+CHANGES
+1. Fetch all binaries during initialization
+2. Replaced loops for fetching binary rank with numpy function
+
+"""
+
+
+class Dataset:
+
+    def __init__(self, file_path, min_sup=0.5, eq=False):
+        self.thd_supp = min_sup
+        self.equal = eq
+        self.titles, self.data = Dataset.read_csv(file_path)
+        self.row_count, self.col_count = self.data.shape
+        self.time_cols = self.get_time_cols()
+        self.attr_cols = self.get_attr_cols()
+        self.valid_bins = np.array([])
+        self.no_bins = False
+        self.step_name = ''  # For T-GRAANK
+        self.attr_size = 0  # For T-GRAANK
+        # self.init_attributes()
+
+    def get_attr_cols(self):
+        all_cols = np.arange(self.col_count)
+        attr_cols = np.setdiff1d(all_cols, self.time_cols)
+        return attr_cols
+
+    def get_time_cols(self):
+        # Retrieve first column only
+        time_cols = list()
+        n = self.col_count
+        for i in range(n):  # check every column/attribute for time format
+            row_data = str(self.data[0][i])
+            try:
+                time_ok, t_stamp = Dataset.test_time(row_data)
+                if time_ok:
+                    time_cols.append(i)
+            except ValueError:
+                continue
+        return np.array(time_cols)
+
+    def init_gp_attributes(self, attr_data=None):
+        # (check) implement parallel multiprocessing
+        # 1. Transpose csv array data
+        if attr_data is None:
+            attr_data = self.data.T
+            self.attr_size = self.row_count
+        else:
+            self.attr_size = len(attr_data[self.attr_cols[0]])
+
+        # 2. Construct and store 1-item_set valid bins
+        # execute binary rank to calculate support of pattern
+        n = self.attr_size
+        valid_bins = list()
+        for col in self.attr_cols:
+            col_data = np.array(attr_data[col], dtype=float)
+            incr = np.array((col, '+'), dtype='i, S1')
+            decr = np.array((col, '-'), dtype='i, S1')
+            # temp_pos = Dataset.bin_rank(col_data, equal=self.equal)
+
+            # 2a. Generate 1-itemset gradual items
+            with np.errstate(invalid='ignore'):
+                if not self.equal:
+                    temp_pos = col_data < col_data[:, np.newaxis]
+                else:
+                    temp_pos = col_data <= col_data[:, np.newaxis]
+                    np.fill_diagonal(temp_pos, 0)
+
+                # 2b. Check support of each generated itemset
+                supp = float(np.sum(temp_pos)) / float(n * (n - 1.0) / 2.0)
+                if supp >= self.thd_supp:
+                    valid_bins.append(np.array([incr.tolist(), temp_pos], dtype=object))
+                    valid_bins.append(np.array([decr.tolist(), temp_pos.T], dtype=object))
+        self.valid_bins = np.array(valid_bins)
+        # print(self.valid_bins)
+        if len(self.valid_bins) < 3:
+            self.no_bins = True
+        gc.collect()
+
+    @staticmethod
+    def read_csv(file):
+        # 1. Retrieve data set from file
+        try:
+            with open(file, 'r') as f:
+                dialect = csv.Sniffer().sniff(f.readline(), delimiters=";,' '\t")
+                f.seek(0)
+                reader = csv.reader(f, dialect)
+                raw_data = list(reader)
+                f.close()
+
+            if len(raw_data) <= 1:
+                print("Unable to read CSV file")
+                raise Exception("CSV file read error. File has little or no data")
+            else:
+                print("Data fetched from CSV file")
+                # 2. Get table headers
+                if raw_data[0][0].replace('.', '', 1).isdigit() or raw_data[0][0].isdigit():
+                    titles = np.array([])
+                else:
+                    if raw_data[0][1].replace('.', '', 1).isdigit() or raw_data[0][1].isdigit():
+                        titles = np.array([])
+                    else:
+                        # titles = self.convert_data_to_array(data, has_title=True)
+                        keys = np.arange(len(raw_data[0]))
+                        values = np.array(raw_data[0], dtype='S')
+                        titles = np.rec.fromarrays((keys, values), names=('key', 'value'))
+                        raw_data = np.delete(raw_data, 0, 0)
+                return titles, np.asarray(raw_data)
+                # return Dataset.get_tbl_headers(temp)
+        except Exception as error:
+            print("Unable to read CSV file")
+            raise Exception("CSV file read error. " + str(error))
+
+    @staticmethod
+    def test_time(date_str):
+        # add all the possible formats
+        try:
+            if type(int(date_str)):
+                return False, False
+        except ValueError:
+            try:
+                if type(float(date_str)):
+                    return False, False
+            except ValueError:
+                try:
+                    date_time = parse(date_str)
+                    t_stamp = time.mktime(date_time.timetuple())
+                    return True, t_stamp
+                except ValueError:
+                    raise ValueError('no valid date-time format found')
+
+
+# -------- DATA SET PREPARATION (END)-------------
+
+
+# -------- GRADUAL PATTERNS (START)-------------
+
+"""
+@created: "20 May 2020"
+@modified: "21 Jul 2021"
+
+GI: Gradual Item (0, +)
+GP: Gradual Pattern {(0, +), (1, -), (3, +)}
+
+"""
+
+
+class GI:
+
+    def __init__(self, attr_col, symbol):
+        self.attribute_col = attr_col
+        self.symbol = symbol
+        self.gradual_item = np.array((attr_col, symbol), dtype='i, S1')
+        self.tuple = tuple([attr_col, symbol])
+        self.rank_sum = 0
+
+    def inv(self):
+        if self.symbol == '+':
+            # temp = tuple([self.attribute_col, '-'])
+            temp = np.array((self.attribute_col, '-'), dtype='i, S1')
+        elif self.symbol == '-':
+            # temp = tuple([self.attribute_col, '+'])
+            temp = np.array((self.attribute_col, '+'), dtype='i, S1')
+        else:
+            temp = np.array((self.attribute_col, 'x'), dtype='i, S1')
+        return temp
+
+    def as_integer(self):
+        if self.symbol == '+':
+            temp = [self.attribute_col, 1]
+        elif self.symbol == '-':
+            temp = [self.attribute_col, -1]
+        else:
+            temp = [self.attribute_col, 0]
+        return temp
+
+    def as_string(self):
+        if self.symbol == '+':
+            temp = str(self.attribute_col) + '_pos'
+        elif self.symbol == '-':
+            temp = str(self.attribute_col) + '_neg'
+        else:
+            temp = str(self.attribute_col) + '_inv'
+        return temp
+
+    def to_string(self):
+        return str(self.attribute_col) + self.symbol
+
+    def is_decrement(self):
+        if self.symbol == '-':
+            return True
+        else:
+            return False
+
+    @staticmethod
+    def parse_gi(gi_str):
+        txt = gi_str.split('_')
+        attr_col = int(txt[0])
+        if txt[1] == 'neg':
+            symbol = '-'
+        else:
+            symbol = '+'
+        return GI(attr_col, symbol)
+
+
+class GP:
+
+    def __init__(self):
+        self.gradual_items = list()
+        self.support = 0
+
+    def set_support(self, support):
+        self.support = round(support, 3)
+
+    def add_gradual_item(self, item):
+        if item.symbol == '-' or item.symbol == '+':
+            self.gradual_items.append(item)
+        else:
+            pass
+
+    def get_pattern(self):
+        pattern = list()
+        for item in self.gradual_items:
+            pattern.append(item.gradual_item.tolist())
+        return pattern
+
+    def get_np_pattern(self):
+        pattern = []
+        for item in self.gradual_items:
+            pattern.append(item.gradual_item)
+        return np.array(pattern)
+
+    def get_tuples(self):
+        pattern = list()
+        for gi in self.gradual_items:
+            temp = tuple([gi.attribute_col, gi.symbol])
+            pattern.append(temp)
+        return pattern
+
+    def get_attributes(self):
+        attrs = list()
+        syms = list()
+        for item in self.gradual_items:
+            gi = item.as_integer()
+            attrs.append(gi[0])
+            syms.append(gi[1])
+        return attrs, syms
+
+    def get_index(self, gi):
+        for i in range(len(self.gradual_items)):
+            gi_obj = self.gradual_items[i]
+            if (gi.symbol == gi_obj.symbol) and (gi.attribute_col == gi_obj.attribute_col):
+                return i
+        return -1
+
+    def inv_pattern(self):
+        pattern = list()
+        for gi in self.gradual_items:
+            pattern.append(gi.inv().tolist())
+        return pattern
+
+    def contains(self, gi):
+        if gi is None:
+            return False
+        if gi in self.gradual_items:
+            return True
+        return False
+
+    def contains_attr(self, gi):
+        if gi is None:
+            return False
+        for gi_obj in self.gradual_items:
+            if gi.attribute_col == gi_obj.attribute_col:
+                return True
+        return False
+
+    def to_string(self):
+        pattern = list()
+        for item in self.gradual_items:
+            pattern.append(item.to_string())
+        return pattern
+
+    def to_dict(self):
+        gi_dict = {}
+        for gi in self.gradual_items:
+            gi_dict.update({gi.as_string(): 0})
+        return gi_dict
+
+    def print(self, columns):
+        pattern = list()
+        for item in self.gradual_items:
+            col_title = columns[item.attribute_col]
+            try:
+                col = str(col_title.value.decode())
+            except AttributeError:
+                col = str(col_title[1].decode())
+            pat = str(col + item.symbol)
+            pattern.append(pat)  # (item.to_string())
+        return [pattern, self.support]
+
+
+# -------- GRADUAL PATTERNS (START)-------------
+
+
+# -------- ANT COLONY OPTIMIZATION (START)-------------
+
+"""
+CHANGES:
+1. generates distance matrix (d_matrix)
+2. uses plain methods
+"""
 
 
 def generate_d(valid_bins):
@@ -43,8 +387,8 @@ def generate_d(valid_bins):
     return d, attr_keys
 
 
-def run_ant_colony(f_path, min_supp=cfg.MIN_SUPPORT, evaporation_factor=cfg.EVAPORATION_FACTOR,
-                   max_iteration=cfg.MAX_ITERATIONS):
+def run_ant_colony(f_path, min_supp=MIN_SUPPORT, evaporation_factor=EVAPORATION_FACTOR,
+                   max_iteration=MAX_ITERATIONS):
     # 0. Initialize and prepare data set
     d_set = Dataset(f_path, min_supp)
     d_set.init_gp_attributes()
@@ -210,3 +554,5 @@ def is_duplicate(pattern, lst_winners, lst_losers):
                 set(pattern.inv_pattern()) == set(pat.get_pattern()):
             return True
     return False
+
+# -------- ANT COLONY (END)-------------

@@ -8,6 +8,32 @@
 * Pure Random Search
 * Pure Local Search --->
 
+### Usage
+Write the following code:
+
+```python
+from so4gp_pkg import so4gp as so
+gps = so.run_ant_colony('filename.csv', min_sup)
+print(gps)
+```
+
+where you specify the parameters as follows:
+
+* **filename.csv** - *[required]* a file in csv format
+* **min_sup** - *[optional]* minimum support ```default = 0.5```
+
+
+```json
+Sample Output
+
+{
+  'Best Patterns': [
+    [['Expenses-', 'Age+'], 1.0], 
+    [['Expenses-', 'Age+', 'Salary+'], 0.6]
+  ], 
+  'Iterations': 100
+}
+```
 
 ### References
 * Owuor, D., Runkler T., Laurent A., Menya E., Orero J (2021), Ant Colony Optimization for Mining Gradual Patterns. International Journal of Machine Learning and Cybernetics.

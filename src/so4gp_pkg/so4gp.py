@@ -645,9 +645,6 @@ CHANGES:
 """
 
 
-# import random
-
-
 def run_genetic_algorithm(data_src, min_supp=MIN_SUPPORT, max_iteration=MAX_ITERATIONS, n_pop=N_POPULATION, pc=PC,
                           gamma=GAMMA, mu=MU, sigma=SIGMA):
     # Prepare data set
@@ -866,7 +863,6 @@ def decode_gp(attr_keys, position):
 # -------- PSO-GRAD (START)----------
 
 
-# -*- coding: utf-8 -*-
 """
 @author: "Dickson Owuor"
 @credits: "Thomas Runkler, and Anne Laurent,"
@@ -990,9 +986,195 @@ def run_particle_swarm(data_src, min_supp=MIN_SUPPORT, max_iteration=MAX_ITERATI
 
 # -------- PLS-GRAD (START)----------
 
+
+"""
+@author: "Dickson Owuor"
+@credits: "Thomas Runkler, and Anne Laurent,"
+@license: "MIT"
+@version: "2.0"
+@email: "owuordickson@gmail.com"
+@created: "26 July 2021"
+@modified: "07 September 2021"
+Breath-First Search for gradual patterns using Pure Local Search (PLS-GRAD).
+PLS is used to learn gradual pattern candidates.
+Adopted from: https://machinelearningmastery.com/iterated-local-search-from-scratch-in-python/
+CHANGES:
+1. Used rank order search space
+"""
+
+
+# hill climbing local search algorithm
+def run_hill_climbing(data_src, min_supp=MIN_SUPPORT, max_iteration=MAX_ITERATIONS, step_size=STEP_SIZE):
+    # Prepare data set
+    d_set = Dataset(data_src, min_supp)
+    d_set.init_gp_attributes()
+    attr_keys = [GI(x[0], x[1].decode()).as_string() for x in d_set.valid_bins[:, 0]]
+
+    if d_set.no_bins:
+        return []
+
+    # Parameters
+    it_count = 0
+    var_min = 0
+    counter = 0
+    var_max = int(''.join(['1'] * len(attr_keys)), 2)
+    eval_count = 0
+
+    # Empty Individual Template
+    best_sol = structure()
+    candidate = structure()
+
+    # Best Cost of Iteration
+    best_costs = np.empty(max_iteration)
+    best_patterns = []
+    str_iter = ''
+    str_eval = ''
+    repeated = 0
+
+    # generate an initial point
+    best_sol.position = None
+    # candidate.position = None
+    if best_sol.position is None:
+        best_sol.position = np.random.uniform(var_min, var_max, N_VAR)
+    # evaluate the initial point
+    apply_bound(best_sol, var_min, var_max)
+    best_sol.cost = cost_func(best_sol.position, attr_keys, d_set)
+
+    # run the hill climb
+    while counter < max_iteration:
+        # while eval_count < max_evaluations:
+        # take a step
+        candidate.position = None
+        if candidate.position is None:
+            candidate.position = best_sol.position + (random.randrange(var_min, var_max) * step_size)
+        apply_bound(candidate, var_min, var_max)
+        candidate.cost = cost_func(candidate.position, attr_keys, d_set)
+
+        if candidate.cost < best_sol.cost:
+            best_sol = candidate.deepcopy()
+        eval_count += 1
+        str_eval += "{}: {} \n".format(eval_count, best_sol.cost)
+
+        best_gp = validate_gp(d_set, decode_gp(attr_keys, best_sol.position))
+        is_present = is_duplicate(best_gp, best_patterns)
+        is_sub = check_anti_monotony(best_patterns, best_gp, subset=True)
+        if is_present or is_sub:
+            repeated += 1
+        else:
+            if best_gp.support >= min_supp:
+                best_patterns.append(best_gp.print(d_set.titles))
+
+        try:
+            # Show Iteration Information
+            # Store Best Cost
+            best_costs[it_count] = best_sol.cost
+            str_iter += "{}: {} \n".format(it_count, best_sol.cost)
+        except IndexError:
+            pass
+        it_count += 1
+
+        if max_iteration == 1:
+            counter = repeated
+        else:
+            counter = it_count
+    # Output
+    out = {"Best Patterns": best_patterns, "Iterations": it_count}
+    return out
+
 # -------- PLS-GRAD (END)-------------
 
 
 # -------- PRS-GRAD (START)----------
+
+
+"""
+@author: "Dickson Owuor"
+@credits: "Thomas Runkler, and Anne Laurent,"
+@license: "MIT"
+@version: "2.0"
+@email: "owuordickson@gmail.com"
+@created: "26 July 2021"
+@modified: "07 September 2021"
+Breath-First Search for gradual patterns using Pure Random Search (PRS-GRAD).
+PRS is used to learn gradual pattern candidates.
+Adopted: https://medium.com/analytics-vidhya/how-does-random-search-algorithm-work-python-implementation-b69e779656d6
+CHANGES:
+1. Uses rank-order search space
+"""
+
+
+def run_random_search(data_src, min_supp=MIN_SUPPORT, max_iteration=MAX_ITERATIONS):
+    # Prepare data set
+    d_set = Dataset(data_src, min_supp)
+    d_set.init_gp_attributes()
+    attr_keys = [GI(x[0], x[1].decode()).as_string() for x in d_set.valid_bins[:, 0]]
+
+    if d_set.no_bins:
+        return []
+
+    # Parameters
+    it_count = 0
+    counter = 0
+    var_min = 0
+    var_max = int(''.join(['1'] * len(attr_keys)), 2)
+    eval_count = 0
+
+    # Empty Individual Template
+    candidate = structure()
+    candidate.position = None
+    candidate.cost = float('inf')
+
+    # INITIALIZE
+    best_sol = candidate.deepcopy()
+    best_sol.position = np.random.uniform(var_min, var_max, N_VAR)
+    best_sol.cost = cost_func(best_sol.position, attr_keys, d_set)
+
+    # Best Cost of Iteration
+    best_costs = np.empty(max_iteration)
+    best_patterns = []
+    str_iter = ''
+    str_eval = ''
+
+    repeated = 0
+    while counter < max_iteration:
+        # while eval_count < max_evaluations:
+
+        candidate.position = ((var_min + random.random()) * (var_max - var_min))
+        apply_bound(candidate, var_min, var_max)
+        candidate.cost = cost_func(candidate.position, attr_keys, d_set)
+
+        if candidate.cost < best_sol.cost:
+            best_sol = candidate.deepcopy()
+        eval_count += 1
+        str_eval += "{}: {} \n".format(eval_count, best_sol.cost)
+
+        best_gp = validate_gp(d_set, decode_gp(attr_keys, best_sol.position))
+        is_present = is_duplicate(best_gp, best_patterns)
+        is_sub = check_anti_monotony(best_patterns, best_gp, subset=True)
+        if is_present or is_sub:
+            repeated += 1
+        else:
+            if best_gp.support >= min_supp:
+                best_patterns.append(best_gp.print(d_set.titles))
+            # else:
+            #    best_sol.cost = 1
+
+        try:
+            # Show Iteration Information
+            # Store Best Cost
+            best_costs[it_count] = best_sol.cost
+            str_iter += "{}: {} \n".format(it_count, best_sol.cost)
+        except IndexError:
+            pass
+        it_count += 1
+
+        if max_iteration == 1:
+            counter = repeated
+        else:
+            counter = it_count
+    # Output
+    out = {"Best Patterns": best_patterns, "Iterations": it_count}
+    return out
+
 
 # -------- PRS-GRAD (END)-------------

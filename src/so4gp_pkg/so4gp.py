@@ -424,7 +424,7 @@ class GP:
 # -------- GRADUAL PATTERNS (START)-------------
 
 
-# -------- ANT COLONY OPTIMIZATION (START)-------------
+# -------- ACO-GRAD (START)-------------
 
 """
 CHANGES:
@@ -619,4 +619,24 @@ def is_duplicate(pattern, lst_winners, lst_losers):
             return True
     return False
 
-# -------- ANT COLONY (END)-------------
+# -------- ACO-GRAD (END)-------------
+
+
+# -------- GA-GRAD (START)----------
+
+# -------- GA-GRAD (END)-------------
+
+
+# -------- PSO-GRAD (START)----------
+
+# -------- PSO-GRAD (END)-------------
+
+
+# -------- PLS-GRAD (START)----------
+
+# -------- PLS-GRAD (END)-------------
+
+
+# -------- PRS-GRAD (START)----------
+
+# -------- PRS-GRAD (END)-------------

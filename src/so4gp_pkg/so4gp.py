@@ -19,52 +19,67 @@ from dateutil.parser import parse
 import time
 import gc
 import numpy as np
+import json
+import pandas as pd
 
 
 # -------- CONFIGURATION (START)-------------
 
-# Global Configurations
+# Global Swarm Configurations
 MIN_SUPPORT = 0.5
-MAX_ITERATIONS = 100
+MAX_ITERATIONS = 1
+N_VAR = 1  # DO NOT CHANGE
 
 # ACO-GRAD Configurations:
-EVAPORATION_FACTOR = 0.1
+EVAPORATION_FACTOR = 0.5
 
 # GA-GRAD Configurations:
-N_POPULATION = 3
+N_POPULATION = 5
 PC = 0.5
+GAMMA = 1  # Cross-over
+MU = 0.9  # Mutation
+SIGMA = 0.9  # Mutation
 
 # PSO-GRAD Configurations:
-VELOCITY = 0.5
-PERSONAL_COEFF = 0.5
-GLOBAL_COEFF = 0.1
+VELOCITY = 0.9  # higher values helps to move to next number in search space
+PERSONAL_COEFF = 0.01
+GLOBAL_COEFF = 0.9
 TARGET = 1
 TARGET_ERROR = 1e-6
 N_PARTICLES = 5
 
+# PLS-GRAD Configurations
+STEP_SIZE = 0.5
 
-# -------- CONFIGURATION (START)-------------
+# VISUALIZATIONS
+SHOW_P_MATRIX = False  # ONLY FOR: aco
+SHOW_EVALUATIONS = False  # FOR aco, prs, pls, pso
+SHOW_ITERATIONS = True  # FOR aco, prs, pls, pso
+SAVE_RESULTS = True  # FOR aco, prs, pls, pso
+
+
+# -------- CONFIGURATION (END)-------------
 
 
 # -------- DATA SET PREPARATION (START)-------------
 
 """
-@created: "12 July 2019"
-@modified: "17 Feb 2021"
-
-CHANGES
+Changes
+-------
 1. Fetch all binaries during initialization
 2. Replaced loops for fetching binary rank with numpy function
-
+3. Accepts CSV file as data source OR
+4. Accepts Pandas DataFrame as data source
+5. Cleans data set
 """
 
 
 class Dataset:
 
-    def __init__(self, file_path, min_sup=0.5, eq=False):
+    def __init__(self, data_source, min_sup=0.5, eq=False):
         self.thd_supp = min_sup
         self.equal = eq
-        self.titles, self.data = Dataset.read_csv(file_path)
+        self.titles, self.data = Dataset.read(data_source)
         self.row_count, self.col_count = self.data.shape
         self.time_cols = self.get_time_cols()
         self.attr_cols = self.get_attr_cols()
@@ -72,7 +87,6 @@ class Dataset:
         self.no_bins = False
         self.step_name = ''  # For T-GRAANK
         self.attr_size = 0  # For T-GRAANK
-        # self.init_attributes()
 
     def get_attr_cols(self):
         all_cols = np.arange(self.col_count)
@@ -132,38 +146,63 @@ class Dataset:
         gc.collect()
 
     @staticmethod
-    def read_csv(file):
-        # 1. Retrieve data set from file
-        try:
-            with open(file, 'r') as f:
-                dialect = csv.Sniffer().sniff(f.readline(), delimiters=";,' '\t")
-                f.seek(0)
-                reader = csv.reader(f, dialect)
-                raw_data = list(reader)
-                f.close()
+    def read(data_src):
+        # 1. Retrieve data set from source
+        if isinstance(data_src, pd.DataFrame):
+            # a. DataFrame source
+            # d_frame = pd.read_csv(d_fram,sep=';')  # TO BE REMOVED
+            # Check column names
+            try:
+                # Check data type
+                _ = data_src.columns.astype(float)
 
-            if len(raw_data) <= 1:
-                # print("Unable to read CSV file")
-                raise Exception("CSV file read error. File has little or no data")
-            else:
-                # print("Data fetched from CSV file")
-                # 2. Get table headers
-                if raw_data[0][0].replace('.', '', 1).isdigit() or raw_data[0][0].isdigit():
-                    titles = np.array([])
+                # Add column values
+                data_src.loc[-1] = data_src.columns.to_numpy(dtype=float)  # adding a row
+                data_src.index = data_src.index + 1  # shifting index
+                data_src.sort_index(inplace=True)
+
+                # Rename column names
+                vals = ['col_' + str(k) for k in np.arange(data_src.shape[1])]
+                data_src.columns = vals
+            except ValueError:
+                pass
+            except TypeError:
+                pass
+            print("Data fetched from DataFrame")
+            return Dataset.clean_data(data_src)
+        else:
+            # b. CSV file
+            file = str(data_src)
+            try:
+                with open(file, 'r') as f:
+                    dialect = csv.Sniffer().sniff(f.readline(), delimiters=";,' '\t")
+                    f.seek(0)
+                    reader = csv.reader(f, dialect)
+                    raw_data = list(reader)
+                    f.close()
+
+                if len(raw_data) <= 1:
+                    raise Exception("CSV file read error. File has little or no data")
                 else:
-                    if raw_data[0][1].replace('.', '', 1).isdigit() or raw_data[0][1].isdigit():
-                        titles = np.array([])
+                    print("Data fetched from CSV file")
+                    # 2. Get table headers
+                    keys = np.arange(len(raw_data[0]))
+                    if raw_data[0][0].replace('.', '', 1).isdigit() or raw_data[0][0].isdigit():
+                        vals = ['col_' + str(k) for k in keys]
+                        header = np.array(vals, dtype='S')
                     else:
-                        # titles = self.convert_data_to_array(data, has_title=True)
-                        keys = np.arange(len(raw_data[0]))
-                        values = np.array(raw_data[0], dtype='S')
-                        titles = np.rec.fromarrays((keys, values), names=('key', 'value'))
-                        raw_data = np.delete(raw_data, 0, 0)
-                return titles, np.asarray(raw_data)
-                # return Dataset.get_tbl_headers(temp)
-        except Exception as error:
-            # print("Unable to read CSV file")
-            raise Exception("CSV file read error. " + str(error))
+                        if raw_data[0][1].replace('.', '', 1).isdigit() or raw_data[0][1].isdigit():
+                            vals = ['col_' + str(k) for k in keys]
+                            header = np.array(vals, dtype='S')
+                        else:
+                            header = np.array(raw_data[0], dtype='S')
+                            raw_data = np.delete(raw_data, 0, 0)
+                    # titles = np.rec.fromarrays((keys, values), names=('key', 'value'))
+                    # return titles, np.asarray(raw_data)
+                    d_frame = pd.DataFrame(raw_data, columns=header)
+                    return Dataset.clean_data(d_frame)
+            except Exception as error:
+                raise Exception("Error: " + str(error))
 
     @staticmethod
     def test_time(date_str):
@@ -182,6 +221,35 @@ class Dataset:
                     return True, t_stamp
                 except ValueError:
                     raise ValueError('no valid date-time format found')
+
+    @staticmethod
+    def clean_data(df):
+        # 1. Remove objects with Null values
+        df = df.dropna()
+
+        # 2. Remove columns with Strings
+        cols_to_remove = []
+        for col in df.columns:
+            try:
+                _ = df[col].astype(float)
+            except ValueError:
+                cols_to_remove.append(col)
+                pass
+            except TypeError:
+                cols_to_remove.append(col)
+                pass
+        # keep only the columns in df that do not contain string
+        df = df[[col for col in df.columns if col not in cols_to_remove]]
+
+        # 3. Return titles and data
+        if df.empty:
+            raise Exception("Data set is empty after cleaning.")
+
+        keys = np.arange(df.shape[1])
+        values = np.array(df.columns, dtype='S')
+        titles = np.rec.fromarrays((keys, values), names=('key', 'value'))
+        print("Data cleaned")
+        return titles, df.values
 
 
 # -------- DATA SET PREPARATION (END)-------------
@@ -402,6 +470,7 @@ def run_ant_colony(f_path, min_supp=MIN_SUPPORT, evaporation_factor=EVAPORATION_
     str_winner_gps = list()  # subsets
     repeated = 0
     it_count = 0
+    counter = 0
     max_it = max_iteration
 
     if d_set.no_bins:
@@ -411,19 +480,12 @@ def run_ant_colony(f_path, min_supp=MIN_SUPPORT, evaporation_factor=EVAPORATION_
     fr_count = ((min_supp * a * (a - 1)) / 2)
     d[d < fr_count] = 0
 
-    # 2. Calculating the visibility of the next city
-    # visibility(i,j)=1/d(i,j)
-    # In the case GP mining visibility = d
-    # with np.errstate(divide='ignore'):
-    #    visibility = 1/d
-    #    visibility[visibility == np.inf] = 0
-
     # 3. Initialize pheromones (p_matrix)
     pheromones = np.ones(d.shape, dtype=float)
 
     # 4. Iterations for ACO
     # while repeated < 1:
-    while it_count < max_it:
+    while counter < max_it:
         rand_gp, pheromones = generate_aco_gp(attr_keys, d, pheromones, evaporation_factor)
         if len(rand_gp.gradual_items) > 1:
             # print(rand_gp.get_pattern())
@@ -452,10 +514,12 @@ def run_ant_colony(f_path, min_supp=MIN_SUPPORT, evaporation_factor=EVAPORATION_
             else:
                 repeated += 1
         it_count += 1
-
+        if max_it == 1:
+            counter = repeated
+        else:
+            counter = it_count
     # Output
-    out = {'Best Patterns': str_winner_gps, 'Iterations': it_count}
-
+    out = {"Best Patterns": str_winner_gps, "Iterations": it_count}
     return out
 
 

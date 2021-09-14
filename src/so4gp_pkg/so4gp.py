@@ -608,11 +608,14 @@ def check_anti_monotony(lst_p, pattern, subset=True):
     return result
 
 
-def is_duplicate(pattern, lst_winners, lst_losers):
-    for pat in lst_losers:
-        if set(pattern.get_pattern()) == set(pat.get_pattern()) or \
-                set(pattern.inv_pattern()) == set(pat.get_pattern()):
-            return True
+def is_duplicate(pattern, lst_winners, lst_losers=None):
+    if lst_losers is None:
+        pass
+    else:
+        for pat in lst_losers:
+            if set(pattern.get_pattern()) == set(pat.get_pattern()) or \
+                    set(pattern.inv_pattern()) == set(pat.get_pattern()):
+                return True
     for pat in lst_winners:
         if set(pattern.get_pattern()) == set(pat.get_pattern()) or \
                 set(pattern.inv_pattern()) == set(pat.get_pattern()):
@@ -861,6 +864,126 @@ def decode_gp(attr_keys, position):
 
 
 # -------- PSO-GRAD (START)----------
+
+
+# -*- coding: utf-8 -*-
+"""
+@author: "Dickson Owuor"
+@credits: "Thomas Runkler, and Anne Laurent,"
+@license: "MIT"
+@version: "2.0"
+@email: "owuordickson@gmail.com"
+@created: "29 April 2021"
+@modified: "07 September 2021"
+Breath-First Search for gradual patterns using Particle Swarm Optimization (PSO-GRAANK).
+PSO is used to learn gradual pattern candidates.
+CHANGES:
+1. uses normal functions
+2. updated fitness function to use Binary Array of GPs
+3. uses rank order search space
+"""
+
+
+def run_particle_swarm(data_src, min_supp=MIN_SUPPORT, max_iteration=MAX_ITERATIONS, n_particles=N_PARTICLES,
+                       velocity=VELOCITY, coef_p=PERSONAL_COEFF, coef_g=GLOBAL_COEFF):
+    # Prepare data set
+    d_set = Dataset(data_src, min_supp)
+    d_set.init_gp_attributes()
+    # self.target = 1
+    # self.target_error = 1e-6
+    attr_keys = [GI(x[0], x[1].decode()).as_string() for x in d_set.valid_bins[:, 0]]
+
+    if d_set.no_bins:
+        return []
+
+    it_count = 0
+    eval_count = 0
+    counter = 0
+    var_min = 0
+    var_max = int(''.join(['1']*len(attr_keys)), 2)
+
+    # Empty particle template
+    empty_particle = structure()
+    empty_particle.position = None
+    empty_particle.fitness = None
+
+    # Initialize Population
+    particle_pop = empty_particle.repeat(n_particles)
+    for i in range(n_particles):
+        particle_pop[i].position = random.randrange(var_min, var_max)
+        particle_pop[i].fitness = 1
+
+    pbest_pop = particle_pop.copy()
+    gbest_particle = pbest_pop[0]
+
+    # Best particle (ever found)
+    best_particle = empty_particle.deepcopy()
+    best_particle.position = gbest_particle.position
+    best_particle.fitness = cost_func(best_particle.position, attr_keys, d_set)
+
+    velocity_vector = np.ones(n_particles)
+    best_fitness_arr = np.empty(max_iteration)
+    best_patterns = []
+    str_iter = ''
+    str_eval = ''
+
+    repeated = 0
+    while counter < max_iteration:
+        # while eval_count < max_evaluations:
+        # while repeated < 1:
+        for i in range(n_particles):
+            # UPDATED
+            if particle_pop[i].position < var_min or particle_pop[i].position > var_max:
+                particle_pop[i].fitness = 1
+            else:
+                particle_pop[i].fitness = cost_func(particle_pop[i].position, attr_keys, d_set)
+                eval_count += 1
+                str_eval += "{}: {} \n".format(eval_count, particle_pop[i].fitness)
+
+            if pbest_pop[i].fitness > particle_pop[i].fitness:
+                pbest_pop[i].fitness = particle_pop[i].fitness
+                pbest_pop[i].position = particle_pop[i].position
+
+            if gbest_particle.fitness > particle_pop[i].fitness:
+                gbest_particle.fitness = particle_pop[i].fitness
+                gbest_particle.position = particle_pop[i].position
+        # if abs(gbest_fitness_value - self.target) < self.target_error:
+        #    break
+        if best_particle.fitness > gbest_particle.fitness:
+            best_particle = gbest_particle.deepcopy()
+
+        for i in range(n_particles):
+            new_velocity = (velocity * velocity_vector[i]) + \
+                           (coef_p * random.random()) * (pbest_pop[i].position - particle_pop[i].position) + \
+                           (coef_g * random.random()) * (gbest_particle.position - particle_pop[i].position)
+            particle_pop[i].position = particle_pop[i].position + new_velocity
+
+        best_gp = validate_gp(d_set, decode_gp(attr_keys, best_particle.position))
+        is_present = is_duplicate(best_gp, best_patterns)
+        is_sub = check_anti_monotony(best_patterns, best_gp, subset=True)
+        if is_present or is_sub:
+            repeated += 1
+        else:
+            if best_gp.support >= min_supp:
+                best_patterns.append(best_gp.print(d_set.titles))
+            # else:
+            #    best_particle.fitness = 1
+
+        try:
+            # Show Iteration Information
+            best_fitness_arr[it_count] = best_particle.fitness
+            str_iter += "{}: {} \n".format(it_count, best_particle.fitness)
+        except IndexError:
+            pass
+        it_count += 1
+
+        if max_iteration == 1:
+            counter = repeated
+        else:
+            counter = it_count
+    # Output
+    out = {"Best Patterns": best_patterns, "Iterations": it_count}
+    return out
 
 # -------- PSO-GRAD (END)-------------
 

@@ -19,7 +19,7 @@ from dateutil.parser import parse
 import time
 import gc
 import numpy as np
-import json
+# import json
 import pandas as pd
 
 
@@ -150,7 +150,6 @@ class Dataset:
         # 1. Retrieve data set from source
         if isinstance(data_src, pd.DataFrame):
             # a. DataFrame source
-            # d_frame = pd.read_csv(d_fram,sep=';')  # TO BE REMOVED
             # Check column names
             try:
                 # Check data type

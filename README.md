@@ -7,6 +7,13 @@
 * Random Search
 * Local Search
 
+## Install Requirements
+Before running **so4gp**, make sure you install the following ```Python Packages```:
+
+```shell
+pip3 install numpy~=1.21.2 pandas~=1.3.3 python-dateutil~=2.8.2 ypstruct~=0.0.2
+```
+
 ## Usage
 Write the following code:
 

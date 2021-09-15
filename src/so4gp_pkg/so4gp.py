@@ -21,7 +21,7 @@ from dateutil.parser import parse
 import time
 import gc
 import numpy as np
-# import json
+import json
 import pandas as pd
 import random
 from ypstruct import structure
@@ -522,7 +522,7 @@ def run_ant_colony(f_path, min_supp=MIN_SUPPORT, evaporation_factor=EVAPORATION_
             counter = it_count
     # Output
     out = {"Algorithm": "ACO-GRAD", "Best Patterns": str_winner_gps, "Iterations": it_count}
-    return out
+    return json.dumps(out)
 
 
 def generate_aco_gp(attr_keys, d, p_matrix, e_factor):
@@ -786,7 +786,7 @@ def run_genetic_algorithm(data_src, min_supp=MIN_SUPPORT, max_iteration=MAX_ITER
             counter = it_count
     # Output
     out = {"Algorithm": "GA-GRAD", "Best Patterns": str_best_gps, "Iterations": it_count}
-    return out
+    return json.dumps(out)
 
 
 def cost_func(position, attr_keys, d_set):
@@ -985,7 +985,7 @@ def run_particle_swarm(data_src, min_supp=MIN_SUPPORT, max_iteration=MAX_ITERATI
             counter = it_count
     # Output
     out = {"Algorithm": "PSO-GRAD", "Best Patterns": str_best_gps, "Iterations": it_count}
-    return out
+    return json.dumps(out)
 
 # -------- PSO-GRAD (END)-------------
 
@@ -1087,7 +1087,7 @@ def run_hill_climbing(data_src, min_supp=MIN_SUPPORT, max_iteration=MAX_ITERATIO
             counter = it_count
     # Output
     out = {"Algorithm": "LS-GRAD", "Best Patterns": str_best_gps, "Iterations": it_count}
-    return out
+    return json.dumps(out)
 
 # -------- PLS-GRAD (END)-------------
 

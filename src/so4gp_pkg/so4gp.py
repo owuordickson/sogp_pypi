@@ -15,6 +15,8 @@ Swarm optimization algorithms for mining gradual patterns
 """
 
 import csv
+import json
+
 from dateutil.parser import parse
 import time
 import gc
@@ -519,7 +521,7 @@ def run_ant_colony(f_path, min_supp=MIN_SUPPORT, evaporation_factor=EVAPORATION_
         else:
             counter = it_count
     # Output
-    out = {"Best Patterns": str_winner_gps, "Iterations": it_count}
+    out = {"Algorithm": "ACO-GRAD", "Best Patterns": str_winner_gps, "Iterations": it_count}
     return out
 
 
@@ -689,6 +691,7 @@ def run_genetic_algorithm(data_src, min_supp=MIN_SUPPORT, max_iteration=MAX_ITER
     # Best Cost of Iteration
     best_costs = np.empty(max_iteration)
     best_patterns = list()
+    str_best_gps = list()
     str_iter = ''
     str_eval = ''
 
@@ -763,7 +766,8 @@ def run_genetic_algorithm(data_src, min_supp=MIN_SUPPORT, max_iteration=MAX_ITER
             repeated += 1
         else:
             if best_gp.support >= min_supp:
-                best_patterns.append(best_gp.print(d_set.titles))
+                best_patterns.append(best_gp)
+                str_best_gps.append(best_gp.print(d_set.titles))
             # else:
             #    best_sol.cost = 1
 
@@ -781,7 +785,7 @@ def run_genetic_algorithm(data_src, min_supp=MIN_SUPPORT, max_iteration=MAX_ITER
         else:
             counter = it_count
     # Output
-    out = {"Best Patterns": best_patterns, "Iterations": it_count}
+    out = {"Algorithm": "GA-GRAD", "Best Patterns": str_best_gps, "Iterations": it_count}
     return out
 
 
@@ -920,6 +924,7 @@ def run_particle_swarm(data_src, min_supp=MIN_SUPPORT, max_iteration=MAX_ITERATI
     velocity_vector = np.ones(n_particles)
     best_fitness_arr = np.empty(max_iteration)
     best_patterns = []
+    str_best_gps = list()
     str_iter = ''
     str_eval = ''
 
@@ -961,7 +966,8 @@ def run_particle_swarm(data_src, min_supp=MIN_SUPPORT, max_iteration=MAX_ITERATI
             repeated += 1
         else:
             if best_gp.support >= min_supp:
-                best_patterns.append(best_gp.print(d_set.titles))
+                best_patterns.append(best_gp)
+                str_best_gps.append(best_gp.print(d_set.titles))
             # else:
             #    best_particle.fitness = 1
 
@@ -978,7 +984,7 @@ def run_particle_swarm(data_src, min_supp=MIN_SUPPORT, max_iteration=MAX_ITERATI
         else:
             counter = it_count
     # Output
-    out = {"Best Patterns": best_patterns, "Iterations": it_count}
+    out = {"Algorithm": "PSO-GRAD", "Best Patterns": str_best_gps, "Iterations": it_count}
     return out
 
 # -------- PSO-GRAD (END)-------------
@@ -1027,6 +1033,7 @@ def run_hill_climbing(data_src, min_supp=MIN_SUPPORT, max_iteration=MAX_ITERATIO
     # Best Cost of Iteration
     best_costs = np.empty(max_iteration)
     best_patterns = []
+    str_best_gps = list()
     str_iter = ''
     str_eval = ''
     repeated = 0
@@ -1062,7 +1069,8 @@ def run_hill_climbing(data_src, min_supp=MIN_SUPPORT, max_iteration=MAX_ITERATIO
             repeated += 1
         else:
             if best_gp.support >= min_supp:
-                best_patterns.append(best_gp.print(d_set.titles))
+                best_patterns.append(best_gp)
+                str_best_gps.append(best_gp.print(d_set.titles))
 
         try:
             # Show Iteration Information
@@ -1078,7 +1086,7 @@ def run_hill_climbing(data_src, min_supp=MIN_SUPPORT, max_iteration=MAX_ITERATIO
         else:
             counter = it_count
     # Output
-    out = {"Best Patterns": best_patterns, "Iterations": it_count}
+    out = {"Algorithm": "LS-GRAD", "Best Patterns": str_best_gps, "Iterations": it_count}
     return out
 
 # -------- PLS-GRAD (END)-------------
@@ -1132,6 +1140,7 @@ def run_random_search(data_src, min_supp=MIN_SUPPORT, max_iteration=MAX_ITERATIO
     # Best Cost of Iteration
     best_costs = np.empty(max_iteration)
     best_patterns = []
+    str_best_gps = list()
     str_iter = ''
     str_eval = ''
 
@@ -1155,7 +1164,8 @@ def run_random_search(data_src, min_supp=MIN_SUPPORT, max_iteration=MAX_ITERATIO
             repeated += 1
         else:
             if best_gp.support >= min_supp:
-                best_patterns.append(best_gp.print(d_set.titles))
+                best_patterns.append(best_gp)
+                str_best_gps.append(best_gp.print(d_set.titles))
             # else:
             #    best_sol.cost = 1
 
@@ -1173,8 +1183,8 @@ def run_random_search(data_src, min_supp=MIN_SUPPORT, max_iteration=MAX_ITERATIO
         else:
             counter = it_count
     # Output
-    out = {"Best Patterns": best_patterns, "Iterations": it_count}
-    return out
+    out = {"Algorithm": "RS-GRAD", "Best Patterns": str_best_gps, "Iterations": it_count}
+    return json.dumps(out)
 
 
 # -------- PRS-GRAD (END)-------------

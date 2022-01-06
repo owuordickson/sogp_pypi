@@ -6,6 +6,8 @@ RELEASE NOTES
 
 Renamed to 'some optimizations for gradual patterns'
 Added function for generating binary matrix for gradual items
+Added documentation
+Added release notes
 
 
 

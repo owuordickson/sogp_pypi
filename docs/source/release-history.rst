@@ -3,6 +3,24 @@ RELEASE HISTORY
 ***************
 
 
+0.1.0 (2022-01-06)
+------------------
+
+* Added function for generating binary matrix for gradual items
+
+**Bug fixes**
+
+- fixed an error that converted time columns to Strings and deleted them
+
+
+
+
+0.0.7 (2022-01-06)
+-------------------
+
+* Added readthedocs url
+
+
 v0.0.6 (2022-01-06)
 -------------------
 

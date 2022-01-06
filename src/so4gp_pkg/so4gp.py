@@ -15,8 +15,6 @@ Some optimization algorithms for mining gradual patterns
 """
 
 import csv
-import json
-
 from dateutil.parser import parse
 import time
 import gc
@@ -25,7 +23,6 @@ import json
 import pandas as pd
 import random
 from ypstruct import structure
-
 
 # -------- CONFIGURATION (START)-------------
 
@@ -61,7 +58,6 @@ SHOW_EVALUATIONS = False  # FOR aco, prs, pls, pso
 SHOW_ITERATIONS = True  # FOR aco, prs, pls, pso
 SAVE_RESULTS = True  # FOR aco, prs, pls, pso
 
-
 # -------- CONFIGURATION (END)-------------
 
 
@@ -80,7 +76,7 @@ Changes
 
 class Dataset:
 
-    def __init__(self, data_source, min_sup=0.5, eq=False):
+    def __init__(self, data_source, min_sup=MIN_SUPPORT, eq=False):
         self.thd_supp = min_sup
         self.equal = eq
         self.titles, self.data = Dataset.read(data_source)
@@ -128,7 +124,6 @@ class Dataset:
             col_data = np.array(attr_data[col], dtype=float)
             incr = np.array((col, '+'), dtype='i, S1')
             decr = np.array((col, '-'), dtype='i, S1')
-            # temp_pos = Dataset.bin_rank(col_data, equal=self.equal)
 
             # 2a. Generate 1-itemset gradual items
             with np.errstate(invalid='ignore'):
@@ -187,7 +182,7 @@ class Dataset:
                 if len(raw_data) <= 1:
                     raise Exception("CSV file read error. File has little or no data")
                 else:
-                    print("Data fetched from CSV file")
+                    # print("Data fetched from CSV file")
                     # 2. Get table headers
                     keys = np.arange(len(raw_data[0]))
                     if raw_data[0][0].replace('.', '', 1).isdigit() or raw_data[0][0].isdigit():
@@ -236,7 +231,13 @@ class Dataset:
             try:
                 _ = df[col].astype(float)
             except ValueError:
-                cols_to_remove.append(col)
+                # Keep time columns
+                try:
+                    ok, stamp = Dataset.test_time(str(df[col][0]))
+                    if not ok:
+                        cols_to_remove.append(col)
+                except ValueError:
+                    cols_to_remove.append(col)
                 pass
             except TypeError:
                 cols_to_remove.append(col)
@@ -251,9 +252,22 @@ class Dataset:
         keys = np.arange(df.shape[1])
         values = np.array(df.columns, dtype='S')
         titles = np.rec.fromarrays((keys, values), names=('key', 'value'))
-        print("Data cleaned")
+        # print("Data cleaned")
         return titles, df.values
 
+
+def get_bin_arr(d_set, col):
+    if col in d_set.time_cols:
+        raise Exception("Error: " + str(d_set.titles[col][1].decode()) + " is a date/time column!")
+    elif col >= d_set.col_count:
+        raise Exception("Error: Column does not exist!")
+    else:
+        attr_data = d_set.data.T
+        # n = d_set.row_count
+        col_data = np.array(attr_data[col], dtype=float)
+        with np.errstate(invalid='ignore'):
+            temp_pos = col_data < col_data[:, np.newaxis]
+        return temp_pos
 
 # -------- DATA SET PREPARATION (END)-------------
 
@@ -424,7 +438,166 @@ class GP:
         return [pattern, self.support]
 
 
+class TimeLag:
+
+    def __init__(self, tstamp=0, supp=0):
+        self.timestamp = tstamp
+        self.support = round(supp, 3)
+        self.sign = self.get_sign()
+        if tstamp == 0:
+            self.time_lag = np.array([])
+            self.valid = False
+        else:
+            self.time_lag = np.array(self.format_time())
+            self.valid = True
+
+    def get_sign(self):
+        if self.timestamp < 0:
+            sign = "-"
+        else:
+            sign = "+"
+        return sign
+
+    def format_time(self):
+        stamp_in_seconds = abs(self.timestamp)
+        years = stamp_in_seconds / 3.154e+7
+        months = stamp_in_seconds / 2.628e+6
+        weeks = stamp_in_seconds / 604800
+        days = stamp_in_seconds / 86400
+        hours = stamp_in_seconds / 3600
+        minutes = stamp_in_seconds / 60
+        if int(years) <= 0:
+            if int(months) <= 0:
+                if int(weeks) <= 0:
+                    if int(days) <= 0:
+                        if int(hours) <= 0:
+                            if int(minutes) <= 0:
+                                return [round(stamp_in_seconds, 0), "seconds"]
+                            else:
+                                return [round(minutes, 0), "minutes"]
+                        else:
+                            return [round(hours, 0), "hours"]
+                    else:
+                        return [round(days, 0), "days"]
+                else:
+                    return [round(weeks, 0), "weeks"]
+            else:
+                return [round(months, 0), "months"]
+        else:
+            return [round(years, 0), "years"]
+
+    def to_string(self):
+        if len(self.time_lag) > 0:
+            txt = ("~ " + self.sign + str(self.time_lag[0]) + " " + str(self.time_lag[1])
+                   + " : " + str(self.support))
+        else:
+            txt = "No time lag found!"
+        return txt
+
+
 # -------- GRADUAL PATTERNS (START)-------------
+
+
+# --------- GRAANK (START) ---------------------
+
+
+# --------- GRAANK (END) --------------------
+"""
+CHANGES:
+1. Removed T-GRAANK modification
+"""
+
+
+def inv(g_item):
+    if g_item[1] == '+':
+        temp = tuple([g_item[0], '-'])
+    else:
+        temp = tuple([g_item[0], '+'])
+    return temp
+
+
+def gen_apriori_candidates(R, sup, n):
+    res = []
+    I = []
+    if len(R) < 2:
+        return []
+    try:
+        Ck = [{x[0]} for x in R]
+    except TypeError:
+        Ck = [set(x[0]) for x in R]
+
+    for i in range(len(R) - 1):
+        for j in range(i + 1, len(R)):
+            try:
+                R_i = {R[i][0]}
+                R_j = {R[j][0]}
+                R_o = {R[0][0]}
+            except TypeError:
+                R_i = set(R[i][0])
+                R_j = set(R[j][0])
+                R_o = set(R[0][0])
+            temp = R_i | R_j
+            invtemp = {inv(x) for x in temp}
+            if (len(temp) == len(R_o) + 1) and (not (I != [] and temp in I)) \
+                    and (not (I != [] and invtemp in I)):
+                test = 1
+                for k in temp:
+                    try:
+                        k_set = {k}
+                    except TypeError:
+                        k_set = set(k)
+                    temp2 = temp - k_set
+                    invtemp2 = {inv(x) for x in temp2}
+                    if not temp2 in Ck and not invtemp2 in Ck:
+                        test = 0
+                        break
+                if test == 1:
+                    m = R[i][1] * R[j][1]
+                    t = float(np.sum(m)) / float(n * (n - 1.0) / 2.0)
+                    if t > sup:
+                        res.append([temp, m])
+                I.append(temp)
+                gc.collect()
+    return res
+
+
+def run_graank(f_path=None, min_sup=MIN_SUPPORT, eq=False):
+    d_set = Dataset(f_path, min_sup, eq)
+    d_set.init_gp_attributes()
+
+    patterns = []
+    str_winner_gps = []
+    n = d_set.attr_size
+    valid_bins = d_set.valid_bins
+
+    while len(valid_bins) > 0:
+        valid_bins = gen_apriori_candidates(valid_bins, min_sup, n)
+        i = 0
+        while i < len(valid_bins) and valid_bins != []:
+            gi_tuple = valid_bins[i][0]
+            bin_data = valid_bins[i][1]
+            sup = float(np.sum(np.array(bin_data))) / float(n * (n - 1.0) / 2.0)
+            if sup < min_sup:
+                del valid_bins[i]
+            else:
+                z = 0
+                while z < (len(patterns) - 1):
+                    if set(patterns[z].get_pattern()).issubset(set(gi_tuple)):
+                        del patterns[z]
+                    else:
+                        z = z + 1
+
+                gp = GP()
+                for obj in valid_bins[i][0]:
+                    gi = GI(obj[0], obj[1].decode())
+                    gp.add_gradual_item(gi)
+                gp.set_support(sup)
+                patterns.append(gp)
+                str_winner_gps.append(gp.print(d_set.titles))
+                i += 1
+    # Output
+    out = {"Algorithm": "GRAANK", "Patterns": str_winner_gps}
+    return json.dumps(out)
 
 
 # -------- ACO-GRAD (START)-------------
@@ -529,7 +702,7 @@ def generate_aco_gp(attr_keys, d, p_matrix, e_factor):
     v_matrix = d
     pattern = GP()
 
-    # 1. Generate gradual items with highest pheromone and visibility
+    # 1. Generate gradual items with the highest pheromone and visibility
     m = p_matrix.shape[0]
     for i in range(m):
         combine_feature = np.multiply(v_matrix[i], p_matrix[i])
@@ -623,6 +796,7 @@ def is_duplicate(pattern, lst_winners, lst_losers=None):
                 set(pattern.inv_pattern()) == set(pat.get_pattern()):
             return True
     return False
+
 
 # -------- ACO-GRAD (END)-------------
 
@@ -813,8 +987,8 @@ def crossover(p1, p2, gamma=0.1):
     c1 = p1.deepcopy()
     c2 = p2.deepcopy()
     alpha = np.random.uniform(0, gamma, 1)
-    c1.position = alpha*p1.position + (1-alpha)*p2.position
-    c2.position = alpha*p2.position + (1-alpha)*p1.position
+    c1.position = alpha * p1.position + (1 - alpha) * p2.position
+    c2.position = alpha * p2.position + (1 - alpha) * p1.position
     return c1, c2
 
 
@@ -829,7 +1003,7 @@ def mutate(x, mu, sigma):
     str_y = "0"
     for i in ind:
         val = float(str_x[i[0]])
-        val += sigma*np.random.uniform(0, 1, 1)
+        val += sigma * np.random.uniform(0, 1, 1)
         if i[0] == 0:
             str_y = "".join(("", "{}".format(int(val)), str_x[1:]))
         else:
@@ -900,7 +1074,7 @@ def run_particle_swarm(data_src, min_supp=MIN_SUPPORT, max_iteration=MAX_ITERATI
     eval_count = 0
     counter = 0
     var_min = 0
-    var_max = int(''.join(['1']*len(attr_keys)), 2)
+    var_max = int(''.join(['1'] * len(attr_keys)), 2)
 
     # Empty particle template
     empty_particle = structure()
@@ -986,6 +1160,7 @@ def run_particle_swarm(data_src, min_supp=MIN_SUPPORT, max_iteration=MAX_ITERATI
     # Output
     out = {"Algorithm": "PSO-GRAD", "Best Patterns": str_best_gps, "Iterations": it_count}
     return json.dumps(out)
+
 
 # -------- PSO-GRAD (END)-------------
 
@@ -1089,6 +1264,7 @@ def run_hill_climbing(data_src, min_supp=MIN_SUPPORT, max_iteration=MAX_ITERATIO
     out = {"Algorithm": "LS-GRAD", "Best Patterns": str_best_gps, "Iterations": it_count}
     return json.dumps(out)
 
+
 # -------- PLS-GRAD (END)-------------
 
 
@@ -1185,6 +1361,5 @@ def run_random_search(data_src, min_supp=MIN_SUPPORT, max_iteration=MAX_ITERATIO
     # Output
     out = {"Algorithm": "RS-GRAD", "Best Patterns": str_best_gps, "Iterations": it_count}
     return json.dumps(out)
-
 
 # -------- PRS-GRAD (END)-------------

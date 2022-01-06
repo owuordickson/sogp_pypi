@@ -1,5 +1,5 @@
 
-**SO4GP** stands for: "Swarm Optimization for Gradual Patterns". SO4GP applies swarm intelligence to extraction of gradual patterns. It provides Python algorithm implementations of swarm-based optimization algorithms for mining gradual patterns. The algorithm implementations include:
+**SO4GP** stands for: "Some Optimizations for Gradual Patterns". SO4GP applies optimizations such as swarm intelligence, HDF5 chunks, SVD and many others in order to improve the efficiency of extracting gradual patterns. It provides Python algorithm implementations for these optimization techniques. The algorithm implementations include:
 
 * Ant Colony Optimization
 * Genetic Algorithm

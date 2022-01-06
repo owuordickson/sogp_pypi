@@ -1,1 +1,0 @@
-**SO4GP** stands for: "Some Optimizations for Gradual Patterns"

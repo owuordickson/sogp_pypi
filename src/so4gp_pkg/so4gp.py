@@ -6,10 +6,10 @@
 @version: "0.0.1"
 @email: "owuordickson@gmail.com"
 @created: "21 July 2021"
-@modified: "22 July 2021"
+@modified: "06 January 2022"
 
-SWARM OPTIMIZATION FOR GRADUAL PATTERNS:
-Swarm optimization algorithms for mining gradual patterns
+SOME OPTIMIZATIONS FOR GRADUAL PATTERNS:
+Some optimization algorithms for mining gradual patterns
 
 
 """

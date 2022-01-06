@@ -1,6 +1,14 @@
 RELEASE NOTES 
 
 
+0.1.0
+-----------------------------
+
+Added function for generating binary matrix for gradual items
+
+
+
+
 0.0.7
 -----------------------------
 
@@ -12,7 +20,6 @@ Added readthedocs url
 -----------------------------
 
 Renamed to 'some optimizations for gradual patterns'
-Added function for generating binary matrix for gradual items
 Added documentation
 Added release notes
 

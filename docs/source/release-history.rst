@@ -6,6 +6,8 @@ RELEASE HISTORY
 0.1.0 (2022-01-06)
 ------------------
 
+* Added graank algorithm
+
 * Added function for generating binary matrix for gradual items
 
 **Bug fixes**

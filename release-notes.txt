@@ -4,6 +4,7 @@ RELEASE NOTES
 0.1.0
 -----------------------------
 
+Added graank algorithm
 Added function for generating binary matrix for gradual items
 Bug fixes
 - fixed an error that converted time columns to Strings and deleted them

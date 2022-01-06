@@ -22,7 +22,7 @@ copyright = '2022, Dickson Owuor'
 author = 'Dickson Owuor'
 
 # The full version, including alpha/beta/rc tags
-release = 'v0.0.6 (2022-01-06)'
+release = '0.0.7'
 
 
 # -- General configuration ---------------------------------------------------

@@ -1,0 +1,25 @@
+RELEASE NOTES 
+
+
+0.0.5
+-----------------------------
+
+Added local search optimization algorithm.
+Added random search optimization algorithm.
+Added configuration file.
+  
+  
+  
+  0.0.4
+-----------------------------
+
+Bug fixes
+- Replaced class methods with plain methods to fix import issues.
+  
+  
+  
+  0.0.3
+-----------------------------
+
+Bug fixes
+- Upgraded to using Numpy in order to improve efficiency

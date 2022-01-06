@@ -1,6 +1,14 @@
 RELEASE NOTES 
 
 
+0.0.6
+-----------------------------
+
+Renamed to 'some optimizations for gradual patterns'
+Added function for generating binary matrix for gradual items
+
+
+
 0.0.5
 -----------------------------
 

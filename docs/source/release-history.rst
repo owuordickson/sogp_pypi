@@ -3,6 +3,14 @@ RELEASE HISTORY
 ***************
 
 
+0.1.4 (2022-01-11)
+-------------------
+
+**Bug fixes**
+
+- problem with import (Module not Found)
+
+
 0.1.3 (2022-01-11)
 ------------------
 

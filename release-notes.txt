@@ -1,6 +1,13 @@
 RELEASE NOTES 
 
 
+0.1.4
+-----------------------------
+
+Bug fixes
+- problem with import (Module not Found)
+
+
 0.1.3
 -----------------------------
 

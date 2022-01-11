@@ -1,5 +1,14 @@
 RELEASE NOTES 
 
+
+0.1.2
+-----------------------------
+
+Updated documentation and README
+Bug fixes
+- removed so4gp_pkg package so that import is direct
+
+
 0.1.1
 -----------------------------
 

@@ -2,10 +2,22 @@
 RELEASE HISTORY
 ***************
 
+
+0.1.2 (2022-01-11)
+------------------
+* Updated documentation
+
+**Bug fixes**
+
+- removed so4gp_pkg package so that import is direct
+
+
+
 0.1.1 (2022-01-10)
 ------------------
 
-Bug fixes
+**Bug fixes**
+
 - function for generating GP bitmap returns a binary array
 
 

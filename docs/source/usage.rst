@@ -9,8 +9,8 @@ Executing ACO for mining GPs:
 
 .. code-block:: python
 
-    from so4gp_pkg import so4gp as so
-    gps = so.run_ant_colony(data_src, min_sup)
+    import so4gp as so
+    gps = so.acogps(data_src, min_sup)
     print(gps)
 
 
@@ -28,8 +28,8 @@ Executing GA for mining GPs:
 
 .. code-block:: python
 
-    from so4gp_pkg import so4gp as so
-    gps = so.run_genetic_algorithm(data_src, min_sup)
+    import so4gp as so
+    gps = so.gagps(data_src, min_sup)
     print(gps)
 
 
@@ -51,7 +51,7 @@ Executing PSO for mining GPs:
 
 .. code-block:: python
 
-    from so4gp_pkg import so4gp as so
+    import so4gp as so
     gps = so.run_particle_swarm(data_src, min_sup)
     print(gps)
 
@@ -73,7 +73,7 @@ Executing LS for mining GPs:
 
 .. code-block:: python
 
-    from so4gp_pkg import so4gp as so
+    import so4gp as so
     gps = so.run_hill_climbing(data_src, min_sup)
     print(gps)
 
@@ -92,7 +92,7 @@ Executing RS for mining GPs:
 
 .. code-block:: python
 
-    from so4gp_pkg import so4gp as so
+    import so4gp as so
     gps = so.run_random_search(data_src, min_sup)
     print(gps)
 

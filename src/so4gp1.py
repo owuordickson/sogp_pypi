@@ -256,7 +256,7 @@ class Dataset:
         return titles, df.values
 
 
-def get_bin_arr(d_set, col):
+def gibitmap(d_set, col):
     if col in d_set.time_cols:
         raise Exception("Error: " + str(d_set.titles[col][1].decode()) + " is a date/time column!")
     elif col >= d_set.col_count:
@@ -561,7 +561,7 @@ def gen_apriori_candidates(R, sup, n):
     return res
 
 
-def run_graank(f_path=None, min_sup=MIN_SUPPORT, eq=False):
+def graank(f_path=None, min_sup=MIN_SUPPORT, eq=False):
     d_set = Dataset(f_path, min_sup, eq)
     d_set.init_gp_attributes()
 
@@ -631,8 +631,8 @@ def generate_d(valid_bins):
     return d, attr_keys
 
 
-def run_ant_colony(f_path, min_supp=MIN_SUPPORT, evaporation_factor=EVAPORATION_FACTOR,
-                   max_iteration=MAX_ITERATIONS):
+def acogps(f_path, min_supp=MIN_SUPPORT, evaporation_factor=EVAPORATION_FACTOR,
+           max_iteration=MAX_ITERATIONS):
     # 0. Initialize and prepare data set
     d_set = Dataset(f_path, min_supp)
     d_set.init_gp_attributes()
@@ -821,8 +821,8 @@ CHANGES:
 """
 
 
-def run_genetic_algorithm(data_src, min_supp=MIN_SUPPORT, max_iteration=MAX_ITERATIONS, n_pop=N_POPULATION, pc=PC,
-                          gamma=GAMMA, mu=MU, sigma=SIGMA):
+def gagps(data_src, min_supp=MIN_SUPPORT, max_iteration=MAX_ITERATIONS, n_pop=N_POPULATION, pc=PC,
+          gamma=GAMMA, mu=MU, sigma=SIGMA):
     # Prepare data set
     d_set = Dataset(data_src, min_supp)
     d_set.init_gp_attributes()

@@ -20,9 +20,9 @@ Write the following code:
 ### 1. Ant Colony Optimization for GPs (ACO-GRAD)
 
 ```python
-import so4gp as so
+import so4gp as sgp
 
-gps = so.acogps(data_src, min_sup)
+gps = sgp.acogps(data_src, min_sup)
 print(gps)
 ```
 
@@ -36,9 +36,9 @@ where you specify the parameters as follows:
 ### 2. Genetic Algorithm for GPs (GA-GRAD)
 
 ```python
-import so4gp as so
+import so4gp as sgp
 
-gps = so.gagps(data_src, min_sup)
+gps = sgp.gagps(data_src, min_sup)
 print(gps)
 ```
 
@@ -56,9 +56,9 @@ where you specify the parameters as follows:
 ### 3. Particle Swarm Optimization for GPs (PSO-GRAD)
 
 ```python
-import so4gp as so
+import so4gp as sgp
 
-gps = so.psogps(data_src, min_sup)
+gps = sgp.psogps(data_src, min_sup)
 print(gps)
 ```
 
@@ -75,9 +75,9 @@ where you specify the parameters as follows:
 ### 4. Local Search for GPs (LS-GRAD)
 
 ```python
-import so4gp as so
+import so4gp as sgp
 
-gps = so.hcgps(data_src, min_sup)
+gps = sgp.hcgps(data_src, min_sup)
 print(gps)
 ```
 
@@ -92,9 +92,9 @@ where you specify the parameters as follows:
 ### 5. Random Search for GPs (RS-GRAD)
 
 ```python
-import so4gp as so
+import so4gp as sgp
 
-gps = so.rsgps(data_src, min_sup)
+gps = sgp.rsgps(data_src, min_sup)
 print(gps)
 ```
 

@@ -9,8 +9,8 @@ Executing ACO for mining GPs:
 
 .. code-block:: python
 
-    import so4gp as so
-    gps = so.acogps(data_src, min_sup)
+    import so4gp as sgp
+    gps = sgp.acogps(data_src, min_sup)
     print(gps)
 
 
@@ -28,8 +28,8 @@ Executing GA for mining GPs:
 
 .. code-block:: python
 
-    import so4gp as so
-    gps = so.gagps(data_src, min_sup)
+    import so4gp as sgp
+    gps = sgp.gagps(data_src, min_sup)
     print(gps)
 
 
@@ -51,8 +51,8 @@ Executing PSO for mining GPs:
 
 .. code-block:: python
 
-    import so4gp as so
-    gps = so.psogps(data_src, min_sup)
+    import so4gp as sgp
+    gps = sgp.psogps(data_src, min_sup)
     print(gps)
 
 
@@ -73,8 +73,8 @@ Executing LS for mining GPs:
 
 .. code-block:: python
 
-    import so4gp as so
-    gps = so.hcgps(data_src, min_sup)
+    import so4gp as sgp
+    gps = sgp.hcgps(data_src, min_sup)
     print(gps)
 
 where you specify the parameters as follows:
@@ -92,8 +92,8 @@ Executing RS for mining GPs:
 
 .. code-block:: python
 
-    import so4gp as so
-    gps = so.rsgps(data_src, min_sup)
+    import so4gp as sgp
+    gps = sgp.rsgps(data_src, min_sup)
     print(gps)
 
 

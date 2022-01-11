@@ -57,7 +57,8 @@ where you specify the parameters as follows:
 
 ```python
 import so4gp as so
-gps = so.run_particle_swarm(data_src, min_sup)
+
+gps = so.psogps(data_src, min_sup)
 print(gps)
 ```
 
@@ -75,7 +76,8 @@ where you specify the parameters as follows:
 
 ```python
 import so4gp as so
-gps = so.run_hill_climbing(data_src, min_sup)
+
+gps = so.hcgps(data_src, min_sup)
 print(gps)
 ```
 
@@ -91,7 +93,8 @@ where you specify the parameters as follows:
 
 ```python
 import so4gp as so
-gps = so.run_random_search(data_src, min_sup)
+
+gps = so.rsgps(data_src, min_sup)
 print(gps)
 ```
 

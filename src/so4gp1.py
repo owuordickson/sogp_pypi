@@ -74,12 +74,12 @@ Changes
 """
 
 
-class Dataset:
+class DataGP:
 
     def __init__(self, data_source, min_sup=MIN_SUPPORT, eq=False):
         self.thd_supp = min_sup
         self.equal = eq
-        self.titles, self.data = Dataset.read(data_source)
+        self.titles, self.data = DataGP.read(data_source)
         self.row_count, self.col_count = self.data.shape
         self.time_cols = self.get_time_cols()
         self.attr_cols = self.get_attr_cols()
@@ -100,14 +100,14 @@ class Dataset:
         for i in range(n):  # check every column/attribute for time format
             row_data = str(self.data[0][i])
             try:
-                time_ok, t_stamp = Dataset.test_time(row_data)
+                time_ok, t_stamp = DataGP.test_time(row_data)
                 if time_ok:
                     time_cols.append(i)
             except ValueError:
                 continue
         return np.array(time_cols)
 
-    def init_gp_attributes(self, attr_data=None):
+    def init_attributes(self, attr_data=None):
         # (check) implement parallel multiprocessing
         # 1. Transpose csv array data
         if attr_data is None:
@@ -167,7 +167,7 @@ class Dataset:
             except TypeError:
                 pass
             print("Data fetched from DataFrame")
-            return Dataset.clean_data(data_src)
+            return DataGP.clean_data(data_src)
         else:
             # b. CSV file
             file = str(data_src)
@@ -198,7 +198,7 @@ class Dataset:
                     # titles = np.rec.fromarrays((keys, values), names=('key', 'value'))
                     # return titles, np.asarray(raw_data)
                     d_frame = pd.DataFrame(raw_data, columns=header)
-                    return Dataset.clean_data(d_frame)
+                    return DataGP.clean_data(d_frame)
             except Exception as error:
                 raise Exception("Error: " + str(error))
 
@@ -233,7 +233,7 @@ class Dataset:
             except ValueError:
                 # Keep time columns
                 try:
-                    ok, stamp = Dataset.test_time(str(df[col][0]))
+                    ok, stamp = DataGP.test_time(str(df[col][0]))
                     if not ok:
                         cols_to_remove.append(col)
                 except ValueError:
@@ -516,7 +516,7 @@ def inv(g_item):
     return temp
 
 
-def gen_apriori_candidates(R, sup, n):
+def genapri(R, sup, n):
     res = []
     I = []
     if len(R) < 2:
@@ -562,8 +562,8 @@ def gen_apriori_candidates(R, sup, n):
 
 
 def graank(f_path=None, min_sup=MIN_SUPPORT, eq=False):
-    d_set = Dataset(f_path, min_sup, eq)
-    d_set.init_gp_attributes()
+    d_set = DataGP(f_path, min_sup, eq)
+    d_set.init_attributes()
 
     patterns = []
     str_winner_gps = []
@@ -571,7 +571,7 @@ def graank(f_path=None, min_sup=MIN_SUPPORT, eq=False):
     valid_bins = d_set.valid_bins
 
     while len(valid_bins) > 0:
-        valid_bins = gen_apriori_candidates(valid_bins, min_sup, n)
+        valid_bins = genapri(valid_bins, min_sup, n)
         i = 0
         while i < len(valid_bins) and valid_bins != []:
             gi_tuple = valid_bins[i][0]
@@ -609,7 +609,7 @@ CHANGES:
 """
 
 
-def generate_d(valid_bins):
+def gend(valid_bins):
     v_bins = valid_bins
     # 1. Fetch valid bins group
     attr_keys = [GI(x[0], x[1].decode()).as_string() for x in v_bins[:, 0]]
@@ -634,11 +634,11 @@ def generate_d(valid_bins):
 def acogps(f_path, min_supp=MIN_SUPPORT, evaporation_factor=EVAPORATION_FACTOR,
            max_iteration=MAX_ITERATIONS):
     # 0. Initialize and prepare data set
-    d_set = Dataset(f_path, min_supp)
-    d_set.init_gp_attributes()
+    d_set = DataGP(f_path, min_supp)
+    d_set.init_attributes()
     # attr_index = d_set.attr_cols
     # e_factor = evaporation_factor
-    d, attr_keys = generate_d(d_set.valid_bins)  # distance matrix (d) & attributes corresponding to d
+    d, attr_keys = gend(d_set.valid_bins)  # distance matrix (d) & attributes corresponding to d
 
     a = d_set.attr_size
     winner_gps = list()  # subsets
@@ -661,20 +661,20 @@ def acogps(f_path, min_supp=MIN_SUPPORT, evaporation_factor=EVAPORATION_FACTOR,
     # 4. Iterations for ACO
     # while repeated < 1:
     while counter < max_iteration:
-        rand_gp, pheromones = generate_aco_gp(attr_keys, d, pheromones, evaporation_factor)
+        rand_gp, pheromones = genaco(attr_keys, d, pheromones, evaporation_factor)
         if len(rand_gp.gradual_items) > 1:
             # print(rand_gp.get_pattern())
-            exits = is_duplicate(rand_gp, winner_gps, loser_gps)
+            exits = isduplicate(rand_gp, winner_gps, loser_gps)
             if not exits:
                 repeated = 0
                 # check for anti-monotony
-                is_super = check_anti_monotony(loser_gps, rand_gp, subset=False)
-                is_sub = check_anti_monotony(winner_gps, rand_gp, subset=True)
+                is_super = amcheck(loser_gps, rand_gp, subset=False)
+                is_sub = amcheck(winner_gps, rand_gp, subset=True)
                 if is_super or is_sub:
                     continue
-                gen_gp = validate_gp(d_set, rand_gp)
-                is_present = is_duplicate(gen_gp, winner_gps, loser_gps)
-                is_sub = check_anti_monotony(winner_gps, gen_gp, subset=True)
+                gen_gp = validategp(d_set, rand_gp)
+                is_present = isduplicate(gen_gp, winner_gps, loser_gps)
+                is_sub = amcheck(winner_gps, gen_gp, subset=True)
                 if is_present or is_sub:
                     repeated += 1
                 else:
@@ -698,7 +698,7 @@ def acogps(f_path, min_supp=MIN_SUPPORT, evaporation_factor=EVAPORATION_FACTOR,
     return json.dumps(out)
 
 
-def generate_aco_gp(attr_keys, d, p_matrix, e_factor):
+def genaco(attr_keys, d, p_matrix, e_factor):
     v_matrix = d
     pattern = GP()
 
@@ -735,7 +735,7 @@ def update_pheromones(attr_keys, pattern, p_matrix):
     return p_matrix
 
 
-def validate_gp(d_set, pattern):
+def validategp(d_set, pattern):
     # pattern = [('2', '+'), ('4', '+')]
     min_supp = d_set.thd_supp
     n = d_set.attr_size
@@ -764,7 +764,7 @@ def validate_gp(d_set, pattern):
         return gen_pattern
 
 
-def check_anti_monotony(lst_p, pattern, subset=True):
+def amcheck(lst_p, pattern, subset=True):
     result = False
     if subset:
         for pat in lst_p:
@@ -783,7 +783,7 @@ def check_anti_monotony(lst_p, pattern, subset=True):
     return result
 
 
-def is_duplicate(pattern, lst_winners, lst_losers=None):
+def isduplicate(pattern, lst_winners, lst_losers=None):
     if lst_losers is None:
         pass
     else:
@@ -824,15 +824,15 @@ CHANGES:
 def gagps(data_src, min_supp=MIN_SUPPORT, max_iteration=MAX_ITERATIONS, n_pop=N_POPULATION, pc=PC,
           gamma=GAMMA, mu=MU, sigma=SIGMA):
     # Prepare data set
-    d_set = Dataset(data_src, min_supp)
-    d_set.init_gp_attributes()
+    d_set = DataGP(data_src, min_supp)
+    d_set.init_attributes()
     attr_keys = [GI(x[0], x[1].decode()).as_string() for x in d_set.valid_bins[:, 0]]
 
     if d_set.no_bins:
         return []
 
     # Problem Information
-    # cost_func
+    # costfxn
 
     # Parameters
     # pc: Proportion of children (if its 1, then nc == npop
@@ -853,14 +853,14 @@ def gagps(data_src, min_supp=MIN_SUPPORT, max_iteration=MAX_ITERATIONS, n_pop=N_
     pop = empty_individual.repeat(n_pop)
     for i in range(n_pop):
         pop[i].position = random.randrange(var_min, var_max)
-        pop[i].cost = 1  # cost_func(pop[i].position, attr_keys, d_set)
+        pop[i].cost = 1  # costfxn(pop[i].position, attr_keys, d_set)
         # if pop[i].cost < best_sol.cost:
         #    best_sol = pop[i].deepcopy()
 
     # Best Solution Ever Found
     best_sol = empty_individual.deepcopy()
     best_sol.position = pop[0].position
-    best_sol.cost = cost_func(best_sol.position, attr_keys, d_set)
+    best_sol.cost = costfxn(best_sol.position, attr_keys, d_set)
 
     # Best Cost of Iteration
     best_costs = np.empty(max_iteration)
@@ -889,14 +889,14 @@ def gagps(data_src, min_supp=MIN_SUPPORT, max_iteration=MAX_ITERATIONS, n_pop=N_
             apply_bound(c2, var_min, var_max)
 
             # Evaluate First Offspring
-            c1.cost = cost_func(c1.position, attr_keys, d_set)
+            c1.cost = costfxn(c1.position, attr_keys, d_set)
             if c1.cost < best_sol.cost:
                 best_sol = c1.deepcopy()
             eval_count += 1
             str_eval += "{}: {} \n".format(eval_count, best_sol.cost)
 
             # Evaluate Second Offspring
-            c2.cost = cost_func(c2.position, attr_keys, d_set)
+            c2.cost = costfxn(c2.position, attr_keys, d_set)
             if c2.cost < best_sol.cost:
                 best_sol = c2.deepcopy()
             eval_count += 1
@@ -911,14 +911,14 @@ def gagps(data_src, min_supp=MIN_SUPPORT, max_iteration=MAX_ITERATIONS, n_pop=N_
             apply_bound(c2, var_min, var_max)
 
             # Evaluate First Offspring
-            c1.cost = cost_func(c1.position, attr_keys, d_set)
+            c1.cost = costfxn(c1.position, attr_keys, d_set)
             if c1.cost < best_sol.cost:
                 best_sol = c1.deepcopy()
             eval_count += 1
             str_eval += "{}: {} \n".format(eval_count, best_sol.cost)
 
             # Evaluate Second Offspring
-            c2.cost = cost_func(c2.position, attr_keys, d_set)
+            c2.cost = costfxn(c2.position, attr_keys, d_set)
             if c2.cost < best_sol.cost:
                 best_sol = c2.deepcopy()
             eval_count += 1
@@ -933,9 +933,9 @@ def gagps(data_src, min_supp=MIN_SUPPORT, max_iteration=MAX_ITERATIONS, n_pop=N_
         pop = sorted(pop, key=lambda x: x.cost)
         pop = pop[0:n_pop]
 
-        best_gp = validate_gp(d_set, decode_gp(attr_keys, best_sol.position))
-        is_present = is_duplicate(best_gp, best_patterns)
-        is_sub = check_anti_monotony(best_patterns, best_gp, subset=True)
+        best_gp = validategp(d_set, decodegp(attr_keys, best_sol.position))
+        is_present = isduplicate(best_gp, best_patterns)
+        is_sub = amcheck(best_patterns, best_gp, subset=True)
         if is_present or is_sub:
             repeated += 1
         else:
@@ -963,8 +963,8 @@ def gagps(data_src, min_supp=MIN_SUPPORT, max_iteration=MAX_ITERATIONS, n_pop=N_
     return json.dumps(out)
 
 
-def cost_func(position, attr_keys, d_set):
-    pattern = decode_gp(attr_keys, position)
+def costfxn(position, attr_keys, d_set):
+    pattern = decodegp(attr_keys, position)
     temp_bin = np.array([])
     for gi in pattern.gradual_items:
         arg = np.argwhere(np.isin(d_set.valid_bins[:, 0], gi.gradual_item))
@@ -1018,7 +1018,7 @@ def apply_bound(x, var_min, var_max):
     x.position = np.minimum(x.position, var_max)
 
 
-def decode_gp(attr_keys, position):
+def decodegp(attr_keys, position):
     temp_gp = GP()
     if position is None:
         return temp_gp
@@ -1058,11 +1058,11 @@ CHANGES:
 """
 
 
-def run_particle_swarm(data_src, min_supp=MIN_SUPPORT, max_iteration=MAX_ITERATIONS, n_particles=N_PARTICLES,
-                       velocity=VELOCITY, coef_p=PERSONAL_COEFF, coef_g=GLOBAL_COEFF):
+def psogps(data_src, min_supp=MIN_SUPPORT, max_iteration=MAX_ITERATIONS, n_particles=N_PARTICLES,
+           velocity=VELOCITY, coef_p=PERSONAL_COEFF, coef_g=GLOBAL_COEFF):
     # Prepare data set
-    d_set = Dataset(data_src, min_supp)
-    d_set.init_gp_attributes()
+    d_set = DataGP(data_src, min_supp)
+    d_set.init_attributes()
     # self.target = 1
     # self.target_error = 1e-6
     attr_keys = [GI(x[0], x[1].decode()).as_string() for x in d_set.valid_bins[:, 0]]
@@ -1093,7 +1093,7 @@ def run_particle_swarm(data_src, min_supp=MIN_SUPPORT, max_iteration=MAX_ITERATI
     # Best particle (ever found)
     best_particle = empty_particle.deepcopy()
     best_particle.position = gbest_particle.position
-    best_particle.fitness = cost_func(best_particle.position, attr_keys, d_set)
+    best_particle.fitness = costfxn(best_particle.position, attr_keys, d_set)
 
     velocity_vector = np.ones(n_particles)
     best_fitness_arr = np.empty(max_iteration)
@@ -1111,7 +1111,7 @@ def run_particle_swarm(data_src, min_supp=MIN_SUPPORT, max_iteration=MAX_ITERATI
             if particle_pop[i].position < var_min or particle_pop[i].position > var_max:
                 particle_pop[i].fitness = 1
             else:
-                particle_pop[i].fitness = cost_func(particle_pop[i].position, attr_keys, d_set)
+                particle_pop[i].fitness = costfxn(particle_pop[i].position, attr_keys, d_set)
                 eval_count += 1
                 str_eval += "{}: {} \n".format(eval_count, particle_pop[i].fitness)
 
@@ -1133,9 +1133,9 @@ def run_particle_swarm(data_src, min_supp=MIN_SUPPORT, max_iteration=MAX_ITERATI
                            (coef_g * random.random()) * (gbest_particle.position - particle_pop[i].position)
             particle_pop[i].position = particle_pop[i].position + new_velocity
 
-        best_gp = validate_gp(d_set, decode_gp(attr_keys, best_particle.position))
-        is_present = is_duplicate(best_gp, best_patterns)
-        is_sub = check_anti_monotony(best_patterns, best_gp, subset=True)
+        best_gp = validategp(d_set, decodegp(attr_keys, best_particle.position))
+        is_present = isduplicate(best_gp, best_patterns)
+        is_sub = amcheck(best_patterns, best_gp, subset=True)
         if is_present or is_sub:
             repeated += 1
         else:
@@ -1185,10 +1185,10 @@ CHANGES:
 
 
 # hill climbing local search algorithm
-def run_hill_climbing(data_src, min_supp=MIN_SUPPORT, max_iteration=MAX_ITERATIONS, step_size=STEP_SIZE):
+def hcgps(data_src, min_supp=MIN_SUPPORT, max_iteration=MAX_ITERATIONS, step_size=STEP_SIZE):
     # Prepare data set
-    d_set = Dataset(data_src, min_supp)
-    d_set.init_gp_attributes()
+    d_set = DataGP(data_src, min_supp)
+    d_set.init_attributes()
     attr_keys = [GI(x[0], x[1].decode()).as_string() for x in d_set.valid_bins[:, 0]]
 
     if d_set.no_bins:
@@ -1220,7 +1220,7 @@ def run_hill_climbing(data_src, min_supp=MIN_SUPPORT, max_iteration=MAX_ITERATIO
         best_sol.position = np.random.uniform(var_min, var_max, N_VAR)
     # evaluate the initial point
     apply_bound(best_sol, var_min, var_max)
-    best_sol.cost = cost_func(best_sol.position, attr_keys, d_set)
+    best_sol.cost = costfxn(best_sol.position, attr_keys, d_set)
 
     # run the hill climb
     while counter < max_iteration:
@@ -1230,16 +1230,16 @@ def run_hill_climbing(data_src, min_supp=MIN_SUPPORT, max_iteration=MAX_ITERATIO
         if candidate.position is None:
             candidate.position = best_sol.position + (random.randrange(var_min, var_max) * step_size)
         apply_bound(candidate, var_min, var_max)
-        candidate.cost = cost_func(candidate.position, attr_keys, d_set)
+        candidate.cost = costfxn(candidate.position, attr_keys, d_set)
 
         if candidate.cost < best_sol.cost:
             best_sol = candidate.deepcopy()
         eval_count += 1
         str_eval += "{}: {} \n".format(eval_count, best_sol.cost)
 
-        best_gp = validate_gp(d_set, decode_gp(attr_keys, best_sol.position))
-        is_present = is_duplicate(best_gp, best_patterns)
-        is_sub = check_anti_monotony(best_patterns, best_gp, subset=True)
+        best_gp = validategp(d_set, decodegp(attr_keys, best_sol.position))
+        is_present = isduplicate(best_gp, best_patterns)
+        is_sub = amcheck(best_patterns, best_gp, subset=True)
         if is_present or is_sub:
             repeated += 1
         else:
@@ -1287,10 +1287,10 @@ CHANGES:
 """
 
 
-def run_random_search(data_src, min_supp=MIN_SUPPORT, max_iteration=MAX_ITERATIONS):
+def rsgps(data_src, min_supp=MIN_SUPPORT, max_iteration=MAX_ITERATIONS):
     # Prepare data set
-    d_set = Dataset(data_src, min_supp)
-    d_set.init_gp_attributes()
+    d_set = DataGP(data_src, min_supp)
+    d_set.init_attributes()
     attr_keys = [GI(x[0], x[1].decode()).as_string() for x in d_set.valid_bins[:, 0]]
 
     if d_set.no_bins:
@@ -1311,7 +1311,7 @@ def run_random_search(data_src, min_supp=MIN_SUPPORT, max_iteration=MAX_ITERATIO
     # INITIALIZE
     best_sol = candidate.deepcopy()
     best_sol.position = np.random.uniform(var_min, var_max, N_VAR)
-    best_sol.cost = cost_func(best_sol.position, attr_keys, d_set)
+    best_sol.cost = costfxn(best_sol.position, attr_keys, d_set)
 
     # Best Cost of Iteration
     best_costs = np.empty(max_iteration)
@@ -1326,16 +1326,16 @@ def run_random_search(data_src, min_supp=MIN_SUPPORT, max_iteration=MAX_ITERATIO
 
         candidate.position = ((var_min + random.random()) * (var_max - var_min))
         apply_bound(candidate, var_min, var_max)
-        candidate.cost = cost_func(candidate.position, attr_keys, d_set)
+        candidate.cost = costfxn(candidate.position, attr_keys, d_set)
 
         if candidate.cost < best_sol.cost:
             best_sol = candidate.deepcopy()
         eval_count += 1
         str_eval += "{}: {} \n".format(eval_count, best_sol.cost)
 
-        best_gp = validate_gp(d_set, decode_gp(attr_keys, best_sol.position))
-        is_present = is_duplicate(best_gp, best_patterns)
-        is_sub = check_anti_monotony(best_patterns, best_gp, subset=True)
+        best_gp = validategp(d_set, decodegp(attr_keys, best_sol.position))
+        is_present = isduplicate(best_gp, best_patterns)
+        is_sub = amcheck(best_patterns, best_gp, subset=True)
         if is_present or is_sub:
             repeated += 1
         else:

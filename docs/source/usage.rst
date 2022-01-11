@@ -52,7 +52,7 @@ Executing PSO for mining GPs:
 .. code-block:: python
 
     import so4gp as so
-    gps = so.run_particle_swarm(data_src, min_sup)
+    gps = so.psogps(data_src, min_sup)
     print(gps)
 
 
@@ -74,7 +74,7 @@ Executing LS for mining GPs:
 .. code-block:: python
 
     import so4gp as so
-    gps = so.run_hill_climbing(data_src, min_sup)
+    gps = so.hcgps(data_src, min_sup)
     print(gps)
 
 where you specify the parameters as follows:
@@ -93,7 +93,7 @@ Executing RS for mining GPs:
 .. code-block:: python
 
     import so4gp as so
-    gps = so.run_random_search(data_src, min_sup)
+    gps = so.rsgps(data_src, min_sup)
     print(gps)
 
 

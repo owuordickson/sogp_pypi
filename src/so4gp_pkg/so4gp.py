@@ -266,7 +266,7 @@ def get_bin_arr(d_set, col):
         # n = d_set.row_count
         col_data = np.array(attr_data[col], dtype=float)
         with np.errstate(invalid='ignore'):
-            temp_pos = col_data < col_data[:, np.newaxis]
+            temp_pos = np.where(col_data < col_data[:, np.newaxis], 1, 0)
         return temp_pos
 
 # -------- DATA SET PREPARATION (END)-------------

@@ -1,5 +1,11 @@
 RELEASE NOTES 
 
+0.1.1
+-----------------------------
+
+Bug fixes
+- function for generating GP bitmap returns a binary array
+
 
 0.1.0
 -----------------------------

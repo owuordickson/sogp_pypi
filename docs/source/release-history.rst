@@ -2,6 +2,13 @@
 RELEASE HISTORY
 ***************
 
+0.1.1 (2022-01-10)
+------------------
+
+Bug fixes
+- function for generating GP bitmap returns a binary array
+
+
 
 0.1.0 (2022-01-06)
 ------------------

@@ -1,15 +1,40 @@
 # -*- coding: utf-8 -*-
 """
-@author: "Dickson Owuor"
-@credits: "Thomas Runkler, Edmond Menya, and Anne Laurent,"
-@license: "MIT"
-@version: "0.0.1"
-@email: "owuordickson@gmail.com"
-@created: "21 July 2021"
-@modified: "06 January 2022"
+@author: Dickson Owuor
 
-SOME OPTIMIZATIONS FOR GRADUAL PATTERNS:
-Some optimization algorithms for mining gradual patterns
+@credits: Thomas Runkler, Edmond Menya, and Anne Laurent
+
+@license: MIT
+
+@version: 0.1.5
+
+@email: owuordickson@gmail.com
+
+@created: 21 July 2021
+
+@modified: 01 March 2022
+
+SO4GP
+------
+
+**SO4GP** stands for: "Some Optimizations for Gradual Patterns". SO4GP applies optimizations such as swarm intelligence,
+HDF5 chunks, SVD and many others in order to improve the efficiency of extracting gradual patterns (GPs).
+
+ A GP is a set of gradual items (GI) and its quality is measured by its computed support value. For example
+ given a data set with 3 columns (age, salary, cars) and 10 objects. A GP may take the form: {age+, salary-} with a
+ support of 0.8. This implies that 8 out of 10 objects have the values of column age 'increasing' and column 'salary'
+ decreasing.
+
+    The classical approach for mining GPs is computationally expensive. This package provides Python algorithm
+implementations of several optimization techniques that are applied to the classical approach in order to improve its
+computational efficiency. The algorithm implementations include:
+
+        * (Classical) GRAANK algorithm for extracting GPs
+        * Ant Colony Optimization algorithm for extracting GPs
+        * Genetic Algorithm for extracting GPs
+        * Particle Swarm Optimization algorithm for extracting GPs
+        * Random Search algorithm for extracting GPs
+        * Local Search algorithm for extracting GPs
 
 
 """
@@ -52,11 +77,6 @@ N_PARTICLES = 5
 # PLS-GRAD Configurations
 STEP_SIZE = 0.5
 
-# VISUALIZATIONS
-SHOW_P_MATRIX = False  # ONLY FOR: aco
-SHOW_EVALUATIONS = False  # FOR aco, prs, pls, pso
-SHOW_ITERATIONS = True  # FOR aco, prs, pls, pso
-SAVE_RESULTS = True  # FOR aco, prs, pls, pso
 
 # -------- CONFIGURATION (END)-------------
 
@@ -75,12 +95,85 @@ Changes
 
 
 class DataGP:
+    """Description of class DataGP
+
+    A class for creating data-gp objects. A data-gp object is meant to store all the parameters required by GP
+    algorithms to extract gradual patterns (GP). It takes a numeric file (in CSV format) as input and converts it into
+    an object whose attributes are used by algorithms to extract GPs.
+
+        A GP is a set of gradual items (GI) and its quality is measured by its computed support value. For example given
+    a data set with 3 columns (age, salary, cars) and 10 objects. A GP may take the form: {age+, salary-} with a support
+    of 0.8. This implies that 8 out of 10 objects have the values of column age 'increasing' and column 'salary'
+    decreasing.
+
+    The class provides the following attributes:
+        thd_supp: minimum support threshold
+
+        equal: eq value
+
+        titles: column names of data source
+
+        data: all the objects organized into their respective column
+
+        row_count: number of objects
+
+        col_count: number of all columns
+
+        time_cols: column indices of the columns with data-time objects
+
+        attr_cols: column indices of the columns with numeric values
+
+        valid_bins: valid bitmaps (in the form of ndarray) of all gradual items corresponding to the attr_cols, a bitmap is valid if its computed support is equal or greater than the minimum support threshold
+
+        no_bins: True if all none of the attr_cols yields a valid bitmap
+
+    """
 
     def __init__(self, data_source, min_sup=MIN_SUPPORT, eq=False):
+        """Description of class DataGP
+
+
+        A class for creating data-gp objects. A data-gp object is meant to store all the parameters required by GP
+        algorithms to extract gradual patterns (GP). It takes a numeric file (in CSV format) as input and converts it
+        into an object whose attributes are used by algorithms to extract GPs.
+
+        It provides the following attributes:
+            thd_supp: minimum support threshold
+
+            equal: eq value
+
+            titles: column names of data source
+
+            data: all the objects organized into their respective column
+
+            row_count: number of objects
+
+            col_count: number of all columns
+
+            time_cols: column indices of the columns with data-time objects
+
+            attr_cols: column indices of the columns with numeric values
+
+            valid_bins: valid bitmaps (in the form of ndarray) of all gradual items corresponding to the attr_cols, a bitmap is valid if its computed support is equal or greater than the minimum support threshold
+
+            no_bins: True if all none of the attr_cols yields a valid bitmap
+
+        :param data_source: [required] a numeric data source, it can either be a 'file in csv format' or a 'Pandas DataFrame'
+        :type data_source: str
+        :param min_sup: [optional] minimum support threshold, the default is 0.5
+        :param eq: encode equal values as gradual, the default is False
+
+        """
         self.thd_supp = min_sup
+        """:type thd_supp: float"""
         self.equal = eq
+        """:type eq: bool"""
         self.titles, self.data = DataGP.read(data_source)
+        """:type titles: ndarray"""
+        """:type data: ndarray"""
         self.row_count, self.col_count = self.data.shape
+        """:type row_count: int"""
+        """:type col_count: int"""
         self.time_cols = self.get_time_cols()
         self.attr_cols = self.get_attr_cols()
         self.valid_bins = np.array([])
@@ -89,11 +182,21 @@ class DataGP:
         self.attr_size = 0  # For T-GRAANK
 
     def get_attr_cols(self):
+        """
+        Returns indices of all columns with non-datetime objects
+
+        :return: ndarray
+        """
         all_cols = np.arange(self.col_count)
         attr_cols = np.setdiff1d(all_cols, self.time_cols)
         return attr_cols
 
     def get_time_cols(self):
+        """
+        Tests each column's objects for date-time values. Returns indices of all columns with date-time objects
+
+        :return: ndarray
+        """
         # Retrieve first column only
         time_cols = list()
         n = self.col_count
@@ -108,6 +211,13 @@ class DataGP:
         return np.array(time_cols)
 
     def init_attributes(self, attr_data=None):
+        """
+        Generates bitmaps for columns with numeric objects. It only stores (attribute valid_bins) those bitmaps whose computed support values
+        are greater or equal to the minimum support threshold value.
+
+        :param attr_data: stepped attribute objects
+        :return: void
+        """
         # (check) implement parallel multiprocessing
         # 1. Transpose csv array data
         if attr_data is None:
@@ -146,6 +256,13 @@ class DataGP:
 
     @staticmethod
     def read(data_src):
+        """
+        Reads all the contents of a file (in CSV format) or a data-frame. Checks if its columns have numeric values. It
+        separates its columns headers (titles) from the objects.
+
+        :param data_src:
+        :return: title, column objects
+        """
         # 1. Retrieve data set from source
         if isinstance(data_src, pd.DataFrame):
             # a. DataFrame source
@@ -285,15 +402,57 @@ GP: Gradual Pattern {(0, +), (1, -), (3, +)}
 
 
 class GI:
+    """Description of class GI (Gradual Item)
+
+    A class that is used to create GI objects. A GI is a pair (i,v) where i a column and v is a variation symbola -
+    increasing/decreasing. Each column of a data set yields 2 GIs; for example, column age yields GI age+ or age-.
+
+    This class has the following attributes:
+        attribute_col: column index of a data set
+
+        symbol: variation symbol (either + or -)
+
+        gradual_item: the GI in an ndarray format
+
+        tuple: the GI in a tuple format
+
+        rank_sum:
+
+    """
 
     def __init__(self, attr_col, symbol):
+        """Description of class GI (Gradual Item)
+
+        A class that is used to create GI objects. A GI is a pair (i,v) where i a column and v is a variation symbola -
+        increasing/decreasing. Each column of a data set yields 2 GIs; for example, column age yields GI age+ or age-.
+
+        This class has the following attributes:
+            attribute_col: column index of a data set
+
+            symbol: variation symbol (either + or -)
+
+            gradual_item: the GI in an ndarray format
+
+            tuple: the GI in a tuple format
+
+            rank_sum:
+
+        :param attr_col: column index
+        :param symbol: variation symbol (either + or -)
+        """
         self.attribute_col = attr_col
+        """:type attribute_col: int"""
         self.symbol = symbol
+        """:type symbol: str"""
         self.gradual_item = np.array((attr_col, symbol), dtype='i, S1')
         self.tuple = tuple([attr_col, symbol])
         self.rank_sum = 0
 
     def inv(self):
+        """
+        Inverts a GI to the opposite variation (i.e., from - to +; or, from + to -)
+        :return: inverted GI
+        """
         if self.symbol == '+':
             # temp = tuple([self.attribute_col, '-'])
             temp = np.array((self.attribute_col, '-'), dtype='i, S1')
@@ -305,6 +464,10 @@ class GI:
         return temp
 
     def as_integer(self):
+        """
+        Converts variation symbol into an integer (i.e., + to 1; and - to -1)
+        :return: GI with an integer variation symbol
+        """
         if self.symbol == '+':
             temp = [self.attribute_col, 1]
         elif self.symbol == '-':
@@ -314,6 +477,10 @@ class GI:
         return temp
 
     def as_string(self):
+        """
+        Stringifies a GI. It converts variation symbol into a string (i.e., + to _pos; and - to _neg)
+        :return: GI with a string variation symbol
+        """
         if self.symbol == '+':
             temp = str(self.attribute_col) + '_pos'
         elif self.symbol == '-':
@@ -323,9 +490,17 @@ class GI:
         return temp
 
     def to_string(self):
+        """
+        Returns a GI in string format
+        :return: string
+        """
         return str(self.attribute_col) + self.symbol
 
     def is_decrement(self):
+        """
+        Checks if a GI's variation corresponds to decreasing
+        :return: True is GI has a decreasing variation, False otherwise
+        """
         if self.symbol == '-':
             return True
         else:
@@ -333,6 +508,11 @@ class GI:
 
     @staticmethod
     def parse_gi(gi_str):
+        """
+        Converts a stringified GI into normal GI.
+        :param gi_str: stringified GI
+        :return: GI
+        """
         txt = gi_str.split('_')
         attr_col = int(txt[0])
         if txt[1] == 'neg':
@@ -343,33 +523,80 @@ class GI:
 
 
 class GP:
+    """Description of class GP (Gradual Pattern)
+
+    A class that is used to create GP objects. a GP object is a set of gradual items (GI) and its quality is measured by
+    its computed support value. For example given a data set with 3 columns (age, salary, cars) and 10 objects. A GP may
+    take the form: {age+, salary-} with a support of 0.8. This implies that 8 out of 10 objects have the values of
+    column age 'increasing' and column 'salary' decreasing.
+
+     The class has the following attributes:
+        gradual_items: list if GIs
+        support: computed support value as a float
+
+    """
 
     def __init__(self):
+        """Description of class GP (Gradual Pattern)
+
+            A class that is used to create GP objects. a GP object is a set of gradual items (GI) and its quality is measured by
+            its computed support value. For example given a data set with 3 columns (age, salary, cars) and 10 objects. A GP may
+            take the form: {age+, salary-} with a support of 0.8. This implies that 8 out of 10 objects have the values of
+            column age 'increasing' and column 'salary' decreasing.
+
+             The class has the following attributes:
+                gradual_items: list if GIs
+                support: computed support value as a float
+
+            """
         self.gradual_items = list()
         self.support = 0
+        """:type support: float"""
 
     def set_support(self, support):
+        """
+        Sets the computed support value of the gradual pattern (GP)
+        :param support: support value
+        :return: void
+        """
         self.support = round(support, 3)
 
     def add_gradual_item(self, item):
+        """
+        Adds a gradual item (GI) into the gradual pattern (GP)
+        :param item: gradual item
+        :return: void
+        """
         if item.symbol == '-' or item.symbol == '+':
             self.gradual_items.append(item)
         else:
             pass
 
     def get_pattern(self):
+        """
+        Returns the gradual pattern (GP) as a list
+        :return: gradual pattern
+        """
         pattern = list()
         for item in self.gradual_items:
             pattern.append(item.gradual_item.tolist())
         return pattern
 
     def get_np_pattern(self):
+        """
+        Returns a gradual pattern (GP) as a ndarray
+        :return: ndarray
+        """
         pattern = []
         for item in self.gradual_items:
             pattern.append(item.gradual_item)
         return np.array(pattern)
 
     def get_tuples(self):
+        """
+        Returns the gradual pattern (GP) as a list of GI tuples
+        :return: list of GI tuples
+        """
         pattern = list()
         for gi in self.gradual_items:
             temp = tuple([gi.attribute_col, gi.symbol])
@@ -377,6 +604,11 @@ class GP:
         return pattern
 
     def get_attributes(self):
+        """
+        Breaks down all the gradual items (GIs) in the gradual pattern into columns and variation symbols and returns
+        them as separate variables
+        :return: separate columns and variation symbols
+        """
         attrs = list()
         syms = list()
         for item in self.gradual_items:
@@ -386,6 +618,11 @@ class GP:
         return attrs, syms
 
     def get_index(self, gi):
+        """
+        Returns the index position of a gradual item in the gradual pattern
+        :param gi: gradual item
+        :return: index of gradual item
+        """
         for i in range(len(self.gradual_items)):
             gi_obj = self.gradual_items[i]
             if (gi.symbol == gi_obj.symbol) and (gi.attribute_col == gi_obj.attribute_col):
@@ -393,12 +630,21 @@ class GP:
         return -1
 
     def inv_pattern(self):
+        """
+        Inverts all the variation symbols of all the gradual items (GIs) in the gradual pattern (GP)
+        :return: inverted GP
+        """
         pattern = list()
         for gi in self.gradual_items:
             pattern.append(gi.inv().tolist())
         return pattern
 
     def contains(self, gi):
+        """
+        Checks if a gradual item (GI) is a member of a gradual pattern (GP)
+        :param gi: gradual item
+        :return: True if its a member, otherwise False
+        """
         if gi is None:
             return False
         if gi in self.gradual_items:
@@ -406,6 +652,11 @@ class GP:
         return False
 
     def contains_attr(self, gi):
+        """
+        Checks is any gradual item (GI) in the gradual pattern (GP) is composed of the column
+        :param gi: gradual item
+        :return: True if column exists, False otherwise
+        """
         if gi is None:
             return False
         for gi_obj in self.gradual_items:
@@ -414,18 +665,31 @@ class GP:
         return False
 
     def to_string(self):
+        """
+        Returns the GP in string format
+        :return: string
+        """
         pattern = list()
         for item in self.gradual_items:
             pattern.append(item.to_string())
         return pattern
 
     def to_dict(self):
+        """
+        Returns the GP as a dictionary
+        :return: dict
+        """
         gi_dict = {}
         for gi in self.gradual_items:
             gi_dict.update({gi.as_string(): 0})
         return gi_dict
 
     def print(self, columns):
+        """
+        Returns patterns with actual column names
+        :param columns: Columns names
+        :return: GP with actual column names
+        """
         pattern = list()
         for item in self.gradual_items:
             col_title = columns[item.attribute_col]
@@ -517,6 +781,13 @@ def inv(g_item):
 
 
 def genapri(R, sup, n):
+    """
+    Generates Apriori GP candidates
+    :param R: attributes
+    :param sup: minimum support threshold
+    :param n: number of objects
+    :return:
+    """
     res = []
     I = []
     if len(R) < 2:
@@ -562,10 +833,29 @@ def genapri(R, sup, n):
 
 
 def graank(f_path=None, min_sup=MIN_SUPPORT, eq=False, return_gps=False):
+
+    """
+    Extract gradual patterns (GPs) from a numeric data source using the GRAANK approach (proposed in a published
+    research paper by Anne Laurent).
+
+     A GP is a set of gradual items (GI) and its quality is measured by its computed support value. For example given a
+     data set with 3 columns (age, salary, cars) and 10 objects. A GP may take the form: {age+, salary-} with a support
+     of 0.8. This implies that 8 out of 10 objects have the values of column age 'increasing' and column 'salary'
+     decreasing.
+
+    :param f_path: [required] a numeric data source, it can either be a 'file in csv format' or a 'Pandas DataFrame'
+    :param min_sup: [optional] minimum support threshold, the default is 0.5
+    :param eq: [optional] encode equal values as gradual, the default is False
+    :param return_gps: [optional] additionally return object GPs, the default is False. If set to True, the method returns 2 items: JSON object, GP list
+    :return: JSON object
+    """
+
     d_set = DataGP(f_path, min_sup, eq)
+    """:type d_set: DataGP"""
     d_set.init_attributes()
 
     patterns = []
+    """:type patterns: GP list"""
     str_winner_gps = []
     n = d_set.attr_size
     valid_bins = d_set.valid_bins
@@ -588,19 +878,22 @@ def graank(f_path=None, min_sup=MIN_SUPPORT, eq=False, return_gps=False):
                         z = z + 1
 
                 gp = GP()
+                """:type gp: GP"""
                 for obj in valid_bins[i][0]:
                     gi = GI(obj[0], obj[1].decode())
+                    """:type gi: GI"""
                     gp.add_gradual_item(gi)
                 gp.set_support(sup)
                 patterns.append(gp)
                 str_winner_gps.append(gp.print(d_set.titles))
                 i += 1
     # Output
-    out = {"Algorithm": "GRAANK", "Patterns": str_winner_gps}
+    out = json.dumps({"Algorithm": "GRAANK", "Patterns": str_winner_gps})
+    """:type out: object"""
     if return_gps:
-        return json.dumps(out), patterns
+        return out, patterns
     else:
-        return json.dumps(out)
+        return out
 
 
 # -------- ACO-GRAD (START)-------------
@@ -613,6 +906,11 @@ CHANGES:
 
 
 def gend(valid_bins):
+    """
+    Generates the distance matrix (d)
+    :param valid_bins: valid GP bitmaps (whose computed support is greater than the minimum support threshold)
+    :return: distance matrix (d) and attribute keys
+    """
     v_bins = valid_bins
     # 1. Fetch valid bins group
     attr_keys = [GI(x[0], x[1].decode()).as_string() for x in v_bins[:, 0]]
@@ -636,8 +934,31 @@ def gend(valid_bins):
 
 def acogps(f_path, min_supp=MIN_SUPPORT, evaporation_factor=EVAPORATION_FACTOR,
            max_iteration=MAX_ITERATIONS, return_gps=False):
+    """
+    Extract gradual patterns (GPs) from a numeric data source using the Ant Colony Optimization (ACO-GRAD) approach
+    (proposed in a published research paper by Dickson Owuor). A GP is a set of gradual items (GI) and its quality is
+    measured by its computed support value. For example given a data set with 3 columns (age, salary, cars) and 10
+    objects. A GP may take the form: {age+, salary-} with a support of 0.8. This implies that 8 out of 10 objects have
+    the values of column age 'increasing' and column 'salary' decreasing.
+
+     In this approach, it is assumed that every column can be converted into gradual item (GI). If the GI is valid (i.e.
+     its computed support is greater than the minimum support threshold) then it is either increasing or decreasing (+
+     or -), otherwise it is irrelevant (x). Therefore, a pheromone matrix is built using the number of columns and the
+     possible variations (increasing, decreasing, irrelevant) or (+, -, x). The algorithm starts by randomly generating
+     GP candidates using the pheromone matrix, each candidate is validated by confirming that its computed support is
+     greater or equal to the minimum support threshold. The valid GPs are used to update the pheromone levels and better
+     candidates are generated.
+
+    :param f_path: [required] a numeric data source, it can either be a 'file in csv format' or a 'Pandas DataFrame'
+    :param min_sup: [optional] minimum support threshold, the default is 0.5
+    :param evaporation_factor: [optional] evaporation factor default = 0.5
+    :param max_iteration: [optional] maximum iterations default = 1
+    :param return_gps: [optional] additionally return object GPs, the default is False. If set to True, the method returns 2 items: JSON object, GP list
+    :return: JSON object
+    """
     # 0. Initialize and prepare data set
     d_set = DataGP(f_path, min_supp)
+    """:type d_set: DataGP"""
     d_set.init_attributes()
     # attr_index = d_set.attr_cols
     # e_factor = evaporation_factor
@@ -676,6 +997,7 @@ def acogps(f_path, min_supp=MIN_SUPPORT, evaporation_factor=EVAPORATION_FACTOR,
                 if is_super or is_sub:
                     continue
                 gen_gp = validategp(d_set, rand_gp)
+                """:type gen_gp: GP"""
                 is_present = isduplicate(gen_gp, winner_gps, loser_gps)
                 is_sub = amcheck(winner_gps, gen_gp, subset=True)
                 if is_present or is_sub:
@@ -697,16 +1019,18 @@ def acogps(f_path, min_supp=MIN_SUPPORT, evaporation_factor=EVAPORATION_FACTOR,
         else:
             counter = it_count
     # Output
-    out = {"Algorithm": "ACO-GRAD", "Best Patterns": str_winner_gps, "Iterations": it_count}
+    out = json.dumps({"Algorithm": "ACO-GRAD", "Best Patterns": str_winner_gps, "Iterations": it_count})
+    """:type out: object"""
     if return_gps:
-        return json.dumps(out), winner_gps
+        return out, winner_gps
     else:
-        return json.dumps(out)
+        return out
 
 
 def genaco(attr_keys, d, p_matrix, e_factor):
     v_matrix = d
     pattern = GP()
+    ":type pattern: GP"
 
     # 1. Generate gradual items with the highest pheromone and visibility
     m = p_matrix.shape[0]
@@ -720,6 +1044,7 @@ def genaco(attr_keys, d, p_matrix, e_factor):
         try:
             j = np.nonzero(cum_prob > r)[0][0]
             gi = GI.parse_gi(attr_keys[j])
+            """:type gi: GI"""
             if not pattern.contains_attr(gi):
                 pattern.add_gradual_item(gi)
         except IndexError:
@@ -731,6 +1056,14 @@ def genaco(attr_keys, d, p_matrix, e_factor):
 
 
 def update_pheromones(attr_keys, pattern, p_matrix):
+    """
+    Updates the pheromone level of the pheromone matrix
+
+    :param attr_keys: attribute keys
+    :param pattern: pattern used to update values
+    :param p_matrix: an existing pheromone matrix
+    :return: updated pheromone matrix
+    """
     idx = [attr_keys.index(x.as_string()) for x in pattern.gradual_items]
     for n in range(len(idx)):
         for m in range(n + 1, len(idx)):
@@ -742,10 +1075,19 @@ def update_pheromones(attr_keys, pattern, p_matrix):
 
 
 def validategp(d_set, pattern):
+    """
+    Validates a candidate gradual pattern (GP) based on support computation. A GP is invalid if its support value is
+    less than the minimum support threshold set by the user.
+
+    :param d_set: Data_GP object
+    :param pattern: candidate GP
+    :return: a valid GP or an empty GP
+    """
     # pattern = [('2', '+'), ('4', '+')]
     min_supp = d_set.thd_supp
     n = d_set.attr_size
     gen_pattern = GP()
+    """type gen_pattern: GP"""
     bin_arr = np.array([])
 
     for gi in pattern.gradual_items:
@@ -771,6 +1113,14 @@ def validategp(d_set, pattern):
 
 
 def amcheck(lst_p, pattern, subset=True):
+    """
+    Checks if a GP is a subset or superset of an already existing GP
+
+    :param lst_p: list of existing GPs
+    :param pattern: GP to be checked
+    :param subset: check if it is a subset
+    :return: True if superset/subset, False otherwise
+    """
     result = False
     if subset:
         for pat in lst_p:
@@ -790,6 +1140,14 @@ def amcheck(lst_p, pattern, subset=True):
 
 
 def isduplicate(pattern, lst_winners, lst_losers=None):
+    """
+    Checks if a pattern is in the list of winner GPs or loser GPs
+
+    :param pattern: a GP
+    :param lst_winners: list of GPs
+    :param lst_losers: list of GPs
+    :return: True if pattern is either list, False otherwise
+    """
     if lst_losers is None:
         pass
     else:
@@ -829,6 +1187,31 @@ CHANGES:
 
 def gagps(data_src, min_supp=MIN_SUPPORT, max_iteration=MAX_ITERATIONS, n_pop=N_POPULATION, pc=PC,
           gamma=GAMMA, mu=MU, sigma=SIGMA, return_gps=False):
+    """
+
+    Extract gradual patterns (GPs) from a numeric data source using the Genetic Algorithm (GA-GRAD) approach (proposed
+    in a published research paper by Dickson Owuor). A GP is a set of gradual items (GI) and its quality is measured by
+    its computed support value. For example given a data set with 3 columns (age, salary, cars) and 10 objects. A GP may
+    take the form: {age+, salary-} with a support of 0.8. This implies that 8 out of 10 objects have the values of
+    column age 'increasing' and column 'salary' decreasing.
+
+     In this approach, it is assumed that every GP candidate may be represented as a binary gene (or individual) that
+     has a unique position and cost. The cost is derived from the computed support of that candidate, the higher the
+     support value the lower the cost. The aim of the algorithm is search through a population of individuals (or
+     candidates) and find those with the lowest cost as efficiently as possible.
+
+    :param data_src: [required] a numeric data source, it can either be a 'file in csv format' or a 'Pandas DataFrame'
+    :param min_sup: [optional] minimum support threshold, the default is set to 0.5
+    :param max_iteration: [optional] maximum iterations, the default is set to 1
+    :param n_pop: [optional] initial population, the default is set to 5
+    :param pc: [optional] offspring population multiple, the default is set 0.5. This determines how fast the population grows.
+    :param gamma: [optional] crossover rate, the default is set to 1
+    :param mu: [optional] mutation rate, the default is set to 0.9
+    :param sigma: [optional] mutation rate, the default is set to 0.9
+    :param return_gps: [optional] additionally return object GPs, the default is False. If set to True, the method returns 2 items: JSON object, GP list
+    :return: JSON object
+    """
+
     # Prepare data set
     d_set = DataGP(data_src, min_supp)
     d_set.init_attributes()
@@ -940,6 +1323,7 @@ def gagps(data_src, min_supp=MIN_SUPPORT, max_iteration=MAX_ITERATIONS, n_pop=N_
         pop = pop[0:n_pop]
 
         best_gp = validategp(d_set, decodegp(attr_keys, best_sol.position))
+        """:type best_gp: GP"""
         is_present = isduplicate(best_gp, best_patterns)
         is_sub = amcheck(best_patterns, best_gp, subset=True)
         if is_present or is_sub:
@@ -965,14 +1349,24 @@ def gagps(data_src, min_supp=MIN_SUPPORT, max_iteration=MAX_ITERATIONS, n_pop=N_
         else:
             counter = it_count
     # Output
-    out = {"Algorithm": "GA-GRAD", "Best Patterns": str_best_gps, "Iterations": it_count}
+    out = json.dumps({"Algorithm": "GA-GRAD", "Best Patterns": str_best_gps, "Iterations": it_count})
+    """:type out: object"""
     if return_gps:
-        return json.dumps(out), best_patterns
+        return out, best_patterns
     else:
-        return json.dumps(out)
+        return out
 
 
 def costfxn(position, attr_keys, d_set):
+    """
+    Computes the cost of a specific binary position (this position can be decoded into a GP candidate). The lower the
+    cost the better the quality of that position.
+
+    :param position: binary position
+    :param attr_keys: list of gradual items (GIs) in the format of strings
+    :param d_set: DataGP object
+    :return: cost value
+    """
     pattern = decodegp(attr_keys, position)
     temp_bin = np.array([])
     for gi in pattern.gradual_items:
@@ -993,6 +1387,15 @@ def costfxn(position, attr_keys, d_set):
 
 
 def crossover(p1, p2, gamma=0.1):
+    """
+    Crosses over the genes of 2 parents (an individual with a specific position and cost) in order to generate 2
+    different offsprings.
+
+    :param p1: parent 1 individual
+    :param p2: parent 2 individual
+    :param gamma: cross-over rate
+    :return: 2 offsprings (children)
+    """
     c1 = p1.deepcopy()
     c2 = p2.deepcopy()
     alpha = np.random.uniform(0, gamma, 1)
@@ -1002,6 +1405,14 @@ def crossover(p1, p2, gamma=0.1):
 
 
 def mutate(x, mu, sigma):
+    """
+    Mutates an individual's position in order to create a new and different individual.
+
+    :param x: existing individual
+    :param mu: mutation rate 1
+    :param sigma: mutation rate 2
+    :return: new individual
+    """
     y = x.deepcopy()
     str_x = str(int(y.position))
     # flag = np.random.rand(*x.position.shape) <= mu
@@ -1023,12 +1434,29 @@ def mutate(x, mu, sigma):
 
 
 def apply_bound(x, var_min, var_max):
+    """
+    Ensures that an individual's position is between a minimum and a maximum value. If not, it moves it to the minimum
+    or maximum value.
+
+    :param x: existing individual
+    :param var_min: minimum value
+    :param var_max: maximum value
+    :return: void
+    """
     x.position = np.maximum(x.position, var_min)
     x.position = np.minimum(x.position, var_max)
 
 
 def decodegp(attr_keys, position):
+    """
+    Converts a binary position into a gradual pattern (GP) candidate.
+
+    :param attr_keys: list of gradual items (GIs) in the format of strings
+    :param position: binary position
+    :return: GP
+    """
     temp_gp = GP()
+    """:type temp_gp: GP"""
     if position is None:
         return temp_gp
 
@@ -1069,6 +1497,28 @@ CHANGES:
 
 def psogps(data_src, min_supp=MIN_SUPPORT, max_iteration=MAX_ITERATIONS, n_particles=N_PARTICLES,
            velocity=VELOCITY, coef_p=PERSONAL_COEFF, coef_g=GLOBAL_COEFF, return_gps=False):
+    """
+    Extract gradual patterns (GPs) from a numeric data source using the Particle Swarm Optimization Algorithm (PSO-GRAD)
+    approach (proposed in a published research paper by Dickson Owuor). A GP is a set of gradual items (GI) and its
+    quality is measured by its computed support value. For example given a data set with 3 columns (age, salary, cars)
+    and 10 objects. A GP may take the form: {age+, salary-} with a support of 0.8. This implies that 8 out of 10 objects
+    have the values of column age 'increasing' and column 'salary' decreasing.
+
+     In this approach, it is assumed that every GP candidate may be represented as a particle that has a unique position
+     and fitness. The fitness is derived from the computed support of that candidate, the higher the support value the
+     higher the fitness. The aim of the algorithm is search through a population of particles (or candidates) and find
+     those with the highest fitness as efficiently as possible.
+
+    :param data_src: [required] a numeric data source, it can either be a 'file in csv format' or a 'Pandas DataFrame'
+    :param min_sup: [optional] minimum support threshold, the default is set to 0.5
+    :param max_iteration: [optional] maximum iterations, the default is set to 1
+    :param n_particles: [optional] initial particle population, the default is set to 5
+    :param velocity: [optional] particle velocity, the default is set to 0.9
+    :param coef_p: [optional] personal coefficient rate, the default is set to 0.01
+    :param coef_g: [optional] global coefficient, the default is set to 0.9
+    :param return_gps: [optional] additionally return object GPs, the default is False. If set to True, the method returns 2 items: JSON object, GP list
+    :return: JSON object
+    """
     # Prepare data set
     d_set = DataGP(data_src, min_supp)
     d_set.init_attributes()
@@ -1143,6 +1593,7 @@ def psogps(data_src, min_supp=MIN_SUPPORT, max_iteration=MAX_ITERATIONS, n_parti
             particle_pop[i].position = particle_pop[i].position + new_velocity
 
         best_gp = validategp(d_set, decodegp(attr_keys, best_particle.position))
+        """:type best_gp: GP"""
         is_present = isduplicate(best_gp, best_patterns)
         is_sub = amcheck(best_patterns, best_gp, subset=True)
         if is_present or is_sub:
@@ -1167,11 +1618,12 @@ def psogps(data_src, min_supp=MIN_SUPPORT, max_iteration=MAX_ITERATIONS, n_parti
         else:
             counter = it_count
     # Output
-    out = {"Algorithm": "PSO-GRAD", "Best Patterns": str_best_gps, "Iterations": it_count}
+    out = json.dumps({"Algorithm": "PSO-GRAD", "Best Patterns": str_best_gps, "Iterations": it_count})
+    """:type out: object"""
     if return_gps:
-        return json.dumps(out), best_patterns
+        return out, best_patterns
     else:
-        return json.dumps(out)
+        return out
 
 
 # -------- PSO-GRAD (END)-------------
@@ -1198,6 +1650,25 @@ CHANGES:
 
 # hill climbing local search algorithm
 def hcgps(data_src, min_supp=MIN_SUPPORT, max_iteration=MAX_ITERATIONS, step_size=STEP_SIZE, return_gps=False):
+    """
+    Extract gradual patterns (GPs) from a numeric data source using the Hill Climbing (Local Search) Algorithm (LS-GRAD)
+    approach (proposed in a published research paper by Dickson Owuor). A GP is a set of gradual items (GI) and its
+    quality is measured by its computed support value. For example given a data set with 3 columns (age, salary, cars)
+    and 10 objects. A GP may take the form: {age+, salary-} with a support of 0.8. This implies that 8 out of 10 objects
+    have the values of column age 'increasing' and column 'salary' decreasing.
+
+     In this approach, it is assumed that every GP candidate may be represented as a position that has a cost value
+     associated with it. The cost is derived from the computed support of that candidate, the higher the support value
+     the lower the cost. The aim of the algorithm is search through group of positions and find those with the lowest
+     cost as efficiently as possible.
+
+    :param data_src: [required] a numeric data source, it can either be a 'file in csv format' or a 'Pandas DataFrame'
+    :param min_sup: [optional] minimum support threshold, the default is set to 0.5
+    :param max_iteration: [optional] maximum iterations, the default is set to 1
+    :param step_size: [optional] step size, the default is set to 0.5
+    :param return_gps: [optional] additionally return object GPs, the default is False. If set to True, the method returns 2 items: JSON object, GP list
+    :return: JSON object
+    """
     # Prepare data set
     d_set = DataGP(data_src, min_supp)
     d_set.init_attributes()
@@ -1250,6 +1721,7 @@ def hcgps(data_src, min_supp=MIN_SUPPORT, max_iteration=MAX_ITERATIONS, step_siz
         str_eval += "{}: {} \n".format(eval_count, best_sol.cost)
 
         best_gp = validategp(d_set, decodegp(attr_keys, best_sol.position))
+        """:type best_gp: GP"""
         is_present = isduplicate(best_gp, best_patterns)
         is_sub = amcheck(best_patterns, best_gp, subset=True)
         if is_present or is_sub:
@@ -1273,11 +1745,12 @@ def hcgps(data_src, min_supp=MIN_SUPPORT, max_iteration=MAX_ITERATIONS, step_siz
         else:
             counter = it_count
     # Output
-    out = {"Algorithm": "LS-GRAD", "Best Patterns": str_best_gps, "Iterations": it_count}
+    out = json.dumps({"Algorithm": "LS-GRAD", "Best Patterns": str_best_gps, "Iterations": it_count})
+    """:type out: object"""
     if return_gps:
-        return json.dumps(out), best_patterns
+        return out, best_patterns
     else:
-        return json.dumps(out)
+        return out
 
 
 # -------- PLS-GRAD (END)-------------
@@ -1303,6 +1776,24 @@ CHANGES:
 
 
 def rsgps(data_src, min_supp=MIN_SUPPORT, max_iteration=MAX_ITERATIONS, return_gps=False):
+    """
+    Extract gradual patterns (GPs) from a numeric data source using the Random Search Algorithm (LS-GRAD)
+    approach (proposed in a published research paper by Dickson Owuor). A GP is a set of gradual items (GI) and its
+    quality is measured by its computed support value. For example given a data set with 3 columns (age, salary, cars)
+    and 10 objects. A GP may take the form: {age+, salary-} with a support of 0.8. This implies that 8 out of 10 objects
+    have the values of column age 'increasing' and column 'salary' decreasing.
+
+     In this approach, it is assumed that every GP candidate may be represented as a position that has a cost value
+     associated with it. The cost is derived from the computed support of that candidate, the higher the support value
+     the lower the cost. The aim of the algorithm is search through group of positions and find those with the lowest
+     cost as efficiently as possible.
+
+    :param data_src: [required] a numeric data source, it can either be a 'file in csv format' or a 'Pandas DataFrame'
+    :param min_sup: [optional] minimum support threshold, the default is set to 0.5
+    :param max_iteration: [optional] maximum iterations, the default is set to 1
+    :param return_gps: [optional] additionally return object GPs, the default is False. If set to True, the method returns 2 items: JSON object, GP list
+    :return: JSON object
+    """
     # Prepare data set
     d_set = DataGP(data_src, min_supp)
     d_set.init_attributes()
@@ -1349,6 +1840,7 @@ def rsgps(data_src, min_supp=MIN_SUPPORT, max_iteration=MAX_ITERATIONS, return_g
         str_eval += "{}: {} \n".format(eval_count, best_sol.cost)
 
         best_gp = validategp(d_set, decodegp(attr_keys, best_sol.position))
+        """:type best_gp: GP"""
         is_present = isduplicate(best_gp, best_patterns)
         is_sub = amcheck(best_patterns, best_gp, subset=True)
         if is_present or is_sub:
@@ -1374,10 +1866,11 @@ def rsgps(data_src, min_supp=MIN_SUPPORT, max_iteration=MAX_ITERATIONS, return_g
         else:
             counter = it_count
     # Output
-    out = {"Algorithm": "RS-GRAD", "Best Patterns": str_best_gps, "Iterations": it_count}
+    out = json.dumps({"Algorithm": "RS-GRAD", "Best Patterns": str_best_gps, "Iterations": it_count})
+    """:type out: object"""
     if return_gps:
-        return json.dumps(out), best_patterns
+        return out, best_patterns
     else:
-        return json.dumps(out)
+        return out
 
 # -------- PRS-GRAD (END)-------------

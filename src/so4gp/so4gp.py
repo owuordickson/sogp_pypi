@@ -20,10 +20,11 @@ SO4GP
 **SO4GP** stands for: "Some Optimizations for Gradual Patterns". SO4GP applies optimizations such as swarm intelligence,
 HDF5 chunks, SVD and many others in order to improve the efficiency of extracting gradual patterns (GPs).
 
- A GP is a set of gradual items (GI) and its quality is measured by its computed support value. For example
- given a data set with 3 columns (age, salary, cars) and 10 objects. A GP may take the form: {age+, salary-} with a
- support of 0.8. This implies that 8 out of 10 objects have the values of column age 'increasing' and column 'salary'
- decreasing.
+ A GP is a set of gradual items (GI) and its quality is measured by its computed support value. A GI is a pair (i,v)
+ where i is a column and v is a variation symbol: increasing/decreasing. Each column of a data set yields 2 GIs; for
+ example, column age yields GI age+ or age-. For example given a data set with 3 columns (age, salary, cars) and 10
+ objects. A GP may take the form: {age+, salary-} with a support of 0.8. This implies that 8 out of 10 objects have the
+ values of column age 'increasing' and column 'salary' decreasing.
 
     The classical approach for mining GPs is computationally expensive. This package provides Python algorithm
 implementations of several optimization techniques that are applied to the classical approach in order to improve its

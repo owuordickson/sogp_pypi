@@ -404,7 +404,7 @@ GP: Gradual Pattern {(0, +), (1, -), (3, +)}
 class GI:
     """Description of class GI (Gradual Item)
 
-    A class that is used to create GI objects. A GI is a pair (i,v) where i a column and v is a variation symbola -
+    A class that is used to create GI objects. A GI is a pair (i,v) where i is a column and v is a variation symbol -
     increasing/decreasing. Each column of a data set yields 2 GIs; for example, column age yields GI age+ or age-.
 
     This class has the following attributes:
@@ -412,7 +412,7 @@ class GI:
 
         symbol: variation symbol (either + or -)
 
-        gradual_item: the GI in an ndarray format
+        gradual_item: the GI in a ndarray format
 
         tuple: the GI in a tuple format
 
@@ -423,7 +423,7 @@ class GI:
     def __init__(self, attr_col, symbol):
         """Description of class GI (Gradual Item)
 
-        A class that is used to create GI objects. A GI is a pair (i,v) where i a column and v is a variation symbola -
+        A class that is used to create GI objects. A GI is a pair (i,v) where is a column and v is a variation symbol -
         increasing/decreasing. Each column of a data set yields 2 GIs; for example, column age yields GI age+ or age-.
 
         This class has the following attributes:
@@ -431,7 +431,7 @@ class GI:
 
             symbol: variation symbol (either + or -)
 
-            gradual_item: the GI in an ndarray format
+            gradual_item: the GI in a ndarray format
 
             tuple: the GI in a tuple format
 
@@ -643,7 +643,7 @@ class GP:
         """
         Checks if a gradual item (GI) is a member of a gradual pattern (GP)
         :param gi: gradual item
-        :return: True if its a member, otherwise False
+        :return: True if it is a member, otherwise False
         """
         if gi is None:
             return False
@@ -950,7 +950,7 @@ def acogps(f_path, min_supp=MIN_SUPPORT, evaporation_factor=EVAPORATION_FACTOR,
      candidates are generated.
 
     :param f_path: [required] a numeric data source, it can either be a 'file in csv format' or a 'Pandas DataFrame'
-    :param min_sup: [optional] minimum support threshold, the default is 0.5
+    :param min_supp: [optional] minimum support threshold, the default is 0.5
     :param evaporation_factor: [optional] evaporation factor default = 0.5
     :param max_iteration: [optional] maximum iterations default = 1
     :param return_gps: [optional] additionally return object GPs, the default is False. If set to True, the method returns 2 items: JSON object, GP list
@@ -1201,7 +1201,7 @@ def gagps(data_src, min_supp=MIN_SUPPORT, max_iteration=MAX_ITERATIONS, n_pop=N_
      candidates) and find those with the lowest cost as efficiently as possible.
 
     :param data_src: [required] a numeric data source, it can either be a 'file in csv format' or a 'Pandas DataFrame'
-    :param min_sup: [optional] minimum support threshold, the default is set to 0.5
+    :param min_supp: [optional] minimum support threshold, the default is set to 0.5
     :param max_iteration: [optional] maximum iterations, the default is set to 1
     :param n_pop: [optional] initial population, the default is set to 5
     :param pc: [optional] offspring population multiple, the default is set 0.5. This determines how fast the population grows.
@@ -1510,7 +1510,7 @@ def psogps(data_src, min_supp=MIN_SUPPORT, max_iteration=MAX_ITERATIONS, n_parti
      those with the highest fitness as efficiently as possible.
 
     :param data_src: [required] a numeric data source, it can either be a 'file in csv format' or a 'Pandas DataFrame'
-    :param min_sup: [optional] minimum support threshold, the default is set to 0.5
+    :param min_supp: [optional] minimum support threshold, the default is set to 0.5
     :param max_iteration: [optional] maximum iterations, the default is set to 1
     :param n_particles: [optional] initial particle population, the default is set to 5
     :param velocity: [optional] particle velocity, the default is set to 0.9
@@ -1663,7 +1663,7 @@ def hcgps(data_src, min_supp=MIN_SUPPORT, max_iteration=MAX_ITERATIONS, step_siz
      cost as efficiently as possible.
 
     :param data_src: [required] a numeric data source, it can either be a 'file in csv format' or a 'Pandas DataFrame'
-    :param min_sup: [optional] minimum support threshold, the default is set to 0.5
+    :param min_supp: [optional] minimum support threshold, the default is set to 0.5
     :param max_iteration: [optional] maximum iterations, the default is set to 1
     :param step_size: [optional] step size, the default is set to 0.5
     :param return_gps: [optional] additionally return object GPs, the default is False. If set to True, the method returns 2 items: JSON object, GP list
@@ -1789,7 +1789,7 @@ def rsgps(data_src, min_supp=MIN_SUPPORT, max_iteration=MAX_ITERATIONS, return_g
      cost as efficiently as possible.
 
     :param data_src: [required] a numeric data source, it can either be a 'file in csv format' or a 'Pandas DataFrame'
-    :param min_sup: [optional] minimum support threshold, the default is set to 0.5
+    :param min_supp: [optional] minimum support threshold, the default is set to 0.5
     :param max_iteration: [optional] maximum iterations, the default is set to 1
     :param return_gps: [optional] additionally return object GPs, the default is False. If set to True, the method returns 2 items: JSON object, GP list
     :return: JSON object

@@ -561,7 +561,7 @@ def genapri(R, sup, n):
     return res
 
 
-def graank(f_path=None, min_sup=MIN_SUPPORT, eq=False):
+def graank(f_path=None, min_sup=MIN_SUPPORT, eq=False, return_gps=False):
     d_set = DataGP(f_path, min_sup, eq)
     d_set.init_attributes()
 
@@ -597,7 +597,10 @@ def graank(f_path=None, min_sup=MIN_SUPPORT, eq=False):
                 i += 1
     # Output
     out = {"Algorithm": "GRAANK", "Patterns": str_winner_gps}
-    return json.dumps(out)
+    if return_gps:
+        return json.dumps(out), patterns
+    else:
+        return json.dumps(out)
 
 
 # -------- ACO-GRAD (START)-------------
@@ -632,7 +635,7 @@ def gend(valid_bins):
 
 
 def acogps(f_path, min_supp=MIN_SUPPORT, evaporation_factor=EVAPORATION_FACTOR,
-           max_iteration=MAX_ITERATIONS):
+           max_iteration=MAX_ITERATIONS, return_gps=False):
     # 0. Initialize and prepare data set
     d_set = DataGP(f_path, min_supp)
     d_set.init_attributes()
@@ -695,7 +698,10 @@ def acogps(f_path, min_supp=MIN_SUPPORT, evaporation_factor=EVAPORATION_FACTOR,
             counter = it_count
     # Output
     out = {"Algorithm": "ACO-GRAD", "Best Patterns": str_winner_gps, "Iterations": it_count}
-    return json.dumps(out)
+    if return_gps:
+        return json.dumps(out), winner_gps
+    else:
+        return json.dumps(out)
 
 
 def genaco(attr_keys, d, p_matrix, e_factor):
@@ -822,7 +828,7 @@ CHANGES:
 
 
 def gagps(data_src, min_supp=MIN_SUPPORT, max_iteration=MAX_ITERATIONS, n_pop=N_POPULATION, pc=PC,
-          gamma=GAMMA, mu=MU, sigma=SIGMA):
+          gamma=GAMMA, mu=MU, sigma=SIGMA, return_gps=False):
     # Prepare data set
     d_set = DataGP(data_src, min_supp)
     d_set.init_attributes()
@@ -960,7 +966,10 @@ def gagps(data_src, min_supp=MIN_SUPPORT, max_iteration=MAX_ITERATIONS, n_pop=N_
             counter = it_count
     # Output
     out = {"Algorithm": "GA-GRAD", "Best Patterns": str_best_gps, "Iterations": it_count}
-    return json.dumps(out)
+    if return_gps:
+        return json.dumps(out), best_patterns
+    else:
+        return json.dumps(out)
 
 
 def costfxn(position, attr_keys, d_set):
@@ -1059,7 +1068,7 @@ CHANGES:
 
 
 def psogps(data_src, min_supp=MIN_SUPPORT, max_iteration=MAX_ITERATIONS, n_particles=N_PARTICLES,
-           velocity=VELOCITY, coef_p=PERSONAL_COEFF, coef_g=GLOBAL_COEFF):
+           velocity=VELOCITY, coef_p=PERSONAL_COEFF, coef_g=GLOBAL_COEFF, return_gps=False):
     # Prepare data set
     d_set = DataGP(data_src, min_supp)
     d_set.init_attributes()
@@ -1159,7 +1168,10 @@ def psogps(data_src, min_supp=MIN_SUPPORT, max_iteration=MAX_ITERATIONS, n_parti
             counter = it_count
     # Output
     out = {"Algorithm": "PSO-GRAD", "Best Patterns": str_best_gps, "Iterations": it_count}
-    return json.dumps(out)
+    if return_gps:
+        return json.dumps(out), best_patterns
+    else:
+        return json.dumps(out)
 
 
 # -------- PSO-GRAD (END)-------------
@@ -1185,7 +1197,7 @@ CHANGES:
 
 
 # hill climbing local search algorithm
-def hcgps(data_src, min_supp=MIN_SUPPORT, max_iteration=MAX_ITERATIONS, step_size=STEP_SIZE):
+def hcgps(data_src, min_supp=MIN_SUPPORT, max_iteration=MAX_ITERATIONS, step_size=STEP_SIZE, return_gps=False):
     # Prepare data set
     d_set = DataGP(data_src, min_supp)
     d_set.init_attributes()
@@ -1262,7 +1274,10 @@ def hcgps(data_src, min_supp=MIN_SUPPORT, max_iteration=MAX_ITERATIONS, step_siz
             counter = it_count
     # Output
     out = {"Algorithm": "LS-GRAD", "Best Patterns": str_best_gps, "Iterations": it_count}
-    return json.dumps(out)
+    if return_gps:
+        return json.dumps(out), best_patterns
+    else:
+        return json.dumps(out)
 
 
 # -------- PLS-GRAD (END)-------------
@@ -1287,7 +1302,7 @@ CHANGES:
 """
 
 
-def rsgps(data_src, min_supp=MIN_SUPPORT, max_iteration=MAX_ITERATIONS):
+def rsgps(data_src, min_supp=MIN_SUPPORT, max_iteration=MAX_ITERATIONS, return_gps=False):
     # Prepare data set
     d_set = DataGP(data_src, min_supp)
     d_set.init_attributes()
@@ -1360,6 +1375,9 @@ def rsgps(data_src, min_supp=MIN_SUPPORT, max_iteration=MAX_ITERATIONS):
             counter = it_count
     # Output
     out = {"Algorithm": "RS-GRAD", "Best Patterns": str_best_gps, "Iterations": it_count}
-    return json.dumps(out)
+    if return_gps:
+        return json.dumps(out), best_patterns
+    else:
+        return json.dumps(out)
 
 # -------- PRS-GRAD (END)-------------

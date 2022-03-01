@@ -3,6 +3,14 @@ RELEASE HISTORY
 ***************
 
 
+0.1.5 (2022-03-01)
+-------------------
+
+**Updates**
+
+- added ability to return GPs as objects
+
+
 0.1.4 (2022-01-11)
 -------------------
 

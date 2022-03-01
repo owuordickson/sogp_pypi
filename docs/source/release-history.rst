@@ -9,6 +9,8 @@ RELEASE HISTORY
 **Updates**
 
 - added ability to return GPs as objects
+- added docstrings to describe functionality
+
 
 
 0.1.4 (2022-01-11)

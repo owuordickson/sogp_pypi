@@ -3,6 +3,14 @@ RELEASE HISTORY
 ***************
 
 
+0.1.6 (2022-03-02)
+-------------------
+
+**Updates**
+
+- added method for computing net-wins matrix
+
+
 0.1.5 (2022-03-01)
 -------------------
 

@@ -157,6 +157,8 @@ class DataGP:
 
             valid_bins: valid bitmaps (in the form of ndarray) of all gradual items corresponding to the attr_cols, a bitmap is valid if its computed support is equal or greater than the minimum support threshold
 
+            net_wins: a net-wins matrix constructed from valid gradual item bitmaps
+
             no_bins: True if all none of the attr_cols yields a valid bitmap
 
         :param data_source: [required] a numeric data source, it can either be a 'file in csv format' or a 'Pandas DataFrame'
@@ -178,6 +180,7 @@ class DataGP:
         self.time_cols = self.get_time_cols()
         self.attr_cols = self.get_attr_cols()
         self.valid_bins = np.array([])
+        self.net_wins = np.array([])
         self.no_bins = False
         self.step_name = ''  # For T-GRAANK
         self.attr_size = 0  # For T-GRAANK
@@ -213,8 +216,8 @@ class DataGP:
 
     def init_attributes(self, attr_data=None):
         """
-        Generates bitmaps for columns with numeric objects. It only stores (attribute valid_bins) those bitmaps whose computed support values
-        are greater or equal to the minimum support threshold value.
+        Generates bitmaps for columns with numeric objects. It only stores (attribute valid_bins) those bitmaps whose
+        computed support values are greater or equal to the minimum support threshold value.
 
         :param attr_data: stepped attribute objects
         :return: void
@@ -254,6 +257,39 @@ class DataGP:
         if len(self.valid_bins) < 3:
             self.no_bins = True
         gc.collect()
+
+    def construct_net_wins(self):
+        """
+        Construct a net-wins matrix from bitmaps corresponding to every valid gradual item.
+
+        :return: void
+
+        """
+        # Function for constructing GP pairs for Mx2 matrix
+        net_wins = []
+        attr_data = self.data.T
+        n = self.row_count
+        for col in self.attr_cols:
+            col_data = np.array(attr_data[col], dtype=float)
+            incr = np.array((col, '+'), dtype='i, S1')
+            decr = np.array((col, '-'), dtype='i, S1')
+
+            bitmap_pos = np.where(col_data > col_data[:, np.newaxis], 1,
+                                  np.where(col_data < col_data[:, np.newaxis], -1,
+                                           0))
+            # Remove invalid candidates
+            supp = float(np.sum(bitmap_pos[bitmap_pos == 1])) / float(n * (n - 1.0) / 2.0)
+            if supp >= self.thd_supp:
+                row_sum = np.sum(bitmap_pos, axis=1)
+                row_sum[row_sum > 0] = 1
+                row_sum[row_sum < 0] = -1
+
+                net_wins.append(np.array([incr.tolist(), row_sum, supp], dtype=object))
+                net_wins.append(np.array([decr.tolist(), -row_sum, supp], dtype=object))
+        self.net_wins = np.array(net_wins)
+        # print(self.net_wins)
+        if len(self.net_wins) < 3:
+            self.no_bins = True
 
     @staticmethod
     def read(data_src):

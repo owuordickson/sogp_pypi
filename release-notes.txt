@@ -1,6 +1,13 @@
 RELEASE NOTES 
 
 
+0.1.6
+-----------------------------
+
+Updates
+- added method for computing net-wins matrix
+
+
 0.1.5
 -----------------------------
 

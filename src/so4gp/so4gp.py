@@ -1114,7 +1114,7 @@ def validategp(d_set, pattern):
 
 def amcheck(lst_p, pattern, subset=True):
     """
-    Checks if a GP is a subset or superset of an already existing GP
+    Anti-monotonicity check. Checks if a GP is a subset or superset of an already existing GP
 
     :param lst_p: list of existing GPs
     :param pattern: GP to be checked

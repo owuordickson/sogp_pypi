@@ -175,12 +175,10 @@ class DataGP:
         """:type titles: ndarray"""
         """:type data: ndarray"""
         self.row_count, self.col_count = self.data.shape
-        """:type row_count: int"""
-        """:type col_count: int"""
         self.time_cols = self.get_time_cols()
         self.attr_cols = self.get_attr_cols()
         self.valid_bins = np.array([])
-        self.net_wins = np.array([])
+        self.net_wins = structure()
         self.no_bins = False
         self.step_name = ''  # For T-GRAANK
         self.attr_size = 0  # For T-GRAANK
@@ -266,14 +264,14 @@ class DataGP:
 
         """
         # Function for constructing GP pairs for Mx2 matrix
-        net_wins = []
+        n_mat = []
+        lst_sup = []
+        lst_gis = []
+
         attr_data = self.data.T
         n = self.row_count
         for col in self.attr_cols:
             col_data = np.array(attr_data[col], dtype=float)
-            incr = np.array((col, '+'), dtype='i, S1')
-            decr = np.array((col, '-'), dtype='i, S1')
-
             bitmap_pos = np.where(col_data > col_data[:, np.newaxis], 1,
                                   np.where(col_data < col_data[:, np.newaxis], -1,
                                            0))
@@ -284,11 +282,18 @@ class DataGP:
                 row_sum[row_sum > 0] = 1
                 row_sum[row_sum < 0] = -1
 
-                net_wins.append(np.array([incr.tolist(), row_sum, supp], dtype=object))
-                net_wins.append(np.array([decr.tolist(), -row_sum, supp], dtype=object))
-        self.net_wins = np.array(net_wins)
-        # print(self.net_wins)
-        if len(self.net_wins) < 3:
+                n_mat.append(row_sum)
+                lst_gis.append(GI(col, '+'))
+                lst_sup.append(supp)
+
+                n_mat.append(-row_sum)
+                lst_gis.append(GI(col, '-'))
+                lst_sup.append(supp)
+
+        self.net_wins.gradual_items = np.array(lst_gis)
+        self.net_wins.matrix = np.array(n_mat)
+        self.net_wins.supports = np.array(lst_sup)
+        if len(self.net_wins.matrix) < 3:
             self.no_bins = True
 
     @staticmethod
@@ -794,6 +799,7 @@ class TimeLag:
         else:
             txt = "No time lag found!"
         return txt
+
 
 
 # -------- GRADUAL PATTERNS (START)-------------

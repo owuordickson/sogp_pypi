@@ -693,6 +693,19 @@ class GP:
             return True
         return False
 
+    def contains_strict(self, gi):
+        """
+        Strictly checks if a gradual item (GI) is a member of a gradual pattern (GP)
+        :param gi: gradual item
+        :return: True if it is a member, otherwise False
+        """
+        if gi is None:
+            return False
+        for gi_obj in self.gradual_items:
+            if (gi.attribute_col == gi_obj.attribute_col) and (gi.symbol == gi_obj.symbol):
+                return True
+        return False
+
     def contains_attr(self, gi):
         """
         Checks is any gradual item (GI) in the gradual pattern (GP) is composed of the column
@@ -800,6 +813,22 @@ class TimeLag:
             txt = "No time lag found!"
         return txt
 
+
+def contains_gp(gp, gp_grp):
+    for temp_gp in gp_grp:
+        if compare_gis(gp, temp_gp):
+            return True, temp_gp.support
+    return False, False
+
+
+def compare_gis(gp, temp_gp):
+    if len(gp.gradual_items) == len(temp_gp.gradual_items):
+        for gi in gp.gradual_items:
+            if not temp_gp.contains_strict(gi):
+                return False
+    else:
+        return False
+    return True
 
 
 # -------- GRADUAL PATTERNS (START)-------------

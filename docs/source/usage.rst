@@ -18,8 +18,13 @@ This is the classical approach (initially proposed by Anne Laurent) for mining g
 
 .. code-block:: python
 
-    gps = sgp.graank(data_src, min_sup, eq, return_gps)
-    print(gps)
+    gp_json = sgp.graank(data_src, min_sup, eq, return_gps=False)
+    print(gp_json)
+
+    # OR
+
+    gp_json, gp_list = sgp.graank(data_src, min_sup, eq, return_gps=True)
+    print(gp_json)
 
 where you specify the parameters as follows:
 
@@ -38,8 +43,8 @@ Executing ACO for mining GPs:
 
 .. code-block:: python
 
-    gps = sgp.acogps(data_src, min_sup, return_gps)
-    print(gps)
+    gp_json = sgp.acogps(data_src, min_sup)
+    print(gp_json)
 
 
 where you specify the parameters as follows:
@@ -57,8 +62,8 @@ Executing GA for mining GPs:
 
 .. code-block:: python
 
-    gps = sgp.gagps(data_src, min_sup, return_gps)
-    print(gps)
+    gp_json = sgp.gagps(data_src, min_sup)
+    print(gp_json)
 
 
 where you specify the parameters as follows:
@@ -80,8 +85,8 @@ Executing PSO for mining GPs:
 
 .. code-block:: python
 
-    gps = sgp.psogps(data_src, min_sup, return_gps)
-    print(gps)
+    gp_json = sgp.psogps(data_src, min_sup)
+    print(gp_json)
 
 
 where you specify the parameters as follows:
@@ -102,8 +107,8 @@ Executing LS for mining GPs:
 
 .. code-block:: python
 
-    gps = sgp.hcgps(data_src, min_sup, return_gps)
-    print(gps)
+    gp_json = sgp.hcgps(data_src, min_sup)
+    print(gp_json)
 
 where you specify the parameters as follows:
 
@@ -120,8 +125,8 @@ Executing RS for mining GPs:
 
 .. code-block:: python
 
-    gps = sgp.rsgps(data_src, min_sup, return_gps)
-    print(gps)
+    gp_json = sgp.rsgps(data_src, min_sup)
+    print(gp_json)
 
 
 where you specify the parameters as follows:

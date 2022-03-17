@@ -30,8 +30,13 @@ This is the classical approach (initially proposed by Anne Laurent) for mining g
 
 ```python
 
-gps = sgp.graank(data_src, min_sup, eq, return_gps)
-print(gps)
+gp_json = sgp.graank(data_src, min_sup, eq, return_gps=False)
+print(gp_json)
+
+# OR
+
+gp_json, gp_list = sgp.graank(data_src, min_sup, eq, return_gps=True)
+print(gp_json)
 ```
 
 where you specify the parameters as follows:
@@ -46,8 +51,8 @@ where you specify the parameters as follows:
 
 ```python
 
-gps = sgp.acogps(data_src, min_sup, return_gps)
-print(gps)
+gp_json = sgp.acogps(data_src, min_sup)
+print(gp_json)
 ```
 
 where you specify the parameters as follows:
@@ -63,8 +68,8 @@ where you specify the parameters as follows:
 
 ```python
 
-gps = sgp.gagps(data_src, min_sup, return_gps)
-print(gps)
+gp_json = sgp.gagps(data_src, min_sup)
+print(gp_json)
 ```
 
 where you specify the parameters as follows:
@@ -83,8 +88,8 @@ where you specify the parameters as follows:
 
 ```python
 
-gps = sgp.psogps(data_src, min_sup, return_gps)
-print(gps)
+gp_json = sgp.psogps(data_src, min_sup)
+print(gp_json)
 ```
 
 where you specify the parameters as follows:
@@ -102,8 +107,8 @@ where you specify the parameters as follows:
 
 ```python
 
-gps = sgp.hcgps(data_src, min_sup, return_gps)
-print(gps)
+gp_json = sgp.hcgps(data_src, min_sup)
+print(gp_json)
 ```
 
 where you specify the parameters as follows:
@@ -120,8 +125,8 @@ where you specify the parameters as follows:
 ```python
 import so4gp as sgp
 
-gps = sgp.rsgps(data_src, min_sup, return_gps)
-print(gps)
+gp_json = sgp.rsgps(data_src, min_sup)
+print(gp_json)
 ```
 
 where you specify the parameters as follows:

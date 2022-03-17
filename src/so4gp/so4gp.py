@@ -6,13 +6,13 @@
 
 @license: MIT
 
-@version: 0.1.5
+@version: 0.1.7
 
 @email: owuordickson@gmail.com
 
 @created: 21 July 2021
 
-@modified: 01 March 2022
+@modified: 17 March 2022
 
 SO4GP
 ------
@@ -178,7 +178,6 @@ class DataGP:
         self.time_cols = self.get_time_cols()
         self.attr_cols = self.get_attr_cols()
         self.valid_bins = np.array([])
-        self.net_wins = structure()
         self.no_bins = False
         self.step_name = ''  # For T-GRAANK
         self.attr_size = 0  # For T-GRAANK
@@ -255,46 +254,6 @@ class DataGP:
         if len(self.valid_bins) < 3:
             self.no_bins = True
         gc.collect()
-
-    def construct_net_wins(self):
-        """
-        Construct a net-wins matrix from bitmaps corresponding to every valid gradual item.
-
-        :return: void
-
-        """
-        # Function for constructing GP pairs for Mx2 matrix
-        n_mat = []
-        lst_sup = []
-        lst_gis = []
-
-        attr_data = self.data.T
-        n = self.row_count
-        for col in self.attr_cols:
-            col_data = np.array(attr_data[col], dtype=float)
-            bitmap_pos = np.where(col_data > col_data[:, np.newaxis], 1,
-                                  np.where(col_data < col_data[:, np.newaxis], -1,
-                                           0))
-            # Remove invalid candidates
-            supp = float(np.sum(bitmap_pos[bitmap_pos == 1])) / float(n * (n - 1.0) / 2.0)
-            if supp >= self.thd_supp:
-                row_sum = np.sum(bitmap_pos, axis=1)
-                row_sum[row_sum > 0] = 1
-                row_sum[row_sum < 0] = -1
-
-                n_mat.append(row_sum)
-                lst_gis.append(GI(col, '+'))
-                lst_sup.append(supp)
-
-                n_mat.append(-row_sum)
-                lst_gis.append(GI(col, '-'))
-                lst_sup.append(supp)
-
-        self.net_wins.gradual_items = np.array(lst_gis)
-        self.net_wins.matrix = np.array(n_mat)
-        self.net_wins.supports = np.array(lst_sup)
-        if len(self.net_wins.matrix) < 3:
-            self.no_bins = True
 
     @staticmethod
     def read(data_src):
@@ -812,23 +771,6 @@ class TimeLag:
         else:
             txt = "No time lag found!"
         return txt
-
-
-def contains_gp(gp, gp_grp):
-    for temp_gp in gp_grp:
-        if compare_gis(gp, temp_gp):
-            return True, temp_gp.support
-    return False, False
-
-
-def compare_gis(gp, temp_gp):
-    if len(gp.gradual_items) == len(temp_gp.gradual_items):
-        for gi in gp.gradual_items:
-            if not temp_gp.contains_strict(gi):
-                return False
-    else:
-        return False
-    return True
 
 
 # -------- GRADUAL PATTERNS (START)-------------

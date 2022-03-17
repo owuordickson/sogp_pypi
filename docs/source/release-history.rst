@@ -3,12 +3,21 @@ RELEASE HISTORY
 ***************
 
 
+0.1.7 (2022-03-17)
+-------------------
+
+**Updates**
+
+* removed method for computing net-wins matrix
+
+
+
 0.1.6 (2022-03-02)
 -------------------
 
 **Updates**
 
-- added method for computing net-wins matrix
+* added method for computing net-wins matrix
 
 
 0.1.5 (2022-03-01)
@@ -16,8 +25,9 @@ RELEASE HISTORY
 
 **Updates**
 
-- added ability to return GPs as objects
-- added docstrings to describe functionality
+* added ability to return GPs as objects (using parameter 'return_gps=True')
+
+* added docstrings to describe functionality
 
 
 
@@ -26,7 +36,7 @@ RELEASE HISTORY
 
 **Bug fixes**
 
-- problem with import (Module not Found)
+* problem with import (Module not Found)
 
 
 0.1.3 (2022-01-11)

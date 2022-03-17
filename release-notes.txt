@@ -1,6 +1,13 @@
 RELEASE NOTES 
 
 
+0.1.7
+-----------------------------
+
+Updates
+- removed method for computing net-wins matrix
+
+
 0.1.6
 -----------------------------
 
@@ -12,7 +19,7 @@ Updates
 -----------------------------
 
 Updates
-- added ability to return GPs as objects
+- added ability to return GPs as objects (using parameter 'return_gps=True')
 - added docstrings to describe functionality
 
 

@@ -3,6 +3,14 @@ RELEASE HISTORY
 ***************
 
 
+0.1.9 (2022-04-20)
+-----------------------------
+
+**Bug fixes**
+
+* problem with import (class Profile not Found)
+
+
 0.1.8 (2022-04-20)
 -----------------------------
 

@@ -1,5 +1,6 @@
 
 from .so4gp import DataGP
+from .so4gp import Profile
 from .so4gp import GI
 from .so4gp import GP
 from .so4gp import TimeLag

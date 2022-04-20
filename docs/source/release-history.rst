@@ -8,7 +8,7 @@ RELEASE HISTORY
 
 **Updates**
 
-*- added Profile class for profiling performance
+* added Profile class for profiling performance
 
 
 0.1.7 (2022-03-17)

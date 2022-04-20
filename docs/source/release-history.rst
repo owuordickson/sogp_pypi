@@ -3,13 +3,20 @@ RELEASE HISTORY
 ***************
 
 
+0.1.8 (2022-04-20)
+-----------------------------
+
+**Updates**
+
+*- added Profile class for profiling performance
+
+
 0.1.7 (2022-03-17)
 -------------------
 
 **Updates**
 
 * removed method for computing net-wins matrix
-
 
 
 0.1.6 (2022-03-02)

@@ -1,6 +1,13 @@
 RELEASE NOTES 
 
 
+0.1.8
+-----------------------------
+
+Updates
+- added Profile class for profiling performance
+
+
 0.1.7
 -----------------------------
 

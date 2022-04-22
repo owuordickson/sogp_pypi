@@ -3,6 +3,18 @@ RELEASE HISTORY
 ***************
 
 
+0.2.0 (2022-04-22)
+-----------------------------
+
+**Updates**
+
+* removed Profile class
+
+* converted bitmap method into a class method
+
+* added 4 methods for getting cpus, writing results, plotting evaluations
+
+
 0.1.9 (2022-04-20)
 -----------------------------
 

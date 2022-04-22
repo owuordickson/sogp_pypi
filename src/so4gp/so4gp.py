@@ -53,7 +53,6 @@ import pandas as pd
 import random
 from ypstruct import structure
 
-
 # -------- CONFIGURATION -------------
 
 # Global Swarm Configurations
@@ -81,7 +80,6 @@ N_PARTICLES = 5
 
 # PLS-GRAD Configurations
 STEP_SIZE = 0.5
-
 
 # -------- DATA SET PREPARATION -------------
 
@@ -211,6 +209,19 @@ class DataGP:
             except ValueError:
                 continue
         return np.array(time_cols)
+
+    def get_gi_bitmap(self, col):
+        if col in self.time_cols:
+            raise Exception("Error: " + str(self.titles[col][1].decode()) + " is a date/time column!")
+        elif col >= self.col_count:
+            raise Exception("Error: Column does not exist!")
+        else:
+            attr_data = self.data.T
+            # n = d_set.row_count
+            col_data = np.array(attr_data[col], dtype=float)
+            with np.errstate(invalid='ignore'):
+                temp_pos = np.where(col_data < col_data[:, np.newaxis], 1, 0)
+            return temp_pos
 
     def init_attributes(self, attr_data=None):
         """
@@ -375,125 +386,58 @@ class DataGP:
         return titles, df.values
 
 
-def gibitmap(d_set, col):
-    if col in d_set.time_cols:
-        raise Exception("Error: " + str(d_set.titles[col][1].decode()) + " is a date/time column!")
-    elif col >= d_set.col_count:
-        raise Exception("Error: Column does not exist!")
-    else:
-        attr_data = d_set.data.T
-        # n = d_set.row_count
-        col_data = np.array(attr_data[col], dtype=float)
-        with np.errstate(invalid='ignore'):
-            temp_pos = np.where(col_data < col_data[:, np.newaxis], 1, 0)
-        return temp_pos
+# -------- OTHER METHODS -----------
+
+def get_num_cores():
+    num_cores = get_slurm_cores()
+    if not num_cores:
+        num_cores = mp.cpu_count()
+    return num_cores
 
 
-# -------- PROFILE PERFORMANCE -----------
-
-class Profile:
-
-    @staticmethod
-    def get_num_cores():
-        num_cores = Profile.get_slurm_cores()
-        if not num_cores:
-            num_cores = mp.cpu_count()
-        return num_cores
-
-    @staticmethod
-    def get_slurm_cores():
+def get_slurm_cores():
+    try:
+        cores = int(os.environ['SLURM_JOB_CPUS_PER_NODE'])
+        return cores
+    except ValueError:
         try:
-            cores = int(os.environ['SLURM_JOB_CPUS_PER_NODE'])
+            str_cores = str(os.environ['SLURM_JOB_CPUS_PER_NODE'])
+            temp = str_cores.split('(', 1)
+            cpus = int(temp[0])
+            str_nodes = temp[1]
+            temp = str_nodes.split('x', 1)
+            str_temp = str(temp[1]).split(')', 1)
+            nodes = int(str_temp[0])
+            cores = cpus * nodes
             return cores
         except ValueError:
-            try:
-                str_cores = str(os.environ['SLURM_JOB_CPUS_PER_NODE'])
-                temp = str_cores.split('(', 1)
-                cpus = int(temp[0])
-                str_nodes = temp[1]
-                temp = str_nodes.split('x', 1)
-                str_temp = str(temp[1]).split(')', 1)
-                nodes = int(str_temp[0])
-                cores = cpus * nodes
-                return cores
-            except ValueError:
-                return False
-        except KeyError:
             return False
+    except KeyError:
+        return False
 
-    @staticmethod
-    def get_quick_mem_block(snapshot):
-        top_stats = snapshot.statistics('traceback')
 
-        # pick the biggest memory block
-        stat = top_stats[0]
-        wr_line = ("%s memory blocks: %.1f KiB" % (stat.count, stat.size / 1024))
-        return wr_line
+def write_file(data, path, wr=True):
+    if wr:
+        with open(path, 'w') as f:
+            f.write(data)
+            f.close()
+    else:
+        pass
 
-    @staticmethod
-    def get_quick_mem_use(snapshot, key_type='lineno'):
-        import tracemalloc
-        snapshot = snapshot.filter_traces((
-            tracemalloc.Filter(False, "<frozen importlib._bootstrap>"),
-            tracemalloc.Filter(False, "<unknown>"),
-        ))
-        top_stats = snapshot.statistics(key_type)
-        total = sum(stat.size for stat in top_stats)
-        wr_line = ("Total allocated memory size: %.1f KiB" % (total / 1024))
-        return wr_line
 
-    @staticmethod
-    def get_detailed_mem_use(snapshot, key_type='lineno', limit=30):
-        import tracemalloc
-        import linecache
-        wr_line = ""
-        snapshot = snapshot.filter_traces((
-            tracemalloc.Filter(False, "<frozen importlib._bootstrap>"),
-            tracemalloc.Filter(False, "<unknown>"),
-        ))
-        top_stats = snapshot.statistics(key_type)
-
-        wr_line += ("Top %s lines" % limit)
-        for index, stat in enumerate(top_stats[:limit], 1):
-            frame = stat.traceback[0]
-            # replace "/path/to/module/file.src" with "module/file.src"
-            filename = os.sep.join(frame.filename.split(os.sep)[-2:])
-            wr_line += ("\n #%s: %s:%s: %.1f KiB" % (index, filename, frame.lineno, stat.size / 1024))
-            line = linecache.getline(frame.filename, frame.lineno).strip()
-            if line:
-                wr_line += ('\n    %s' % line)
-
-        other = top_stats[limit:]
-        if other:
-            size = sum(stat.size for stat in other)
-            wr_line += ("\n %s other: %.1f KiB" % (len(other), size / 1024))
-        total = sum(stat.size for stat in top_stats)
-        wr_line += ("\n Total allocated size: %.1f KiB" % (total / 1024))
-        return wr_line
-
-    @staticmethod
-    def write_file(data, path, wr=True):
-        if wr:
-            with open(path, 'w') as f:
-                f.write(data)
-                f.close()
-        else:
-            pass
-
-    @staticmethod
-    def plot_curve(out, title, pl=False):
-        if pl:
-            # Results
-            plt.plot(out.best_costs)
-            # DO NOT ADD *** plt.semilogy(out.best_costs)
-            plt.xlim(0, out.max_iteration)
-            plt.xlabel('Iterations')
-            plt.ylabel('Best Cost')
-            plt.title(title)
-            plt.grid(True)
-            plt.show()
-        else:
-            pass
+def plot_curve(out, title, pl=False):
+    if pl:
+        # Results
+        plt.plot(out.best_costs)
+        # DO NOT ADD *** plt.semilogy(out.best_costs)
+        plt.xlim(0, out.max_iteration)
+        plt.xlabel('Iterations')
+        plt.ylabel('Best Cost')
+        plt.title(title)
+        plt.grid(True)
+        plt.show()
+    else:
+        pass
 
 
 # -------- GRADUAL PATTERNS -------------
@@ -948,7 +892,6 @@ def genapri(R, sup, n):
 
 
 def graank(f_path=None, min_sup=MIN_SUPPORT, eq=False, return_gps=False):
-
     """
     Extract gradual patterns (GPs) from a numeric data source using the GRAANK approach (proposed in a published
     research paper by Anne Laurent).

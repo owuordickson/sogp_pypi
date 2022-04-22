@@ -1,6 +1,15 @@
 RELEASE NOTES 
 
 
+0.2.0
+-----------------------------
+
+Updates
+- removed Profile class
+- converted bitmap method into a class method
+- added 4 methods for getting cpus, writing results, plotting evaluations
+
+
 0.1.9
 -----------------------------
 

@@ -1,6 +1,13 @@
 RELEASE NOTES 
 
 
+0.2.2
+-----------------------------
+
+Bug fixes
+- fixed import error on plot_curve
+
+
 0.2.1
 -----------------------------
 

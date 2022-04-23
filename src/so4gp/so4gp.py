@@ -46,7 +46,6 @@ import time
 import gc
 import numpy as np
 import json
-import matplotlib.pyplot as plt
 import multiprocessing as mp
 import os
 import pandas as pd
@@ -421,21 +420,6 @@ def write_file(data, path, wr=True):
         with open(path, 'w') as f:
             f.write(data)
             f.close()
-    else:
-        pass
-
-
-def plot_curve(out, title, pl=False):
-    if pl:
-        # Results
-        plt.plot(out.best_costs)
-        # DO NOT ADD *** plt.semilogy(out.best_costs)
-        plt.xlim(0, out.max_iteration)
-        plt.xlabel('Iterations')
-        plt.ylabel('Best Cost')
-        plt.title(title)
-        plt.grid(True)
-        plt.show()
     else:
         pass
 

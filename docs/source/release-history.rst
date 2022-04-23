@@ -3,6 +3,14 @@ RELEASE HISTORY
 ***************
 
 
+0.2.1 (2022-04-23)
+-----------------------------
+
+**Bug fixes**
+
+* problem with import (removed matplotlib package)
+
+
 0.2.0 (2022-04-22)
 -----------------------------
 

@@ -1,6 +1,13 @@
 RELEASE NOTES 
 
 
+0.2.1
+-----------------------------
+
+Bug fixes
+- problem with import (removed matplotlib package)
+
+
 0.2.0
 -----------------------------
 

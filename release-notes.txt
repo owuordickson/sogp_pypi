@@ -1,6 +1,13 @@
 RELEASE NOTES 
 
 
+0.2.3
+-----------------------------
+
+Updates
+- count invalid GPs in GRAANK and ACO-GRAD
+
+
 0.2.2
 -----------------------------
 

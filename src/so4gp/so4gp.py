@@ -831,6 +831,7 @@ def genapri(R, sup, n):
     :param n: number of objects
     :return:
     """
+    invalid_count = 0
     res = []
     I = []
     if len(R) < 2:
@@ -870,9 +871,11 @@ def genapri(R, sup, n):
                     t = float(np.sum(m)) / float(n * (n - 1.0) / 2.0)
                     if t > sup:
                         res.append([temp, m])
+                    else:
+                        invalid_count += 1
                 I.append(temp)
                 gc.collect()
-    return res
+    return res, invalid_count
 
 
 def graank(f_path=None, min_sup=MIN_SUPPORT, eq=False, return_gps=False):
@@ -902,8 +905,10 @@ def graank(f_path=None, min_sup=MIN_SUPPORT, eq=False, return_gps=False):
     n = d_set.attr_size
     valid_bins = d_set.valid_bins
 
+    invalid_count = 0
     while len(valid_bins) > 0:
-        valid_bins = genapri(valid_bins, min_sup, n)
+        valid_bins, inv_count = genapri(valid_bins, min_sup, n)
+        invalid_count += inv_count
         i = 0
         while i < len(valid_bins) and valid_bins != []:
             gi_tuple = valid_bins[i][0]
@@ -911,6 +916,7 @@ def graank(f_path=None, min_sup=MIN_SUPPORT, eq=False, return_gps=False):
             sup = float(np.sum(np.array(bin_data))) / float(n * (n - 1.0) / 2.0)
             if sup < min_sup:
                 del valid_bins[i]
+                invalid_count += 1
             else:
                 z = 0
                 while z < (len(patterns) - 1):
@@ -930,7 +936,7 @@ def graank(f_path=None, min_sup=MIN_SUPPORT, eq=False, return_gps=False):
                 str_winner_gps.append(gp.print(d_set.titles))
                 i += 1
     # Output
-    out = json.dumps({"Algorithm": "GRAANK", "Patterns": str_winner_gps})
+    out = json.dumps({"Algorithm": "GRAANK", "Patterns": str_winner_gps, "Invalid Count": invalid_count})
     """:type out: object"""
     if return_gps:
         return out, patterns
@@ -1024,6 +1030,7 @@ def acogps(f_path, min_supp=MIN_SUPPORT, evaporation_factor=EVAPORATION_FACTOR,
     # 3. Initialize pheromones (p_matrix)
     pheromones = np.ones(d.shape, dtype=float)
 
+    invalid_count = 0
     # 4. Iterations for ACO
     # while repeated < 1:
     while counter < max_iteration:
@@ -1051,17 +1058,21 @@ def acogps(f_path, min_supp=MIN_SUPPORT, evaporation_factor=EVAPORATION_FACTOR,
                         str_winner_gps.append(gen_gp.print(d_set.titles))
                     else:
                         loser_gps.append(gen_gp)
+                        invalid_count += 1
                 if set(gen_gp.get_pattern()) != set(rand_gp.get_pattern()):
                     loser_gps.append(rand_gp)
             else:
                 repeated += 1
+        else:
+            invalid_count += 1
         it_count += 1
         if max_iteration == 1:
             counter = repeated
         else:
             counter = it_count
     # Output
-    out = json.dumps({"Algorithm": "ACO-GRAD", "Best Patterns": str_winner_gps, "Iterations": it_count})
+    out = json.dumps({"Algorithm": "ACO-GRAD", "Best Patterns": str_winner_gps, "Invalid Count": invalid_count,
+                      "Iterations": it_count})
     """:type out: object"""
     if return_gps:
         return out, winner_gps

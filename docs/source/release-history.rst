@@ -4,6 +4,15 @@ RELEASE HISTORY
 
 
 
+0.2.3 (2022-06-15)
+-----------------------------
+
+**Updates**
+
+* count invalid GPs in GRAANK and ACO-GRAD
+
+
+
 0.2.2 (2022-04-23)
 -----------------------------
 

@@ -6,13 +6,13 @@
 
 @license: MIT
 
-@version: 0.1.7
+@version: 0.2.4
 
 @email: owuordickson@gmail.com
 
 @created: 21 July 2021
 
-@modified: 17 March 2022
+@modified: 08 July 2022
 
 SO4GP
 ------
@@ -750,6 +750,108 @@ class GP:
         return [pattern, self.support]
 
 
+class GP4sw(GP):
+    """Description of class GP4sw (Gradual Pattern for swarm)
+
+    A class that inherits class GP which is used to create GP objects. a GP object is a set of gradual items and its
+    quality is measured by its computed support value. For example given a data set with 3 columns (age, salary, cars)
+    and 10 objects. A GP may take the form: {age+, salary-} with a support of 0.8. This implies that 8 out of 10 objects
+    have the values of column age 'increasing' and column 'salary' decreasing.
+
+    The class GP has the following attributes:
+        gradual_items: list if GIs
+        support: computed support value as a float
+
+    The class GP4sw adds the following functions:
+        validate: used to validate GPs
+        check_am: used to verify if a GP obeys anti-monotonicity
+        is_duplicate: checks a GP is already extracted
+
+    """
+
+    def validate(self, d_set):
+        """
+        Validates a candidate gradual pattern (GP) based on support computation. A GP is invalid if its support value is
+        less than the minimum support threshold set by the user.
+
+        :param d_set: Data_GP object
+        :return: a valid GP or an empty GP
+        """
+        # pattern = [('2', '+'), ('4', '+')]
+        min_supp = d_set.thd_supp
+        n = d_set.attr_size
+        gen_pattern = GP4sw()
+        """type gen_pattern: GP"""
+        bin_arr = np.array([])
+
+        for gi in self.gradual_items:
+            arg = np.argwhere(np.isin(d_set.valid_bins[:, 0], gi.gradual_item))
+            if len(arg) > 0:
+                i = arg[0][0]
+                valid_bin = d_set.valid_bins[i]
+                if bin_arr.size <= 0:
+                    bin_arr = np.array([valid_bin[1], valid_bin[1]])
+                    gen_pattern.add_gradual_item(gi)
+                else:
+                    bin_arr[1] = valid_bin[1].copy()
+                    temp_bin = np.multiply(bin_arr[0], bin_arr[1])
+                    supp = float(np.sum(temp_bin)) / float(n * (n - 1.0) / 2.0)
+                    if supp >= min_supp:
+                        bin_arr[0] = temp_bin.copy()
+                        gen_pattern.add_gradual_item(gi)
+                        gen_pattern.set_support(supp)
+        if len(gen_pattern.gradual_items) <= 1:
+            return self
+        else:
+            return gen_pattern
+
+    def check_am(self, gp_list, subset=True):
+        """
+        Anti-monotonicity check. Checks if a GP is a subset or superset of an already existing GP
+
+        :param gp_list: list of existing GPs
+        :param subset: check if it is a subset
+        :return: True if superset/subset, False otherwise
+        """
+        result = False
+        if subset:
+            for pat in gp_list:
+                result1 = set(self.get_pattern()).issubset(set(pat.get_pattern()))
+                result2 = set(self.inv_pattern()).issubset(set(pat.get_pattern()))
+                if result1 or result2:
+                    result = True
+                    break
+        else:
+            for pat in gp_list:
+                result1 = set(self.get_pattern()).issuperset(set(pat.get_pattern()))
+                result2 = set(self.inv_pattern()).issuperset(set(pat.get_pattern()))
+                if result1 or result2:
+                    result = True
+                    break
+        return result
+
+    def is_duplicate(self, valid_gps, invalid_gps=None):
+        """
+        Checks if a pattern is in the list of winner GPs or loser GPs
+
+        :param valid_gps: list of GPs
+        :param invalid_gps: list of GPs
+        :return: True if pattern is either list, False otherwise
+        """
+        if invalid_gps is None:
+            pass
+        else:
+            for pat in invalid_gps:
+                if set(self.get_pattern()) == set(pat.get_pattern()) or \
+                        set(self.inv_pattern()) == set(pat.get_pattern()):
+                    return True
+        for pat in valid_gps:
+            if set(self.get_pattern()) == set(pat.get_pattern()) or \
+                    set(self.inv_pattern()) == set(pat.get_pattern()):
+                return True
+        return False
+
+
 class TimeLag:
 
     def __init__(self, tstamp=0, supp=0):
@@ -807,6 +909,88 @@ class TimeLag:
         return txt
 
 
+class NumericSS:
+    """Description of class NumericSS (Numeric Search Space)
+
+    A class that implements functions that allow swarm algorithms to explore a numeric search space.
+
+    The class NumericSS has the following functions:
+        decode_gp: decodes a GP from a numeric position
+        cost_function: computes the fitness of a GP
+        apply_bound: applies minimum and maximum values
+
+    """
+
+    @staticmethod
+    def decode_gp(attr_keys, position):
+        """
+        Decodes a numeric value (position) into a GP
+
+        :param attr_keys: list of attribute keys
+        :param position: a value in the numeric search space
+        :return: GP that is decoded from the position value
+        """
+
+        temp_gp = GP4sw()
+        ":type temp_gp: GP4sw"
+        if position is None:
+            return temp_gp
+
+        bin_str = bin(int(position))[2:]
+        bin_arr = np.array(list(bin_str), dtype=int)
+
+        for i in range(bin_arr.size):
+            bin_val = bin_arr[i]
+            if bin_val == 1:
+                gi = GI.parse_gi(attr_keys[i])
+                if not temp_gp.contains_attr(gi):
+                    temp_gp.add_gradual_item(gi)
+        return temp_gp
+
+    @staticmethod
+    def cost_function(position, attr_keys, d_set):
+        """
+        Computes the fitness of a GP
+
+        :param position: a value in the numeric search space
+        :param attr_keys: list of attribute keys
+        :param d_set: a DataGP object
+        :return: a floating point value that represents the fitness of the position
+        """
+
+        pattern = NumericSS.decode_gp(attr_keys, position)
+        temp_bin = np.array([])
+        for gi in pattern.gradual_items:
+            arg = np.argwhere(np.isin(d_set.valid_bins[:, 0], gi.gradual_item))
+            if len(arg) > 0:
+                i = arg[0][0]
+                valid_bin = d_set.valid_bins[i]
+                if temp_bin.size <= 0:
+                    temp_bin = valid_bin[1].copy()
+                else:
+                    temp_bin = np.multiply(temp_bin, valid_bin[1])
+        bin_sum = np.sum(temp_bin)
+        if bin_sum > 0:
+            cost = (1 / bin_sum)
+        else:
+            cost = 1
+        return cost
+
+    @staticmethod
+    def apply_bound(x, var_min, var_max):
+        """
+        Modifies x (a numeric value) if it exceeds the lower/upper bound of the numeric search space.
+
+        :param x: a value in the numeric search space
+        :param var_min: lower-bound value
+        :param var_max: upper-bound value
+        :return: nothing
+        """
+
+        x.position = np.maximum(x.position, var_min)
+        x.position = np.minimum(x.position, var_max)
+
+
 # --------- GRAANK ---------------------
 
 """
@@ -823,7 +1007,7 @@ def inv(g_item):
     return temp
 
 
-def genapri(R, sup, n):
+def gen_apriori_candidates(R, sup, n):
     """
     Generates Apriori GP candidates
     :param R: attributes
@@ -907,7 +1091,7 @@ def graank(f_path=None, min_sup=MIN_SUPPORT, eq=False, return_gps=False):
 
     invalid_count = 0
     while len(valid_bins) > 0:
-        valid_bins, inv_count = genapri(valid_bins, min_sup, n)
+        valid_bins, inv_count = gen_apriori_candidates(valid_bins, min_sup, n)
         invalid_count += inv_count
         i = 0
         while i < len(valid_bins) and valid_bins != []:
@@ -953,7 +1137,7 @@ CHANGES:
 """
 
 
-def gend(valid_bins):
+def gen_d(valid_bins):
     """
     Generates the distance matrix (d)
     :param valid_bins: valid GP bitmaps (whose computed support is greater than the minimum support threshold)
@@ -1010,7 +1194,7 @@ def acogps(f_path, min_supp=MIN_SUPPORT, evaporation_factor=EVAPORATION_FACTOR,
     d_set.init_attributes()
     # attr_index = d_set.attr_cols
     # e_factor = evaporation_factor
-    d, attr_keys = gend(d_set.valid_bins)  # distance matrix (d) & attributes corresponding to d
+    d, attr_keys = gen_d(d_set.valid_bins)  # distance matrix (d) & attributes corresponding to d
 
     a = d_set.attr_size
     winner_gps = list()  # subsets
@@ -1034,21 +1218,21 @@ def acogps(f_path, min_supp=MIN_SUPPORT, evaporation_factor=EVAPORATION_FACTOR,
     # 4. Iterations for ACO
     # while repeated < 1:
     while counter < max_iteration:
-        rand_gp, pheromones = genaco(attr_keys, d, pheromones, evaporation_factor)
+        rand_gp, pheromones = gen_aco_candidates(attr_keys, d, pheromones, evaporation_factor)
         if len(rand_gp.gradual_items) > 1:
             # print(rand_gp.get_pattern())
-            exits = isduplicate(rand_gp, winner_gps, loser_gps)
+            exits = rand_gp.is_duplicate(winner_gps, loser_gps)
             if not exits:
                 repeated = 0
                 # check for anti-monotony
-                is_super = amcheck(loser_gps, rand_gp, subset=False)
-                is_sub = amcheck(winner_gps, rand_gp, subset=True)
+                is_super = rand_gp.check_am(loser_gps, subset=False)
+                is_sub = rand_gp.check_am(winner_gps, subset=True)
                 if is_super or is_sub:
                     continue
-                gen_gp = validategp(d_set, rand_gp)
-                """:type gen_gp: GP"""
-                is_present = isduplicate(gen_gp, winner_gps, loser_gps)
-                is_sub = amcheck(winner_gps, gen_gp, subset=True)
+                gen_gp = rand_gp.validate(d_set)
+                """:type gen_gp: GP4sw"""
+                is_present = gen_gp.is_duplicate(winner_gps, loser_gps)
+                is_sub = gen_gp.check_am(winner_gps, subset=True)
                 if is_present or is_sub:
                     repeated += 1
                 else:
@@ -1080,10 +1264,10 @@ def acogps(f_path, min_supp=MIN_SUPPORT, evaporation_factor=EVAPORATION_FACTOR,
         return out
 
 
-def genaco(attr_keys, d, p_matrix, e_factor):
+def gen_aco_candidates(attr_keys, d, p_matrix, e_factor):
     v_matrix = d
-    pattern = GP()
-    ":type pattern: GP"
+    pattern = GP4sw()
+    ":type pattern: GP4sw"
 
     # 1. Generate gradual items with the highest pheromone and visibility
     m = p_matrix.shape[0]
@@ -1127,95 +1311,11 @@ def update_pheromones(attr_keys, pattern, p_matrix):
     return p_matrix
 
 
-def validategp(d_set, pattern):
-    """
-    Validates a candidate gradual pattern (GP) based on support computation. A GP is invalid if its support value is
-    less than the minimum support threshold set by the user.
-
-    :param d_set: Data_GP object
-    :param pattern: candidate GP
-    :return: a valid GP or an empty GP
-    """
-    # pattern = [('2', '+'), ('4', '+')]
-    min_supp = d_set.thd_supp
-    n = d_set.attr_size
-    gen_pattern = GP()
-    """type gen_pattern: GP"""
-    bin_arr = np.array([])
-
-    for gi in pattern.gradual_items:
-        arg = np.argwhere(np.isin(d_set.valid_bins[:, 0], gi.gradual_item))
-        if len(arg) > 0:
-            i = arg[0][0]
-            valid_bin = d_set.valid_bins[i]
-            if bin_arr.size <= 0:
-                bin_arr = np.array([valid_bin[1], valid_bin[1]])
-                gen_pattern.add_gradual_item(gi)
-            else:
-                bin_arr[1] = valid_bin[1].copy()
-                temp_bin = np.multiply(bin_arr[0], bin_arr[1])
-                supp = float(np.sum(temp_bin)) / float(n * (n - 1.0) / 2.0)
-                if supp >= min_supp:
-                    bin_arr[0] = temp_bin.copy()
-                    gen_pattern.add_gradual_item(gi)
-                    gen_pattern.set_support(supp)
-    if len(gen_pattern.gradual_items) <= 1:
-        return pattern
-    else:
-        return gen_pattern
-
-
-def amcheck(lst_p, pattern, subset=True):
-    """
-    Anti-monotonicity check. Checks if a GP is a subset or superset of an already existing GP
-
-    :param lst_p: list of existing GPs
-    :param pattern: GP to be checked
-    :param subset: check if it is a subset
-    :return: True if superset/subset, False otherwise
-    """
-    result = False
-    if subset:
-        for pat in lst_p:
-            result1 = set(pattern.get_pattern()).issubset(set(pat.get_pattern()))
-            result2 = set(pattern.inv_pattern()).issubset(set(pat.get_pattern()))
-            if result1 or result2:
-                result = True
-                break
-    else:
-        for pat in lst_p:
-            result1 = set(pattern.get_pattern()).issuperset(set(pat.get_pattern()))
-            result2 = set(pattern.inv_pattern()).issuperset(set(pat.get_pattern()))
-            if result1 or result2:
-                result = True
-                break
-    return result
-
-
-def isduplicate(pattern, lst_winners, lst_losers=None):
-    """
-    Checks if a pattern is in the list of winner GPs or loser GPs
-
-    :param pattern: a GP
-    :param lst_winners: list of GPs
-    :param lst_losers: list of GPs
-    :return: True if pattern is either list, False otherwise
-    """
-    if lst_losers is None:
-        pass
-    else:
-        for pat in lst_losers:
-            if set(pattern.get_pattern()) == set(pat.get_pattern()) or \
-                    set(pattern.inv_pattern()) == set(pat.get_pattern()):
-                return True
-    for pat in lst_winners:
-        if set(pattern.get_pattern()) == set(pat.get_pattern()) or \
-                set(pattern.inv_pattern()) == set(pat.get_pattern()):
-            return True
-    return False
-
-
 # -------- GA-GRAD ----------
+
+"""
+
+"""
 
 """
 @author: "Dickson Owuor"
@@ -1270,7 +1370,7 @@ def gagps(data_src, min_supp=MIN_SUPPORT, max_iteration=MAX_ITERATIONS, n_pop=N_
         return []
 
     # Problem Information
-    # costfxn
+    # cost_function
 
     # Parameters
     # pc: Proportion of children (if its 1, then nc == npop
@@ -1291,14 +1391,14 @@ def gagps(data_src, min_supp=MIN_SUPPORT, max_iteration=MAX_ITERATIONS, n_pop=N_
     pop = empty_individual.repeat(n_pop)
     for i in range(n_pop):
         pop[i].position = random.randrange(var_min, var_max)
-        pop[i].cost = 1  # costfxn(pop[i].position, attr_keys, d_set)
+        pop[i].cost = 1  # cost_function(pop[i].position, attr_keys, d_set)
         # if pop[i].cost < best_sol.cost:
         #    best_sol = pop[i].deepcopy()
 
     # Best Solution Ever Found
     best_sol = empty_individual.deepcopy()
     best_sol.position = pop[0].position
-    best_sol.cost = costfxn(best_sol.position, attr_keys, d_set)
+    best_sol.cost = NumericSS.cost_function(best_sol.position, attr_keys, d_set)
 
     # Best Cost of Iteration
     best_costs = np.empty(max_iteration)
@@ -1307,7 +1407,9 @@ def gagps(data_src, min_supp=MIN_SUPPORT, max_iteration=MAX_ITERATIONS, n_pop=N_
     str_iter = ''
     str_eval = ''
 
+    invalid_count = 0
     repeated = 0
+
     while counter < max_iteration:
         # while eval_count < max_evaluations:
         # while repeated < 1:
@@ -1323,18 +1425,22 @@ def gagps(data_src, min_supp=MIN_SUPPORT, max_iteration=MAX_ITERATIONS, n_pop=N_
             c1, c2 = crossover(p1, p2, gamma)
 
             # Apply Bound
-            apply_bound(c1, var_min, var_max)
-            apply_bound(c2, var_min, var_max)
+            NumericSS.apply_bound(c1, var_min, var_max)
+            NumericSS.apply_bound(c2, var_min, var_max)
 
             # Evaluate First Offspring
-            c1.cost = costfxn(c1.position, attr_keys, d_set)
+            c1.cost = NumericSS.cost_function(c1.position, attr_keys, d_set)
+            if c1.cost == 1:
+                invalid_count += 1
             if c1.cost < best_sol.cost:
                 best_sol = c1.deepcopy()
             eval_count += 1
             str_eval += "{}: {} \n".format(eval_count, best_sol.cost)
 
             # Evaluate Second Offspring
-            c2.cost = costfxn(c2.position, attr_keys, d_set)
+            c2.cost = NumericSS.cost_function(c2.position, attr_keys, d_set)
+            if c1.cost == 1:
+                invalid_count += 1
             if c2.cost < best_sol.cost:
                 best_sol = c2.deepcopy()
             eval_count += 1
@@ -1345,18 +1451,22 @@ def gagps(data_src, min_supp=MIN_SUPPORT, max_iteration=MAX_ITERATIONS, n_pop=N_
             c2 = mutate(c2, mu, sigma)
 
             # Apply Bound
-            apply_bound(c1, var_min, var_max)
-            apply_bound(c2, var_min, var_max)
+            NumericSS.apply_bound(c1, var_min, var_max)
+            NumericSS.apply_bound(c2, var_min, var_max)
 
             # Evaluate First Offspring
-            c1.cost = costfxn(c1.position, attr_keys, d_set)
+            c1.cost = NumericSS.cost_function(c1.position, attr_keys, d_set)
+            if c1.cost == 1:
+                invalid_count += 1
             if c1.cost < best_sol.cost:
                 best_sol = c1.deepcopy()
             eval_count += 1
             str_eval += "{}: {} \n".format(eval_count, best_sol.cost)
 
             # Evaluate Second Offspring
-            c2.cost = costfxn(c2.position, attr_keys, d_set)
+            c2.cost = NumericSS.cost_function(c2.position, attr_keys, d_set)
+            if c1.cost == 1:
+                invalid_count += 1
             if c2.cost < best_sol.cost:
                 best_sol = c2.deepcopy()
             eval_count += 1
@@ -1371,10 +1481,10 @@ def gagps(data_src, min_supp=MIN_SUPPORT, max_iteration=MAX_ITERATIONS, n_pop=N_
         pop = sorted(pop, key=lambda x: x.cost)
         pop = pop[0:n_pop]
 
-        best_gp = validategp(d_set, decodegp(attr_keys, best_sol.position))
-        """:type best_gp: GP"""
-        is_present = isduplicate(best_gp, best_patterns)
-        is_sub = amcheck(best_patterns, best_gp, subset=True)
+        best_gp = NumericSS.decode_gp(attr_keys, best_sol.position).validate(d_set)
+        """:type best_gp: GP4sw"""
+        is_present = best_gp.is_duplicate(best_patterns)
+        is_sub = best_gp.check_am(best_patterns, subset=True)
         if is_present or is_sub:
             repeated += 1
         else:
@@ -1398,41 +1508,13 @@ def gagps(data_src, min_supp=MIN_SUPPORT, max_iteration=MAX_ITERATIONS, n_pop=N_
         else:
             counter = it_count
     # Output
-    out = json.dumps({"Algorithm": "GA-GRAD", "Best Patterns": str_best_gps, "Iterations": it_count})
+    out = json.dumps({"Algorithm": "GA-GRAD", "Best Patterns": str_best_gps, "Invalid Count": invalid_count,
+                      "Iterations": it_count})
     """:type out: object"""
     if return_gps:
         return out, best_patterns
     else:
         return out
-
-
-def costfxn(position, attr_keys, d_set):
-    """
-    Computes the cost of a specific binary position (this position can be decoded into a GP candidate). The lower the
-    cost the better the quality of that position.
-
-    :param position: binary position
-    :param attr_keys: list of gradual items (GIs) in the format of strings
-    :param d_set: DataGP object
-    :return: cost value
-    """
-    pattern = decodegp(attr_keys, position)
-    temp_bin = np.array([])
-    for gi in pattern.gradual_items:
-        arg = np.argwhere(np.isin(d_set.valid_bins[:, 0], gi.gradual_item))
-        if len(arg) > 0:
-            i = arg[0][0]
-            valid_bin = d_set.valid_bins[i]
-            if temp_bin.size <= 0:
-                temp_bin = valid_bin[1].copy()
-            else:
-                temp_bin = np.multiply(temp_bin, valid_bin[1])
-    bin_sum = np.sum(temp_bin)
-    if bin_sum > 0:
-        cost = (1 / bin_sum)
-    else:
-        cost = 1
-    return cost
 
 
 def crossover(p1, p2, gamma=0.1):
@@ -1480,45 +1562,6 @@ def mutate(x, mu, sigma):
         str_x = str_y
     y.position = int(str_y)
     return y
-
-
-def apply_bound(x, var_min, var_max):
-    """
-    Ensures that an individual's position is between a minimum and a maximum value. If not, it moves it to the minimum
-    or maximum value.
-
-    :param x: existing individual
-    :param var_min: minimum value
-    :param var_max: maximum value
-    :return: void
-    """
-    x.position = np.maximum(x.position, var_min)
-    x.position = np.minimum(x.position, var_max)
-
-
-def decodegp(attr_keys, position):
-    """
-    Converts a binary position into a gradual pattern (GP) candidate.
-
-    :param attr_keys: list of gradual items (GIs) in the format of strings
-    :param position: binary position
-    :return: GP
-    """
-    temp_gp = GP()
-    """:type temp_gp: GP"""
-    if position is None:
-        return temp_gp
-
-    bin_str = bin(int(position))[2:]
-    bin_arr = np.array(list(bin_str), dtype=int)
-
-    for i in range(bin_arr.size):
-        bin_val = bin_arr[i]
-        if bin_val == 1:
-            gi = GI.parse_gi(attr_keys[i])
-            if not temp_gp.contains_attr(gi):
-                temp_gp.add_gradual_item(gi)
-    return temp_gp
 
 
 # -------- PSO-GRAD ----------
@@ -1597,7 +1640,7 @@ def psogps(data_src, min_supp=MIN_SUPPORT, max_iteration=MAX_ITERATIONS, n_parti
     # Best particle (ever found)
     best_particle = empty_particle.deepcopy()
     best_particle.position = gbest_particle.position
-    best_particle.fitness = costfxn(best_particle.position, attr_keys, d_set)
+    best_particle.fitness = NumericSS.cost_function(best_particle.position, attr_keys, d_set)
 
     velocity_vector = np.ones(n_particles)
     best_fitness_arr = np.empty(max_iteration)
@@ -1606,7 +1649,9 @@ def psogps(data_src, min_supp=MIN_SUPPORT, max_iteration=MAX_ITERATIONS, n_parti
     str_iter = ''
     str_eval = ''
 
+    invalid_count = 0
     repeated = 0
+
     while counter < max_iteration:
         # while eval_count < max_evaluations:
         # while repeated < 1:
@@ -1615,7 +1660,9 @@ def psogps(data_src, min_supp=MIN_SUPPORT, max_iteration=MAX_ITERATIONS, n_parti
             if particle_pop[i].position < var_min or particle_pop[i].position > var_max:
                 particle_pop[i].fitness = 1
             else:
-                particle_pop[i].fitness = costfxn(particle_pop[i].position, attr_keys, d_set)
+                particle_pop[i].fitness = NumericSS.cost_function(particle_pop[i].position, attr_keys, d_set)
+                if particle_pop[i].fitness == 1:
+                    invalid_count += 1
                 eval_count += 1
                 str_eval += "{}: {} \n".format(eval_count, particle_pop[i].fitness)
 
@@ -1637,10 +1684,10 @@ def psogps(data_src, min_supp=MIN_SUPPORT, max_iteration=MAX_ITERATIONS, n_parti
                            (coef_g * random.random()) * (gbest_particle.position - particle_pop[i].position)
             particle_pop[i].position = particle_pop[i].position + new_velocity
 
-        best_gp = validategp(d_set, decodegp(attr_keys, best_particle.position))
-        """:type best_gp: GP"""
-        is_present = isduplicate(best_gp, best_patterns)
-        is_sub = amcheck(best_patterns, best_gp, subset=True)
+        best_gp = NumericSS.decode_gp(attr_keys, best_particle.position).validate(d_set)
+        """:type best_gp: GP4sw"""
+        is_present = best_gp.is_duplicate(best_patterns)
+        is_sub = best_gp.check_am(best_patterns, subset=True)
         if is_present or is_sub:
             repeated += 1
         else:
@@ -1663,7 +1710,8 @@ def psogps(data_src, min_supp=MIN_SUPPORT, max_iteration=MAX_ITERATIONS, n_parti
         else:
             counter = it_count
     # Output
-    out = json.dumps({"Algorithm": "PSO-GRAD", "Best Patterns": str_best_gps, "Iterations": it_count})
+    out = json.dumps({"Algorithm": "PSO-GRAD", "Best Patterns": str_best_gps, "Invalid Count": invalid_count,
+                      "Iterations": it_count})
     """:type out: object"""
     if return_gps:
         return out, best_patterns
@@ -1729,22 +1777,24 @@ def hcgps(data_src, min_supp=MIN_SUPPORT, max_iteration=MAX_ITERATIONS, step_siz
     best_sol = structure()
     candidate = structure()
 
-    # Best Cost of Iteration
-    best_costs = np.empty(max_iteration)
-    best_patterns = []
-    str_best_gps = list()
-    str_iter = ''
-    str_eval = ''
-    repeated = 0
-
     # generate an initial point
     best_sol.position = None
     # candidate.position = None
     if best_sol.position is None:
         best_sol.position = np.random.uniform(var_min, var_max, N_VAR)
     # evaluate the initial point
-    apply_bound(best_sol, var_min, var_max)
-    best_sol.cost = costfxn(best_sol.position, attr_keys, d_set)
+    NumericSS.apply_bound(best_sol, var_min, var_max)
+    best_sol.cost = NumericSS.cost_function(best_sol.position, attr_keys, d_set)
+
+    # Best Cost of Iteration
+    best_costs = np.empty(max_iteration)
+    best_patterns = []
+    str_best_gps = list()
+    str_iter = ''
+    str_eval = ''
+
+    invalid_count = 0
+    repeated = 0
 
     # run the hill climb
     while counter < max_iteration:
@@ -1753,18 +1803,20 @@ def hcgps(data_src, min_supp=MIN_SUPPORT, max_iteration=MAX_ITERATIONS, step_siz
         candidate.position = None
         if candidate.position is None:
             candidate.position = best_sol.position + (random.randrange(var_min, var_max) * step_size)
-        apply_bound(candidate, var_min, var_max)
-        candidate.cost = costfxn(candidate.position, attr_keys, d_set)
+        NumericSS.apply_bound(candidate, var_min, var_max)
+        candidate.cost = NumericSS.cost_function(candidate.position, attr_keys, d_set)
+        if candidate.cost == 1:
+            invalid_count += 1
 
         if candidate.cost < best_sol.cost:
             best_sol = candidate.deepcopy()
         eval_count += 1
         str_eval += "{}: {} \n".format(eval_count, best_sol.cost)
 
-        best_gp = validategp(d_set, decodegp(attr_keys, best_sol.position))
-        """:type best_gp: GP"""
-        is_present = isduplicate(best_gp, best_patterns)
-        is_sub = amcheck(best_patterns, best_gp, subset=True)
+        best_gp = NumericSS.decode_gp(attr_keys, best_sol.position).validate(d_set)
+        """:type best_gp: GP4sw"""
+        is_present = best_gp.is_duplicate(best_patterns)
+        is_sub = best_gp.check_am(best_patterns, subset=True)
         if is_present or is_sub:
             repeated += 1
         else:
@@ -1786,7 +1838,8 @@ def hcgps(data_src, min_supp=MIN_SUPPORT, max_iteration=MAX_ITERATIONS, step_siz
         else:
             counter = it_count
     # Output
-    out = json.dumps({"Algorithm": "LS-GRAD", "Best Patterns": str_best_gps, "Iterations": it_count})
+    out = json.dumps({"Algorithm": "LS-GRAD", "Best Patterns": str_best_gps, "Invalid Count": invalid_count,
+                      "Iterations": it_count})
     """:type out: object"""
     if return_gps:
         return out, best_patterns
@@ -1854,7 +1907,7 @@ def rsgps(data_src, min_supp=MIN_SUPPORT, max_iteration=MAX_ITERATIONS, return_g
     # INITIALIZE
     best_sol = candidate.deepcopy()
     best_sol.position = np.random.uniform(var_min, var_max, N_VAR)
-    best_sol.cost = costfxn(best_sol.position, attr_keys, d_set)
+    best_sol.cost = NumericSS.cost_function(best_sol.position, attr_keys, d_set)
 
     # Best Cost of Iteration
     best_costs = np.empty(max_iteration)
@@ -1864,22 +1917,26 @@ def rsgps(data_src, min_supp=MIN_SUPPORT, max_iteration=MAX_ITERATIONS, return_g
     str_eval = ''
 
     repeated = 0
+    invalid_count = 0
+
     while counter < max_iteration:
         # while eval_count < max_evaluations:
 
         candidate.position = ((var_min + random.random()) * (var_max - var_min))
-        apply_bound(candidate, var_min, var_max)
-        candidate.cost = costfxn(candidate.position, attr_keys, d_set)
+        NumericSS.apply_bound(candidate, var_min, var_max)
+        candidate.cost = NumericSS.cost_function(candidate.position, attr_keys, d_set)
+        if candidate.cost == 1:
+            invalid_count += 1
 
         if candidate.cost < best_sol.cost:
             best_sol = candidate.deepcopy()
         eval_count += 1
         str_eval += "{}: {} \n".format(eval_count, best_sol.cost)
 
-        best_gp = validategp(d_set, decodegp(attr_keys, best_sol.position))
-        """:type best_gp: GP"""
-        is_present = isduplicate(best_gp, best_patterns)
-        is_sub = amcheck(best_patterns, best_gp, subset=True)
+        best_gp = NumericSS.decode_gp(attr_keys, best_sol.position).validate(d_set)
+        """:type best_gp: GP4sw"""
+        is_present = best_gp.is_duplicate(best_patterns)
+        is_sub = best_gp.check_am(best_patterns, subset=True)
         if is_present or is_sub:
             repeated += 1
         else:
@@ -1903,7 +1960,8 @@ def rsgps(data_src, min_supp=MIN_SUPPORT, max_iteration=MAX_ITERATIONS, return_g
         else:
             counter = it_count
     # Output
-    out = json.dumps({"Algorithm": "RS-GRAD", "Best Patterns": str_best_gps, "Iterations": it_count})
+    out = json.dumps({"Algorithm": "RS-GRAD", "Best Patterns": str_best_gps, "Invalid Count": invalid_count,
+                      "Iterations": it_count})
     """:type out: object"""
     if return_gps:
         return out, best_patterns

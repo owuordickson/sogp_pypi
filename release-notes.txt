@@ -1,6 +1,18 @@
 RELEASE NOTES 
 
 
+0.2.4
+-----------------------------
+
+Updates
+- renamed functions
+- added class GP4sw
+- added class NumericSS
+- count invalid GPs
+
+
+
+
 0.2.3
 -----------------------------
 

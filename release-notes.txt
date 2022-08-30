@@ -1,6 +1,39 @@
 RELEASE NOTES 
 
 
+0.2.4
+-----------------------------
+
+Updates
+- renamed functions
+- added class GP4sw
+- added class NumericSS
+- count invalid GPs
+
+
+
+
+0.2.3
+-----------------------------
+
+Updates
+- count invalid GPs in GRAANK and ACO-GRAD
+
+
+0.2.2
+-----------------------------
+
+Bug fixes
+- fixed import error on plot_curve
+
+
+0.2.1
+-----------------------------
+
+Bug fixes
+- problem with import (removed matplotlib package)
+
+
 0.2.0
 -----------------------------
 

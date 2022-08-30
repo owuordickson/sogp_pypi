@@ -3,6 +3,47 @@ RELEASE HISTORY
 ***************
 
 
+
+0.2.4 (2022-07-08)
+----------------------------
+
+**Updates**
+
+* renamed functions
+
+* added class GP4sw
+
+* added class NumericSS
+
+* count invalid GPs
+
+
+
+0.2.3 (2022-06-15)
+----------------------------
+
+**Updates**
+
+* count invalid GPs in GRAANK and ACO-GRAD
+
+
+
+0.2.2 (2022-04-23)
+-----------------------------
+
+**Bug fixes**
+
+* fixed import error on plot_curve
+
+
+0.2.1 (2022-04-23)
+-----------------------------
+
+**Bug fixes**
+
+* problem with import (removed matplotlib package)
+
+
 0.2.0 (2022-04-22)
 -----------------------------
 

@@ -1,11 +1,12 @@
 RELEASE NOTES 
 
 
-0.2.4
+0.2.5
 -----------------------------
 
 Updates
 - added clugps funtion
+- added class DataGP4clu
 
 
 0.2.4

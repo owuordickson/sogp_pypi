@@ -4,12 +4,13 @@ RELEASE HISTORY
 
 
 
-0.2.4 (2022-07-08)
+0.2.5 (2022-08-31)
 ----------------------------
 
 **Updates**
 
 * added clugps function
+* added class DataGP4clu
 
 
 0.2.4 (2022-07-08)

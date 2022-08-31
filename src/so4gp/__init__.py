@@ -20,6 +20,7 @@ from .so4gp import graank
 from .so4gp import psogps
 from .so4gp import rsgps
 
+from .so4gp import compare_gps
 from .so4gp import get_num_cores
 from .so4gp import get_slurm_cores
 from .so4gp import write_file

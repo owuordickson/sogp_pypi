@@ -1,35 +1,27 @@
 # -*- coding: utf-8 -*-
 """
 @author: Dickson Owuor
-
 @credits: Thomas Runkler, Edmond Menya, and Anne Laurent
-
 @license: MIT
-
-@version: 0.2.4
-
+@version: 0.2.5
 @email: owuordickson@gmail.com
-
 @created: 21 July 2021
-
-@modified: 08 July 2022
+@modified: 31 August 2022
 
 SO4GP
 ------
 
-**SO4GP** stands for: "Some Optimizations for Gradual Patterns". SO4GP applies optimizations such as swarm intelligence,
-HDF5 chunks, SVD and many others in order to improve the efficiency of extracting gradual patterns (GPs).
-
- A GP is a set of gradual items (GI) and its quality is measured by its computed support value. A GI is a pair (i,v)
- where i is a column and v is a variation symbol: increasing/decreasing. Each column of a data set yields 2 GIs; for
- example, column age yields GI age+ or age-. For example given a data set with 3 columns (age, salary, cars) and 10
- objects. A GP may take the form: {age+, salary-} with a support of 0.8. This implies that 8 out of 10 objects have the
- values of column age 'increasing' and column 'salary' decreasing.
+    **SO4GP** stands for: "Some Optimizations for Gradual Patterns". SO4GP applies optimizations such as swarm
+    intelligence, HDF5 chunks, SVD and many others in order to improve the efficiency of extracting gradual patterns
+    (GPs). A GP is a set of gradual items (GI) and its quality is measured by its computed support value. A GI is a pair
+    (i,v) where i is a column and v is a variation symbol: increasing/decreasing. Each column of a data set yields 2
+    GIs; for example, column age yields GI age+ or age-. For example given a data set with 3 columns (age, salary, cars)
+    and 10 objects. A GP may take the form: {age+, salary-} with a support of 0.8. This implies that 8 out of 10 objects
+    have the values of column age 'increasing' and column 'salary' decreasing.
 
     The classical approach for mining GPs is computationally expensive. This package provides Python algorithm
-implementations of several optimization techniques that are applied to the classical approach in order to improve its
-computational efficiency. The algorithm implementations include:
-
+    implementations of several optimization techniques that are applied to the classical approach in order to improve
+    its computational efficiency. The algorithm implementations include:
         * (Classical) GRAANK algorithm for extracting GPs
         * Ant Colony Optimization algorithm for extracting GPs
         * Genetic Algorithm for extracting GPs
@@ -37,6 +29,8 @@ computational efficiency. The algorithm implementations include:
         * Random Search algorithm for extracting GPs
         * Local Search algorithm for extracting GPs
 
+    Apart from swarm-based optimization techniques, this package also provides a Python algorithm implementation of a
+    clustering approach for mining GPs.
 
 """
 
@@ -44,13 +38,17 @@ import csv
 from dateutil.parser import parse
 import time
 import gc
+import math
 import numpy as np
 import json
+import matplotlib.pyplot as plt
 import multiprocessing as mp
 import os
 import pandas as pd
 import random
 from ypstruct import structure
+from sklearn.cluster import KMeans
+
 
 # -------- CONFIGURATION -------------
 
@@ -79,6 +77,10 @@ N_PARTICLES = 5
 
 # PLS-GRAD Configurations
 STEP_SIZE = 0.5
+
+# CluGRAD Configurations
+ERASURE_PROBABILITY = 0.5  # determines the number of pairs to be ignored
+SCORE_VECTOR_ITERATIONS = 10  # maximum iteration for score vector estimation
 
 # -------- DATA SET PREPARATION -------------
 
@@ -1967,3 +1969,250 @@ def rsgps(data_src, min_supp=MIN_SUPPORT, max_iteration=MAX_ITERATIONS, return_g
         return out, best_patterns
     else:
         return out
+
+
+def clugps(data_src, min_supp=MIN_SUPPORT, e_probability=ERASURE_PROBABILITY, sv_max_iter=SCORE_VECTOR_ITERATIONS,
+           return_gps=False, testing=False):
+    """
+    Clustering Gradual Items
+    ------------------------
+
+    A gradual pattern (GP) is a set of gradual items (GI) and its quality is measured by its computed support value. A
+    GI is a pair (i,v) where i is a column and v is a variation symbol: increasing/decreasing. Each column of a data set
+    yields 2 GIs; for example, column age yields GI age+ or age-. For example given a data set with 3 columns
+    (age, salary, cars) and 10 objects. A GP may take the form: {age+, salary-} with a support of 0.8. This implies
+    that 8 out of 10 objects have the values of column age 'increasing' and column 'salary' decreasing.
+
+     We borrow the net-win concept used in the work 'Clustering Using Pairwise Comparisons' proposed by R. Srikant to
+     the problem of extracting gradual patterns (GPs). In order to mine for GPs, each feature yields 2 gradual items
+     which we use to construct a bitmap matrix comparing each row to each other (i.e., (r1,r2), (r1,r3), (r1,r4),
+     (r2,r3), (r2,r4), (r3,r4)).
+
+    In this approach, we convert the bitmap matrices into 'net-win vectors'. Finally, we apply spectral clustering to
+    determine which gradual items belong to the same group based on the similarity of net-win vectors. Gradual items
+    in the same cluster should have almost similar score vector.
+
+    :param data_src: [required] a numeric data source, it can either be a 'file in csv format' or a 'Pandas DataFrame'
+    :param min_supp: [optional] minimum support threshold, the default is set to 0.5
+    :param e_probability: [optional] erasure probability (determines the number of objects to be used), the default is 0.5
+    :param sv_max_iter: [optional] score vector maximum iteration, the default is 10
+    :param return_gps: [optional] additionally return object GPs, the default is False. If set to True, the method returns 2 items: JSON object, GP list
+    :param testing: [optional] returns different format if algorithm is used in a test environment
+    :return: JSON object
+    """
+
+    # 1. Create a DataGP object
+    d_gp = DataGP(data_src, min_supp)
+    """:type d_gp: DataGP"""
+
+    # 2. Generate net-win matrices
+    mat_obj = construct_matrices(d_gp, e=e_probability)
+    s_matrix = mat_obj.nwin_matrix  # Net-win matrix (S)
+    if s_matrix.size < 1:
+        raise Exception("Erasure probability is too high, consider reducing it.")
+    # print(s_matrix)
+
+    start = time.time()  # TO BE REMOVED
+    # 3a. Spectral Clustering: perform SVD to determine the independent rows
+    u, s, vt = np.linalg.svd(s_matrix)
+
+    # 3b. Spectral Clustering: compute rank of net-wins matrix
+    r = np.linalg.matrix_rank(s_matrix)  # approximated r
+
+    # 3c. Spectral Clustering: rank approximation
+    s_matrix_approx = u[:, :r] @ np.diag(s[:r]) @ vt[:r, :]
+
+    # 3d. Clustering using K-Means (using sklearn library)
+    kmeans = KMeans(n_clusters=r, random_state=0)
+    y_pred = kmeans.fit_predict(s_matrix_approx)
+
+    end = time.time()  # TO BE REMOVED
+
+    # 4. Infer GPs
+    str_gps, gps = infer_gps(y_pred, d_gp, mat_obj, sv_max_iter)
+
+    # 5. Output - DO NOT ADD TO PyPi Package
+    out = structure()
+    out.estimated_gps = gps
+    out.max_iteration = sv_max_iter
+    out.titles = d_gp.titles
+    out.col_count = d_gp.col_count
+    out.row_count = d_gp.row_count
+    out.e_prob = e_probability
+    out.cluster_time = (end - start)  # TO BE REMOVED
+    if testing:
+        return out
+
+    # Output
+    out = json.dumps({"Algorithm": "Clu-GRAD", "Patterns": str_gps})
+    """:type out: object"""
+    if return_gps:
+        return out, gps
+    else:
+        return out
+
+
+def construct_matrices(d_gp, e):
+    """
+    Generates all the gradual items and, constructs: (1) net-win matrix, (2) cumulative wins, (3) pairwise objects.
+
+    :param d_gp: [required] GP data object
+    :param e: [required] erasure probability
+    :return: dictionary/structure object
+    """
+
+    n = d_gp.row_count
+    prob = 1 - e  # Sample probability
+
+    # 1a. Generate random pairs using erasure-probability
+    total_pair_count = int(n * (n - 1) * 0.5)
+    rand_1d = np.random.choice(n, int(prob*total_pair_count)*2, replace=True)
+    pair_ij = np.reshape(rand_1d, (-1, 2))
+
+    # 1b. Remove duplicates
+    pair_ij = pair_ij[np.argwhere(pair_ij[:, 0] != pair_ij[:, 1])[:, 0]]
+
+    # 2. Variable declarations
+    attr_data = d_gp.data.T  # Feature data objects
+    lst_gis = []  # List of GIs
+    s_mat = []  # S-Matrix (made up of S-Vectors)
+    cum_wins = []  # Cumulative wins
+
+    # 3. Construct S matrix from data set
+    for col in np.nditer(d_gp.attr_cols):
+        # Feature data objects
+        col_data = np.array(attr_data[col], dtype=np.float)  # Feature data objects
+
+        # Cumulative Wins: for estimation of score-vector
+        temp_cum_wins = np.where(col_data[pair_ij[:, 0]] < col_data[pair_ij[:, 1]], 1,
+                                 np.where(col_data[pair_ij[:, 0]] > col_data[pair_ij[:, 1]], -1, 0))
+
+        # S-vector
+        s_vec = np.zeros((n,), dtype=np.int32)
+        for w in [1, -1]:
+            positions = np.flatnonzero(temp_cum_wins == w)
+            i, counts_i = np.unique(pair_ij[positions, 0], return_counts=True)
+            j, counts_j = np.unique(pair_ij[positions, 1], return_counts=True)
+            s_vec[i] += w * counts_i  # i wins/loses (1/-1)
+            s_vec[j] += -w * counts_j  # j loses/wins (1/-1)
+
+        # Normalize S-vector
+        if np.count_nonzero(s_vec) > 0:
+            s_vec[s_vec > 0] = 1  # Normalize net wins
+            s_vec[s_vec < 0] = -1  # Normalize net loses
+
+            lst_gis.append(GI(col, '+'))
+            cum_wins.append(temp_cum_wins)
+            s_mat.append(s_vec)
+
+            lst_gis.append(GI(col, '-'))
+            cum_wins.append(-temp_cum_wins)
+            s_mat.append(-s_vec)
+
+    res = structure()
+    res.gradual_items = np.array(lst_gis)
+    res.cum_wins = np.array(cum_wins)
+    res.nwin_matrix = np.array(s_mat)
+    res.ij = pair_ij
+    return res
+
+
+def infer_gps(clusters, d_gp, mat_obj, max_iter):
+    """
+
+    :param clusters:
+    :param d_gp:
+    :param mat_obj:
+    :param max_iter:
+    :return:
+    """
+
+    patterns = []
+    str_patterns = []
+
+    n = d_gp.row_count
+    all_gis = mat_obj.gradual_items
+    cum_wins = mat_obj.cum_wins
+    ij_cols = mat_obj.ij
+
+    lst_indices = [np.where(clusters == element)[0] for element in np.unique(clusters)]
+    for grp_idxs in lst_indices:
+        if grp_idxs.size > 1:
+            # 1. Retrieve all cluster-pairs and the corresponding GIs
+            cluster_gis = all_gis[grp_idxs]
+            cluster_cum_wins = cum_wins[grp_idxs]  # All the rows of selected groups
+
+            # 2. Compute score vector from R matrix
+            score_vectors = []  # Approach 2
+            for c_win in cluster_cum_wins:
+                temp = estimate_score_vector(n, c_win, ij_cols, max_iter)
+                score_vectors.append(temp)
+
+            # 3. Estimate support
+            est_sup = estimate_support(n, score_vectors)
+
+            # 4. Infer GPs from the clusters
+            if est_sup >= d_gp.thd_supp:
+                gp = GP()
+                for gi in cluster_gis:
+                    gp.add_gradual_item(gi)
+                gp.set_support(est_sup)
+                patterns.append(gp)
+                str_patterns.append(gp.print(d_gp.titles))
+    return str_patterns, patterns
+
+
+def estimate_score_vector(n, c_wins, arr_ij, max_iter):
+    """
+
+    :param n:
+    :param c_wins:
+    :param arr_ij:
+    :param max_iter:
+    :return:
+    """
+
+    # Estimate score vector from pairs
+    score_vector = np.ones(shape=(n,))
+
+    # Construct a win-matrix
+    temp_vec = np.zeros(shape=(n,))
+    pair_count = arr_ij.shape[0]
+
+    # Compute score vector
+    for k in range(max_iter):
+        if np.count_nonzero(score_vector == 0) > 1:
+            break
+        else:
+            for pr in range(pair_count):
+                pr_val = c_wins[pr]
+                i = arr_ij[pr][0]
+                j = arr_ij[pr][1]
+                if pr_val == 1:
+                    log = math.log(math.exp(score_vector[i]) / (math.exp(score_vector[i]) + math.exp(score_vector[j])),
+                                   10)
+                    temp_vec[i] += pr_val * log
+                elif pr_val == -1:
+                    log = math.log(math.exp(score_vector[j]) / (math.exp(score_vector[i]) + math.exp(score_vector[j])),
+                                   10)
+                    temp_vec[j] += -pr_val * log
+            score_vector = abs(temp_vec / np.sum(temp_vec))
+    return score_vector
+
+
+def estimate_support(n, score_vectors):
+    """
+
+    :param n:
+    :param score_vectors:
+    :return:
+    """
+
+    # Estimate support - use different score-vectors to construct pairs
+    bin_mat = np.ones((n, n), dtype=np.bool)
+    for vec in score_vectors:
+        temp_bin = vec < vec[:, np.newaxis]
+        bin_mat = np.multiply(bin_mat, temp_bin)
+
+    est_sup = float(np.sum(bin_mat)) / float(n * (n - 1.0) / 2.0)
+    return est_sup

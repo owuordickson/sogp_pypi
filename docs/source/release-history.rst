@@ -9,6 +9,14 @@ RELEASE HISTORY
 
 **Updates**
 
+* added clugps function
+
+
+0.2.4 (2022-07-08)
+----------------------------
+
+**Updates**
+
 * renamed functions
 
 * added class GP4sw

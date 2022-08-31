@@ -2002,12 +2002,11 @@ def clugps(data_src, min_supp=MIN_SUPPORT, e_probability=ERASURE_PROBABILITY, sv
     """
 
     # 1. Create a DataGP object
-    d_gp = DataGP(data_src, min_supp)
-    """:type d_gp: DataGP"""
+    d_gp = DataGP4clu(data_src, min_supp, e_probability, sv_max_iter)
+    """:type d_gp: DataGP4clu"""
 
     # 2. Generate net-win matrices
-    mat_obj = construct_matrices(d_gp, e=e_probability)
-    s_matrix = mat_obj.nwin_matrix  # Net-win matrix (S)
+    s_matrix = d_gp.net_win_mat  # Net-win matrix (S)
     if s_matrix.size < 1:
         raise Exception("Erasure probability is too high, consider reducing it.")
     # print(s_matrix)
@@ -2029,7 +2028,7 @@ def clugps(data_src, min_supp=MIN_SUPPORT, e_probability=ERASURE_PROBABILITY, sv
     end = time.time()  # TO BE REMOVED
 
     # 4. Infer GPs
-    str_gps, gps = infer_gps(y_pred, d_gp, mat_obj, sv_max_iter)
+    str_gps, gps = d_gp.infer_gps(y_pred)
 
     # 5. Output - DO NOT ADD TO PyPi Package
     out = structure()
@@ -2052,167 +2051,175 @@ def clugps(data_src, min_supp=MIN_SUPPORT, e_probability=ERASURE_PROBABILITY, sv
         return out
 
 
-def construct_matrices(d_gp, e):
-    """
-    Generates all the gradual items and, constructs: (1) net-win matrix, (2) cumulative wins, (3) pairwise objects.
+class DataGP4clu(DataGP):
 
-    :param d_gp: [required] GP data object
-    :param e: [required] erasure probability
-    :return: dictionary/structure object
-    """
+    def __int__(self, data_source, min_sup=MIN_SUPPORT, e_prob=ERASURE_PROBABILITY, mat_iter=SCORE_VECTOR_ITERATIONS,
+                eq=False):
+        super().__init__(data_source, min_sup, eq)
+        self.erasure_probability = e_prob
+        """:type erasure_probability: float"""
+        self.max_iteration = mat_iter
+        """:type max_iteration: int"""
+        self.gradual_items, self.cum_wins, self.net_win_mat, self.ij = self.construct_matrices(e_prob)
+        """:type gradual_items: ndarray"""
+        """:type cum_wins: ndarray"""
+        """:type net_win_mat: ndarray"""
+        """:type ij: ndarray"""
 
-    n = d_gp.row_count
-    prob = 1 - e  # Sample probability
+    def construct_matrices(self, e):
+        """
+        Generates all the gradual items and, constructs: (1) net-win matrix, (2) cumulative wins, (3) pairwise objects.
 
-    # 1a. Generate random pairs using erasure-probability
-    total_pair_count = int(n * (n - 1) * 0.5)
-    rand_1d = np.random.choice(n, int(prob*total_pair_count)*2, replace=True)
-    pair_ij = np.reshape(rand_1d, (-1, 2))
+        :param d_gp: [required] GP data object
+        :param e: [required] erasure probability
+        :return: list of gradual items, net-win matrix, cumulative wins matrix, selected pairwise (ij) objects
+        """
 
-    # 1b. Remove duplicates
-    pair_ij = pair_ij[np.argwhere(pair_ij[:, 0] != pair_ij[:, 1])[:, 0]]
+        n = self.row_count
+        prob = 1 - e  # Sample probability
 
-    # 2. Variable declarations
-    attr_data = d_gp.data.T  # Feature data objects
-    lst_gis = []  # List of GIs
-    s_mat = []  # S-Matrix (made up of S-Vectors)
-    cum_wins = []  # Cumulative wins
+        # 1a. Generate random pairs using erasure-probability
+        total_pair_count = int(n * (n - 1) * 0.5)
+        rand_1d = np.random.choice(n, int(prob*total_pair_count)*2, replace=True)
+        pair_ij = np.reshape(rand_1d, (-1, 2))
 
-    # 3. Construct S matrix from data set
-    for col in np.nditer(d_gp.attr_cols):
-        # Feature data objects
-        col_data = np.array(attr_data[col], dtype=np.float)  # Feature data objects
+        # 1b. Remove duplicates
+        pair_ij = pair_ij[np.argwhere(pair_ij[:, 0] != pair_ij[:, 1])[:, 0]]
 
-        # Cumulative Wins: for estimation of score-vector
-        temp_cum_wins = np.where(col_data[pair_ij[:, 0]] < col_data[pair_ij[:, 1]], 1,
-                                 np.where(col_data[pair_ij[:, 0]] > col_data[pair_ij[:, 1]], -1, 0))
+        # 2. Variable declarations
+        attr_data = self.data.T  # Feature data objects
+        lst_gis = []  # List of GIs
+        s_mat = []  # S-Matrix (made up of S-Vectors)
+        cum_wins = []  # Cumulative wins
 
-        # S-vector
-        s_vec = np.zeros((n,), dtype=np.int32)
-        for w in [1, -1]:
-            positions = np.flatnonzero(temp_cum_wins == w)
-            i, counts_i = np.unique(pair_ij[positions, 0], return_counts=True)
-            j, counts_j = np.unique(pair_ij[positions, 1], return_counts=True)
-            s_vec[i] += w * counts_i  # i wins/loses (1/-1)
-            s_vec[j] += -w * counts_j  # j loses/wins (1/-1)
+        # 3. Construct S matrix from data set
+        for col in np.nditer(self.attr_cols):
+            # Feature data objects
+            col_data = np.array(attr_data[col], dtype=np.float)  # Feature data objects
 
-        # Normalize S-vector
-        if np.count_nonzero(s_vec) > 0:
-            s_vec[s_vec > 0] = 1  # Normalize net wins
-            s_vec[s_vec < 0] = -1  # Normalize net loses
+            # Cumulative Wins: for estimation of score-vector
+            temp_cum_wins = np.where(col_data[pair_ij[:, 0]] < col_data[pair_ij[:, 1]], 1,
+                                     np.where(col_data[pair_ij[:, 0]] > col_data[pair_ij[:, 1]], -1, 0))
 
-            lst_gis.append(GI(col, '+'))
-            cum_wins.append(temp_cum_wins)
-            s_mat.append(s_vec)
+            # S-vector
+            s_vec = np.zeros((n,), dtype=np.int32)
+            for w in [1, -1]:
+                positions = np.flatnonzero(temp_cum_wins == w)
+                i, counts_i = np.unique(pair_ij[positions, 0], return_counts=True)
+                j, counts_j = np.unique(pair_ij[positions, 1], return_counts=True)
+                s_vec[i] += w * counts_i  # i wins/loses (1/-1)
+                s_vec[j] += -w * counts_j  # j loses/wins (1/-1)
 
-            lst_gis.append(GI(col, '-'))
-            cum_wins.append(-temp_cum_wins)
-            s_mat.append(-s_vec)
+            # Normalize S-vector
+            if np.count_nonzero(s_vec) > 0:
+                s_vec[s_vec > 0] = 1  # Normalize net wins
+                s_vec[s_vec < 0] = -1  # Normalize net loses
 
-    res = structure()
-    res.gradual_items = np.array(lst_gis)
-    res.cum_wins = np.array(cum_wins)
-    res.nwin_matrix = np.array(s_mat)
-    res.ij = pair_ij
-    return res
+                lst_gis.append(GI(col, '+'))
+                cum_wins.append(temp_cum_wins)
+                s_mat.append(s_vec)
 
+                lst_gis.append(GI(col, '-'))
+                cum_wins.append(-temp_cum_wins)
+                s_mat.append(-s_vec)
 
-def infer_gps(clusters, d_gp, mat_obj, max_iter):
-    """
+        return np.array(lst_gis), np.array(cum_wins), np.array(s_mat), pair_ij
 
-    :param clusters:
-    :param d_gp:
-    :param mat_obj:
-    :param max_iter:
-    :return:
-    """
+    def infer_gps(self, clusters):
+        """
 
-    patterns = []
-    str_patterns = []
+        :param clusters:
+        :param d_gp:
+        :param mat_obj:
+        :param max_iter:
+        :return:
+        """
 
-    n = d_gp.row_count
-    all_gis = mat_obj.gradual_items
-    cum_wins = mat_obj.cum_wins
-    ij_cols = mat_obj.ij
+        patterns = []
+        str_patterns = []
 
-    lst_indices = [np.where(clusters == element)[0] for element in np.unique(clusters)]
-    for grp_idxs in lst_indices:
-        if grp_idxs.size > 1:
-            # 1. Retrieve all cluster-pairs and the corresponding GIs
-            cluster_gis = all_gis[grp_idxs]
-            cluster_cum_wins = cum_wins[grp_idxs]  # All the rows of selected groups
+        all_gis = self.gradual_items
+        cum_wins = self.cum_wins
 
-            # 2. Compute score vector from R matrix
-            score_vectors = []  # Approach 2
-            for c_win in cluster_cum_wins:
-                temp = estimate_score_vector(n, c_win, ij_cols, max_iter)
-                score_vectors.append(temp)
+        lst_indices = [np.where(clusters == element)[0] for element in np.unique(clusters)]
+        for grp_idxs in lst_indices:
+            if grp_idxs.size > 1:
+                # 1. Retrieve all cluster-pairs and the corresponding GIs
+                cluster_gis = all_gis[grp_idxs]
+                cluster_cum_wins = cum_wins[grp_idxs]  # All the rows of selected groups
 
-            # 3. Estimate support
-            est_sup = estimate_support(n, score_vectors)
+                # 2. Compute score vector from R matrix
+                score_vectors = []  # Approach 2
+                for c_win in cluster_cum_wins:
+                    temp = self.estimate_score_vector(c_win)
+                    score_vectors.append(temp)
 
-            # 4. Infer GPs from the clusters
-            if est_sup >= d_gp.thd_supp:
-                gp = GP()
-                for gi in cluster_gis:
-                    gp.add_gradual_item(gi)
-                gp.set_support(est_sup)
-                patterns.append(gp)
-                str_patterns.append(gp.print(d_gp.titles))
-    return str_patterns, patterns
+                # 3. Estimate support
+                est_sup = self.estimate_support(score_vectors)
 
+                # 4. Infer GPs from the clusters
+                if est_sup >= self.thd_supp:
+                    gp = GP()
+                    for gi in cluster_gis:
+                        gp.add_gradual_item(gi)
+                    gp.set_support(est_sup)
+                    patterns.append(gp)
+                    str_patterns.append(gp.print(self.titles))
+        return str_patterns, patterns
 
-def estimate_score_vector(n, c_wins, arr_ij, max_iter):
-    """
+    def estimate_score_vector(self, c_wins):
+        """
 
-    :param n:
-    :param c_wins:
-    :param arr_ij:
-    :param max_iter:
-    :return:
-    """
+        :param n:
+        :param c_wins:
+        :param arr_ij:
+        :param max_iter:
+        :return:
+        """
 
-    # Estimate score vector from pairs
-    score_vector = np.ones(shape=(n,))
+        # Estimate score vector from pairs
+        n = self.row_count
+        score_vector = np.ones(shape=(n,))
+        arr_ij = self.ij
 
-    # Construct a win-matrix
-    temp_vec = np.zeros(shape=(n,))
-    pair_count = arr_ij.shape[0]
+        # Construct a win-matrix
+        temp_vec = np.zeros(shape=(n,))
+        pair_count = arr_ij.shape[0]
 
-    # Compute score vector
-    for k in range(max_iter):
-        if np.count_nonzero(score_vector == 0) > 1:
-            break
-        else:
-            for pr in range(pair_count):
-                pr_val = c_wins[pr]
-                i = arr_ij[pr][0]
-                j = arr_ij[pr][1]
-                if pr_val == 1:
-                    log = math.log(math.exp(score_vector[i]) / (math.exp(score_vector[i]) + math.exp(score_vector[j])),
-                                   10)
-                    temp_vec[i] += pr_val * log
-                elif pr_val == -1:
-                    log = math.log(math.exp(score_vector[j]) / (math.exp(score_vector[i]) + math.exp(score_vector[j])),
-                                   10)
-                    temp_vec[j] += -pr_val * log
-            score_vector = abs(temp_vec / np.sum(temp_vec))
-    return score_vector
+        # Compute score vector
+        for k in range(self.max_iteration):
+            if np.count_nonzero(score_vector == 0) > 1:
+                break
+            else:
+                for pr in range(pair_count):
+                    pr_val = c_wins[pr]
+                    i = arr_ij[pr][0]
+                    j = arr_ij[pr][1]
+                    if pr_val == 1:
+                        log = math.log(math.exp(score_vector[i]) / (math.exp(score_vector[i]) + math.exp(score_vector[j])),
+                                       10)
+                        temp_vec[i] += pr_val * log
+                    elif pr_val == -1:
+                        log = math.log(math.exp(score_vector[j]) / (math.exp(score_vector[i]) + math.exp(score_vector[j])),
+                                       10)
+                        temp_vec[j] += -pr_val * log
+                score_vector = abs(temp_vec / np.sum(temp_vec))
+        return score_vector
 
+    def estimate_support(self, score_vectors):
+        """
 
-def estimate_support(n, score_vectors):
-    """
+        :param n:
+        :param score_vectors:
+        :return:
+        """
 
-    :param n:
-    :param score_vectors:
-    :return:
-    """
+        # Estimate support - use different score-vectors to construct pairs
+        n = self.row_count
+        bin_mat = np.ones((n, n), dtype=np.bool)
+        for vec in score_vectors:
+            temp_bin = vec < vec[:, np.newaxis]
+            bin_mat = np.multiply(bin_mat, temp_bin)
 
-    # Estimate support - use different score-vectors to construct pairs
-    bin_mat = np.ones((n, n), dtype=np.bool)
-    for vec in score_vectors:
-        temp_bin = vec < vec[:, np.newaxis]
-        bin_mat = np.multiply(bin_mat, temp_bin)
-
-    est_sup = float(np.sum(bin_mat)) / float(n * (n - 1.0) / 2.0)
-    return est_sup
+        est_sup = float(np.sum(bin_mat)) / float(n * (n - 1.0) / 2.0)
+        return est_sup

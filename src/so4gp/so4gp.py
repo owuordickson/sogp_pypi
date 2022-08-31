@@ -41,7 +41,6 @@ import gc
 import math
 import numpy as np
 import json
-import matplotlib.pyplot as plt
 import multiprocessing as mp
 import os
 import pandas as pd
@@ -519,7 +518,7 @@ class DataGP4clu(DataGP):
 
                 # 4. Infer GPs from the clusters
                 if est_sup >= self.thd_supp:
-                    gp = GP()
+                    gp = GP4sw()
                     for gi in cluster_gis:
                         gp.add_gradual_item(gi)
                     gp.set_support(est_sup)
@@ -623,6 +622,24 @@ def write_file(data, path, wr=True):
             f.close()
     else:
         pass
+
+
+def compare_gps(file, min_sup,  est_gps):
+    d_set = DataGP(file, min_sup)
+    d_set.init_attributes()
+    wr_line = "\n\nComparison : Estimated Support, True Support" + '\n'
+    for est_gp in est_gps:
+        est_sup = est_gp.support
+        est_gp.set_support(0)
+        true_gp = est_gp.validate(d_set)
+        true_sup = true_gp.support
+        if true_sup == 0:
+            true_sup = -1
+        if len(true_gp.gradual_items) == len(est_gp.gradual_items):
+            wr_line += (str(est_gp.to_string()) + ' : ' + str(round(est_sup, 3)) + ', ' + str(round(true_sup, 3)) + '\n')
+        else:
+            wr_line += (str(est_gp.to_string()) + ' : ' + str(round(est_sup, 3)) + ', -1\n')
+    return wr_line
 
 
 # -------- GRADUAL PATTERNS -------------
@@ -1265,7 +1282,7 @@ def gen_apriori_candidates(R, sup, n):
 
 def graank(f_path=None, min_sup=MIN_SUPPORT, eq=False, return_gps=False):
     """
-    Extract gradual patterns (GPs) from a numeric data source using the GRAANK approach (proposed in a published
+    Extracts gradual patterns (GPs) from a numeric data source using the GRAANK approach (proposed in a published
     research paper by Anne Laurent).
 
      A GP is a set of gradual items (GI) and its quality is measured by its computed support value. For example given a

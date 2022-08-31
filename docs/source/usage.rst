@@ -38,6 +38,7 @@ where you specify the parameters as follows:
 
 Ant Colony Optimization for GPs (ACO-GRAD)
 ------------------------------------------
+In this approach, it is assumed that every column can be converted into gradual item (GI). If the GI is valid (i.e. its computed support is greater than the minimum support threshold) then it is either increasing or decreasing (+ or -), otherwise it is irrelevant (x). Therefore, a pheromone matrix is built using the number of columns and the possible variations (increasing, decreasing, irrelevant) or (+, -, x). The algorithm starts by randomly generating GP candidates using the pheromone matrix, each candidate is validated by confirming that its computed support is greater or equal to the minimum support threshold. The valid GPs are used to update the pheromone levels and better candidates are generated.
 
 Executing ACO for mining GPs:
 
@@ -57,6 +58,7 @@ where you specify the parameters as follows:
 
 Genetic Algorithm for GPs (GA-GRAD)
 --------------------------------------
+In this approach, it is assumed that every GP candidate may be represented as a binary gene (or individual) that has a unique position and cost. The cost is derived from the computed support of that candidate, the higher the support value the lower the cost. The aim of the algorithm is search through a population of individuals (or candidates) and find those with the lowest cost as efficiently as possible.
 
 Executing GA for mining GPs:
 
@@ -80,6 +82,7 @@ where you specify the parameters as follows:
 
 Particle Swarm Optimization for GPs (PSO-GRAD)
 -------------------------------------------------
+In this approach, it is assumed that every GP candidate may be represented as a particle that has a unique position and fitness. The fitness is derived from the computed support of that candidate, the higher the support value the higher the fitness. The aim of the algorithm is search through a population of particles (or candidates) and find those with the highest fitness as efficiently as possible.
 
 Executing PSO for mining GPs:
 
@@ -102,6 +105,7 @@ where you specify the parameters as follows:
 
 Local Search for GPs (LS-GRAD)
 ---------------------------------
+In this approach, it is assumed that every GP candidate may be represented as a position that has a cost value associated with it. The cost is derived from the computed support of that candidate, the higher the support value the lower the cost. The aim of the algorithm is search through group of positions and find those with the lowest cost as efficiently as possible.
 
 Executing LS for mining GPs:
 
@@ -120,6 +124,7 @@ where you specify the parameters as follows:
 
 Random Search for GPs (RS-GRAD)
 ----------------------------------
+In this approach, it is assumed that every GP candidate may be represented as a position that has a cost value associated with it. The cost is derived from the computed support of that candidate, the higher the support value the lower the cost. The aim of the algorithm is search through group of positions and find those with the lowest cost as efficiently as possible.
 
 Executing RS for mining GPs:
 
@@ -135,6 +140,30 @@ where you specify the parameters as follows:
 * **min_sup** - *[optional]* minimum support :code:`default = 0.5`
 * **max_iterations** - *[optional]* maximum iterations :code:`default = 1`
 * **return_gps** - *[optional]* additionally return object GPs ```default = False```
+
+
+Clustering algorithm for GPs (Clu-GRAD)
+----------------------------------
+We borrow the net-win concept used in the work 'Clustering Using Pairwise Comparisons' proposed by R. Srikant to the problem of extracting gradual patterns (GPs). In order to mine for GPs, each feature yields 2 gradual items which we use to construct a bitmap matrix comparing each row to each other (i.e., (r1,r2), (r1,r3), (r1,r4), (r2,r3), (r2,r4), (r3,r4)).
+
+In this approach, we convert the bitmap matrices into 'net-win vectors'. Finally, we apply spectral clustering to determine which gradual items belong to the same group based on the similarity of net-win vectors. Gradual items in the same cluster should have almost similar score vector.
+
+Executing Clustering algorithm for mining GPs:
+
+.. code-block:: python
+
+    gp_json = sgp.clugps(data_src, min_sup)
+    print(gp_json)
+
+
+where you specify the parameters as follows:
+
+* **data_src** - *[required]* data source {either a :code:`file in csv format` or a :code:`Pandas DataFrame`}
+* **min_sup** - *[optional]* minimum support :code:`default = 0.5`
+* **e_probability** - *[optional]* erasure probability ```default = 0.5```
+* **max_iteration** - *[optional]* maximum iterations for estimating score vectors ```default = 10```
+* **return_gps** - *[optional]* additionally return object GPs ```default = False```
+
 
 
 Sample Output

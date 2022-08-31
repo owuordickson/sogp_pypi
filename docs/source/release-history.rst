@@ -10,7 +10,12 @@ RELEASE HISTORY
 **Updates**
 
 * added clugps function
+
 * added class DataGP4clu
+
+* updated README
+
+* added compare_gps function
 
 
 0.2.4 (2022-07-08)

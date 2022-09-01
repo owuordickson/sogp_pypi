@@ -1,6 +1,12 @@
 RELEASE NOTES 
 
 
+0.2.6
+---------------------------
+Bug fixes
+- clustering attributes missing
+
+
 0.2.5
 -----------------------------
 

@@ -461,6 +461,8 @@ class DataGP4clu(DataGP):
             # Cumulative Wins: for estimation of score-vector
             temp_cum_wins = np.where(col_data[pair_ij[:, 0]] < col_data[pair_ij[:, 1]], 1,
                                      np.where(col_data[pair_ij[:, 0]] > col_data[pair_ij[:, 1]], -1, 0))
+            # print(col)
+            # print(temp_cum_wins)
 
             # S-vector
             s_vec = np.zeros((n,), dtype=np.int32)
@@ -470,7 +472,8 @@ class DataGP4clu(DataGP):
                 j, counts_j = np.unique(pair_ij[positions, 1], return_counts=True)
                 s_vec[i] += w * counts_i  # i wins/loses (1/-1)
                 s_vec[j] += -w * counts_j  # j loses/wins (1/-1)
-
+            # print(s_vec)
+            # print("\n")
             # Normalize S-vector
             if np.count_nonzero(s_vec) > 0:
                 s_vec[s_vec > 0] = 1  # Normalize net wins

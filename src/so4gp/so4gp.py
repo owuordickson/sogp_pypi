@@ -127,6 +127,21 @@ class DataGP:
 
         no_bins: True if all none of the attr_cols yields a valid bitmap
 
+    The class provides the following function:
+        get_attr_cols: retrieves all the columns with data that is numeric and not date-tme
+
+        get_time_cols: retrieves the columns with date-time values
+
+        get_gi_bitmap: computes and returns the bitmap matrix corresponding to a GI
+
+        init_attributes: generates all the bitmap matrices of valid GIs
+
+        read (static): reads contents of a CSV file or data-frame
+
+        test_time (static): tests if a str represents a date-time variable
+
+        clean_data (static): cleans data (missing values, outliers) before extraction of GPs.
+
     """
 
     def __init__(self, data_source, min_sup=MIN_SUPPORT, eq=False):
@@ -211,6 +226,12 @@ class DataGP:
         return np.array(time_cols)
 
     def get_gi_bitmap(self, col):
+        """
+        Computes and returns the bitmap matrix corresponding to an attribute.
+
+        :param col: specific attribute (or column)
+        :return: numpy (bitmap)
+        """
         if col in self.time_cols:
             raise Exception("Error: " + str(self.titles[col][1].decode()) + " is a date/time column!")
         elif col >= self.col_count:
@@ -334,6 +355,12 @@ class DataGP:
 
     @staticmethod
     def test_time(date_str):
+        """
+        Tests if a str represents a date-time variable.
+
+        :param date_str: str value
+        :return: bool (True if it is date-time variable, False otherwise)
+        """
         # add all the possible formats
         try:
             if type(int(date_str)):
@@ -352,6 +379,11 @@ class DataGP:
 
     @staticmethod
     def clean_data(df):
+        """
+        Cleans a data-frame (i.e., missing values, outliers) before extraction of GPs
+        :param df: data-frame
+        :return: list (column titles), numpy (cleaned data)
+        """
         # 1. Remove objects with Null values
         df = df.dropna()
 
@@ -386,24 +418,57 @@ class DataGP:
         return titles, df.values
 
 
-class DataGP4clu(DataGP):
-    """Description of class DataGP4clu
-    A class for creating data-gp objects for the clustering approach. This class inherits the DataGP class which is used
-    to create data-gp objects. The classical data-gp object is meant to store all the parameters required by GP
-    algorithms to extract gradual patterns (GP). It takes a numeric file (in CSV format) as input and converts it into
-    an object whose attributes are used by algorithms to extract GPs.
+class CluDataGP(DataGP):
+    """Description of class CluDataGP (Clustering DataGP)
+
+    CluDataGP stands for Clustering DataGP. It is a class that inherits the DataGP class in order to create data-gp
+    objects for the clustering approach. This class inherits the DataGP class which is used to create data-gp objects.
+    The classical data-gp object is meant to store all the parameters required by GP algorithms to extract gradual
+    patterns (GP). It takes a numeric file (in CSV format) as input and converts it into an object whose attributes are
+    used by algorithms to extract GPs.
+
+    class DataGP provides the following attributes:
+        thd_supp: minimum support threshold
+
+        equal: eq value
+
+        titles: column names of data source
+
+        data: all the objects organized into their respective column
+
+        row_count: number of objects
+
+        col_count: number of all columns
+
+        time_cols: column indices of the columns with data-time objects
+
+        attr_cols: column indices of the columns with numeric values
+
+        valid_bins: valid bitmaps (in the form of ndarray) of all gradual items corresponding to the attr_cols, a bitmap
+        is valid if its computed support is equal or greater than the minimum support threshold
+
+        no_bins: True if all none of the attr_cols yields a valid bitmap
 
     This class adds the parameters required for clustering gradual items to the data-gp object. The class provides the
     following additional attributes:
+        e_prob: erasure probability (a value between 0 - 1)
 
-    e_prob: erasure probability (a value between 0 - 1)
+        mat_iter: maximum iteration value for score vector estimation
 
-    mat_iter: maximum iteration value for score vector estimation
+    CluDataGP adds the following funtions:
+        construct_matrices: generates the net-win matrix
+
+        infer_gps: infers GPs from clusters of Gradual Items
+
+        estimate_score_vector: estimates the score vector based on the cumulative wins
+
+        estimate_support:  estimates the frequency support of a GP based on its score vector
 
     """
 
     def __init__(self, *args, e_prob=ERASURE_PROBABILITY, max_iter=SCORE_VECTOR_ITERATIONS):
-        """Description of class DataGP4clu
+        """Description of class CluDataGP (Clustering DataGP)
+
         A class for creating data-gp objects for the clustering approach. This class inherits the DataGP class which is
         used to create data-gp objects. This class adds the parameters required for clustering gradual items to the
         data-gp object. The class provides the following additional attributes:
@@ -417,7 +482,7 @@ class DataGP4clu(DataGP):
         :param e_prob: [optional] erasure probability, the default is 0.5
         :param max_iter: [optional] maximum iteration for score vector estimation, the default is 10
         """
-        super(DataGP4clu, self).__init__(*args)
+        super(CluDataGP, self).__init__(*args)
         self.erasure_probability = e_prob
         """:type erasure_probability: float"""
         self.max_iteration = max_iter
@@ -491,7 +556,7 @@ class DataGP4clu(DataGP):
 
     def infer_gps(self, clusters):
         """
-        A function that infers GPs from a clusters of gradual items.
+        A function that infers GPs from clusters of gradual items.
 
         :param clusters: [required] groups of gradual items clustered through K-MEANS algorithm
         :return: list of (str) patterns, list of GP objects
@@ -521,7 +586,7 @@ class DataGP4clu(DataGP):
 
                 # 4. Infer GPs from the clusters
                 if est_sup >= self.thd_supp:
-                    gp = GP4sw()
+                    gp = ExtGP()
                     for gi in cluster_gis:
                         gp.add_gradual_item(gi)
                     gp.set_support(est_sup)
@@ -971,8 +1036,8 @@ class GP:
         return [pattern, self.support]
 
 
-class GP4sw(GP):
-    """Description of class GP4sw (Gradual Pattern for swarm)
+class ExtGP(GP):
+    """Description of class ExtGP (Extended Gradual Pattern)
 
     A class that inherits class GP which is used to create GP objects. a GP object is a set of gradual items and its
     quality is measured by its computed support value. For example given a data set with 3 columns (age, salary, cars)
@@ -981,11 +1046,14 @@ class GP4sw(GP):
 
     The class GP has the following attributes:
         gradual_items: list if GIs
+
         support: computed support value as a float
 
-    The class GP4sw adds the following functions:
+    The class ExtGP adds the following functions:
         validate: used to validate GPs
+
         check_am: used to verify if a GP obeys anti-monotonicity
+
         is_duplicate: checks a GP is already extracted
 
     """
@@ -1001,7 +1069,7 @@ class GP4sw(GP):
         # pattern = [('2', '+'), ('4', '+')]
         min_supp = d_set.thd_supp
         n = d_set.attr_size
-        gen_pattern = GP4sw()
+        gen_pattern = ExtGP()
         """type gen_pattern: GP"""
         bin_arr = np.array([])
 
@@ -1152,8 +1220,8 @@ class NumericSS:
         :return: GP that is decoded from the position value
         """
 
-        temp_gp = GP4sw()
-        ":type temp_gp: GP4sw"
+        temp_gp = ExtGP()
+        ":type temp_gp: ExtGP"
         if position is None:
             return temp_gp
 
@@ -1451,7 +1519,7 @@ def acogps(f_path, min_supp=MIN_SUPPORT, evaporation_factor=EVAPORATION_FACTOR,
                 if is_super or is_sub:
                     continue
                 gen_gp = rand_gp.validate(d_set)
-                """:type gen_gp: GP4sw"""
+                """:type gen_gp: ExtGP"""
                 is_present = gen_gp.is_duplicate(winner_gps, loser_gps)
                 is_sub = gen_gp.check_am(winner_gps, subset=True)
                 if is_present or is_sub:
@@ -1487,8 +1555,8 @@ def acogps(f_path, min_supp=MIN_SUPPORT, evaporation_factor=EVAPORATION_FACTOR,
 
 def gen_aco_candidates(attr_keys, d, p_matrix, e_factor):
     v_matrix = d
-    pattern = GP4sw()
-    ":type pattern: GP4sw"
+    pattern = ExtGP()
+    ":type pattern: ExtGP"
 
     # 1. Generate gradual items with the highest pheromone and visibility
     m = p_matrix.shape[0]
@@ -1703,7 +1771,7 @@ def gagps(data_src, min_supp=MIN_SUPPORT, max_iteration=MAX_ITERATIONS, n_pop=N_
         pop = pop[0:n_pop]
 
         best_gp = NumericSS.decode_gp(attr_keys, best_sol.position).validate(d_set)
-        """:type best_gp: GP4sw"""
+        """:type best_gp: ExtGP"""
         is_present = best_gp.is_duplicate(best_patterns)
         is_sub = best_gp.check_am(best_patterns, subset=True)
         if is_present or is_sub:
@@ -1906,7 +1974,7 @@ def psogps(data_src, min_supp=MIN_SUPPORT, max_iteration=MAX_ITERATIONS, n_parti
             particle_pop[i].position = particle_pop[i].position + new_velocity
 
         best_gp = NumericSS.decode_gp(attr_keys, best_particle.position).validate(d_set)
-        """:type best_gp: GP4sw"""
+        """:type best_gp: ExtGP"""
         is_present = best_gp.is_duplicate(best_patterns)
         is_sub = best_gp.check_am(best_patterns, subset=True)
         if is_present or is_sub:
@@ -2035,7 +2103,7 @@ def hcgps(data_src, min_supp=MIN_SUPPORT, max_iteration=MAX_ITERATIONS, step_siz
         str_eval += "{}: {} \n".format(eval_count, best_sol.cost)
 
         best_gp = NumericSS.decode_gp(attr_keys, best_sol.position).validate(d_set)
-        """:type best_gp: GP4sw"""
+        """:type best_gp: ExtGP"""
         is_present = best_gp.is_duplicate(best_patterns)
         is_sub = best_gp.check_am(best_patterns, subset=True)
         if is_present or is_sub:
@@ -2155,7 +2223,7 @@ def rsgps(data_src, min_supp=MIN_SUPPORT, max_iteration=MAX_ITERATIONS, return_g
         str_eval += "{}: {} \n".format(eval_count, best_sol.cost)
 
         best_gp = NumericSS.decode_gp(attr_keys, best_sol.position).validate(d_set)
-        """:type best_gp: GP4sw"""
+        """:type best_gp: ExtGP"""
         is_present = best_gp.is_duplicate(best_patterns)
         is_sub = best_gp.check_am(best_patterns, subset=True)
         if is_present or is_sub:
@@ -2200,7 +2268,7 @@ def rsgps(data_src, min_supp=MIN_SUPPORT, max_iteration=MAX_ITERATIONS, return_g
 @created: 01 March 2022
 @modified: 25 April 2022
 CHANGES:
-1. Uses class DataGP4clu
+1. Uses class CluDataGP
 """
 
 
@@ -2235,8 +2303,8 @@ def clugps(data_src, min_supp=MIN_SUPPORT, e_probability=ERASURE_PROBABILITY, sv
     """
 
     # 1. Create a DataGP object
-    d_gp = DataGP4clu(data_src, min_supp, e_prob=e_probability, max_iter=sv_max_iter)
-    """:type d_gp: DataGP4clu"""
+    d_gp = CluDataGP(data_src, min_supp, e_prob=e_probability, max_iter=sv_max_iter)
+    """:type d_gp: CluDataGP"""
 
     # 2. Generate net-win matrices
     s_matrix = d_gp.net_win_mat  # Net-win matrix (S)

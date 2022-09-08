@@ -4,6 +4,18 @@ RELEASE HISTORY
 
 
 
+0.2.7 (2022-09-08)
+----------------------------
+
+**Updates**
+
+* renamed class GP4sw to ExtGP (stands for Extended GP)
+
+* renamed class DataGP4clu to CluDataGP (stands for Clustering DataGP)
+
+* added description statements to functions
+
+
 0.2.6 (2022-09-01)
 ----------------------------
 

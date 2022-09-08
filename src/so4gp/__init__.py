@@ -1,9 +1,9 @@
 
 from .so4gp import DataGP
-from .so4gp import DataGP4clu
+from .so4gp import CluDataGP
 from .so4gp import GI
 from .so4gp import GP
-from .so4gp import GP4sw
+from .so4gp import ExtGP
 from .so4gp import NumericSS
 from .so4gp import TimeLag
 

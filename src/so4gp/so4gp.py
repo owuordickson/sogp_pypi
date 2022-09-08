@@ -471,12 +471,13 @@ class CluDataGP(DataGP):
 
         A class for creating data-gp objects for the clustering approach. This class inherits the DataGP class which is
         used to create data-gp objects. This class adds the parameters required for clustering gradual items to the
-        data-gp object. The class provides the following additional attributes:
+        data-gp object.
 
-        e_prob: erasure probability (a value between 0 - 1). Erasure probability determines the proportion of ij columns
-        to be used by the algorithm, the rest are ignored.
+        The class provides the following additional attributes:
+            e_prob: erasure probability (a value between 0 - 1). Erasure probability determines the proportion of ij columns
+            to be used by the algorithm, the rest are ignored.
 
-        mat_iter: maximum iteration value for score vector estimation
+            mat_iter: maximum iteration value for score vector estimation
 
         :param args: [required] data-source, [optional] minimum-support
         :param e_prob: [optional] erasure probability, the default is 0.5
@@ -1039,10 +1040,10 @@ class GP:
 class ExtGP(GP):
     """Description of class ExtGP (Extended Gradual Pattern)
 
-    A class that inherits class GP which is used to create GP objects. a GP object is a set of gradual items and its
-    quality is measured by its computed support value. For example given a data set with 3 columns (age, salary, cars)
-    and 10 objects. A GP may take the form: {age+, salary-} with a support of 0.8. This implies that 8 out of 10 objects
-    have the values of column age 'increasing' and column 'salary' decreasing.
+    A class that inherits class GP which is used to create more capable GP objects. a GP object is a set of gradual
+    items and its quality is measured by its computed support value. For example given a data set with 3 columns
+    (age, salary, cars) and 10 objects. A GP may take the form: {age+, salary-} with a support of 0.8. This implies that
+    8 out of 10 objects have the values of column age 'increasing' and column 'salary' decreasing.
 
     The class GP has the following attributes:
         gradual_items: list if GIs
@@ -1057,6 +1058,20 @@ class ExtGP(GP):
         is_duplicate: checks a GP is already extracted
 
     """
+
+    def __init__(self):
+        """Description of class ExtGP (Extended Gradual Pattern)
+
+        A class that inherits class GP which is used to create more powerful GP objects that can be used in mining
+        approaches that implement swarm optimization techniques or cluster analysis or classification algorithms.
+
+        It adds the following attribute:
+            freq_count: frequency count of a particular GP object.
+
+        """
+        super(ExtGP, self).__init__()
+        self.freq_count = 0
+        """:type freq_count: int"""
 
     def validate(self, d_set):
         """

@@ -1,6 +1,11 @@
 RELEASE NOTES 
 
 
+0.2.8
+---------------------------
+Updates
+- added attribute freq_count to class ExtGP
+
 0.2.7
 ---------------------------
 Updates

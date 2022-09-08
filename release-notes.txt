@@ -1,10 +1,17 @@
 RELEASE NOTES 
 
 
+0.2.9
+---------------------------
+Updates
+- added method add_items_from_list()
+
+
 0.2.8
 ---------------------------
 Updates
 - added attribute freq_count to class ExtGP
+
 
 0.2.7
 ---------------------------

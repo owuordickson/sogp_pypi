@@ -854,6 +854,7 @@ class GP:
 
      The class has the following attributes:
         gradual_items: list if GIs
+
         support: computed support value as a float
 
     """
@@ -868,6 +869,7 @@ class GP:
 
              The class has the following attributes:
                 gradual_items: list if GIs
+
                 support: computed support value as a float
 
             """
@@ -893,6 +895,19 @@ class GP:
             self.gradual_items.append(item)
         else:
             pass
+
+    def add_items_from_list(self, lst_items):
+        """
+        Adds gradual items from a list of str or a list of sets.
+
+        :param lst_items: str or set
+        :return: none
+        """
+        for str_gi in lst_items:
+            if type(str_gi[1]) is str:
+                self.add_gradual_item(GI(int(str_gi[0]), str_gi[1]))
+            elif type(str_gi[1]) is bytes:
+                self.add_gradual_item(GI(int(str_gi[0]), str(str_gi[1].decode())))
 
     def get_pattern(self):
         """

@@ -6,6 +6,9 @@ RELEASE NOTES
 Updates
 - added method add_items_from_list()
 
+Bug fixes
+- generate all object pairs when e_prob is 0
+
 
 0.2.8
 ---------------------------

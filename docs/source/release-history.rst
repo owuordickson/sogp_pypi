@@ -3,12 +3,15 @@ RELEASE HISTORY
 ***************
 
 
-0.2.9 (2022-09-08)
+0.2.9 (2022-09-16)
 ----------------------------
 
 **Updates**
 
 * added method add_items_from_list()
+
+**Bug fixes**
+* generate all object pairs when e_prob is 0
 
 
 

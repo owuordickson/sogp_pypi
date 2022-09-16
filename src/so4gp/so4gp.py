@@ -505,13 +505,20 @@ class CluDataGP(DataGP):
         n = self.row_count
         prob = 1 - e  # Sample probability
 
-        # 1a. Generate random pairs using erasure-probability
-        total_pair_count = int(n * (n - 1) * 0.5)
-        rand_1d = np.random.choice(n, int(prob * total_pair_count) * 2, replace=True)
-        pair_ij = np.reshape(rand_1d, (-1, 2))
+        if prob == 1:
+            # 1a. Generate all possible pairs
+            pair_ij = np.array(np.meshgrid(np.arange(n), np.arange(n))).T.reshape(-1, 2)
 
-        # 1b. Remove duplicates
-        pair_ij = pair_ij[np.argwhere(pair_ij[:, 0] != pair_ij[:, 1])[:, 0]]
+            # 1b. Remove duplicates or reversed pairs
+            pair_ij = pair_ij[np.argwhere(pair_ij[:, 0] < pair_ij[:, 1])[:, 0]]
+        else:
+            # 1a. Generate random pairs using erasure-probability
+            total_pair_count = int(n * (n - 1) * 0.5)
+            rand_1d = np.random.choice(n, int(prob * total_pair_count) * 2, replace=True)
+            pair_ij = np.reshape(rand_1d, (-1, 2))
+
+            # 1b. Remove duplicates
+            pair_ij = pair_ij[np.argwhere(pair_ij[:, 0] != pair_ij[:, 1])[:, 0]]
 
         # 2. Variable declarations
         attr_data = self.data.T  # Feature data objects

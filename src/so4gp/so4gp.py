@@ -562,6 +562,63 @@ class CluDataGP(DataGP):
 
         return np.array(lst_gis), np.array(cum_wins), np.array(s_mat), pair_ij
 
+    def construct_all_matrices(self):
+        """
+        Generates all the gradual items and, constructs: (1) win matrix (2) net-win matrix, (3) cumulative wins, (4) pairwise objects.
+
+        :return: list of gradual items, win matrix, net-win matrix, cumulative wins matrix, selected pairwise (ij) objects
+        """
+
+        n = self.row_count
+
+        # 1a. Generate all possible pairs
+        pair_ij = np.array(np.meshgrid(np.arange(n), np.arange(n))).T.reshape(-1, 2)
+
+        # 1b. Remove duplicates or reversed pairs
+        pair_ij = pair_ij[np.argwhere(pair_ij[:, 0] < pair_ij[:, 1])[:, 0]]
+
+        # 2. Variable declarations
+        attr_data = self.data.T  # Feature data objects
+        lst_gis = []  # List of GIs
+        s_mat = []  # S-Matrix (made up of S-Vectors)
+        w_mat = []  # win matrix
+        cum_wins = []  # Cumulative wins
+
+        # 3. Construct S matrix from data set
+        for col in np.nditer(self.attr_cols):
+            # Feature data objects
+            col_data = np.array(attr_data[col], dtype=np.float)  # Feature data objects
+
+            # Cumulative Wins: for estimation of score-vector
+            temp_cum_wins = np.where(col_data[pair_ij[:, 0]] < col_data[pair_ij[:, 1]], 1,
+                                     np.where(col_data[pair_ij[:, 0]] > col_data[pair_ij[:, 1]], -1, 0))
+
+            # S-vector
+            s_vec = np.zeros((n,), dtype=np.int32)
+            for w in [1, -1]:
+                positions = np.flatnonzero(temp_cum_wins == w)
+                i, counts_i = np.unique(pair_ij[positions, 0], return_counts=True)
+                j, counts_j = np.unique(pair_ij[positions, 1], return_counts=True)
+                s_vec[i] += w * counts_i  # i wins/loses (1/-1)
+                s_vec[j] += -w * counts_j  # j loses/wins (1/-1)
+
+            # Normalize S-vector
+            if np.count_nonzero(s_vec) > 0:
+                w_mat.append(np.copy(s_vec))
+
+                s_vec[s_vec > 0] = 1  # Normalize net wins
+                s_vec[s_vec < 0] = -1  # Normalize net loses
+
+                lst_gis.append(GI(col, '+'))
+                cum_wins.append(temp_cum_wins)
+                s_mat.append(s_vec)
+
+                lst_gis.append(GI(col, '-'))
+                cum_wins.append(-temp_cum_wins)
+                s_mat.append(-s_vec)
+
+        return np.array(lst_gis), np.array(w_mat), np.array(cum_wins), np.array(s_mat), pair_ij
+
     def infer_gps(self, clusters):
         """
         A function that infers GPs from clusters of gradual items.

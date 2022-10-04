@@ -1,6 +1,12 @@
 RELEASE NOTES 
 
 
+0.3.0
+---------------------------
+Updates
+- added method construct_all_matrices
+
+
 0.2.9
 ---------------------------
 Updates

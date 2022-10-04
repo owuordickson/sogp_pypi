@@ -3,6 +3,14 @@ RELEASE HISTORY
 ***************
 
 
+0.3.0 (2022-10-04)
+---------------------------
+**Updates**
+
+* added method construct_all_matrices
+
+
+
 0.2.9 (2022-09-16)
 ----------------------------
 
@@ -21,7 +29,6 @@ RELEASE HISTORY
 **Updates**
 
 * added attribute freq_count to class ExtGP
-
 
 
 0.2.7 (2022-09-08)

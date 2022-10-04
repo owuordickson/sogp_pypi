@@ -466,7 +466,7 @@ class CluDataGP(DataGP):
 
     """
 
-    def __init__(self, *args, e_prob=ERASURE_PROBABILITY, max_iter=SCORE_VECTOR_ITERATIONS):
+    def __init__(self, *args, e_prob=ERASURE_PROBABILITY, max_iter=SCORE_VECTOR_ITERATIONS, all=False):
         """Description of class CluDataGP (Clustering DataGP)
 
         A class for creating data-gp objects for the clustering approach. This class inherits the DataGP class which is
@@ -488,11 +488,21 @@ class CluDataGP(DataGP):
         """:type erasure_probability: float"""
         self.max_iteration = max_iter
         """:type max_iteration: int"""
-        self.gradual_items, self.cum_wins, self.net_win_mat, self.ij = self.construct_matrices(e_prob)
-        """:type gradual_items: ndarray"""
-        """:type cum_wins: ndarray"""
-        """:type net_win_mat: ndarray"""
-        """:type ij: ndarray"""
+        if not all:
+            self.gradual_items, self.cum_wins, self.net_win_mat, self.ij = self.construct_matrices(e_prob)
+            """:type gradual_items: ndarray"""
+            """:type cum_wins: ndarray"""
+            """:type net_win_mat: ndarray"""
+            """:type ij: ndarray"""
+            self.win_mat = np.array([])
+            """:type win_mat: ndarray"""
+        else:
+            self.gradual_items, self.win_mat, self.cum_wins, self.net_win_mat, self.ij = self.construct_all_matrices()
+            """:type gradual_items: ndarray"""
+            """:type win_mat: ndarray"""
+            """:type cum_wins: ndarray"""
+            """:type net_win_mat: ndarray"""
+            """:type ij: ndarray"""
 
     def construct_matrices(self, e):
         """

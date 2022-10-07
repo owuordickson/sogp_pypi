@@ -3,6 +3,16 @@ RELEASE HISTORY
 ***************
 
 
+0.3.2 (2022-10-06)
+---------------------------
+**Updates**
+
+* renamed method compare_gps to analyze_gps
+
+* analyze_gps computes error, std, and returns tabulated results
+
+
+
 0.3.1 (2022-10-04)
 ---------------------------
 **Bug fixes**

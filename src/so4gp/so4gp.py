@@ -45,6 +45,8 @@ import multiprocessing as mp
 import os
 import pandas as pd
 import random
+import statistics
+from tabulate import tabulate
 from ypstruct import structure
 from sklearn.cluster import KMeans
 
@@ -767,22 +769,30 @@ def write_file(data, path, wr=True):
         pass
 
 
-def compare_gps(file, min_sup,  est_gps):
+def analyze_gps(file, min_sup,  est_gps):
     d_set = DataGP(file, min_sup)
     d_set.init_attributes()
-    wr_line = "\n\nComparison : Estimated Support, True Support" + '\n'
+    headers = ["Gradual Pattern", "Estimated Support", "True Support", "Percentage Error", "Standard Deviation"]
+    data = []
     for est_gp in est_gps:
         est_sup = est_gp.support
         est_gp.set_support(0)
         true_gp = est_gp.validate(d_set)
         true_sup = true_gp.support
+
         if true_sup == 0:
-            true_sup = -1
-        if len(true_gp.gradual_items) == len(est_gp.gradual_items):
-            wr_line += (str(est_gp.to_string()) + ' : ' + str(round(est_sup, 3)) + ', ' + str(round(true_sup, 3)) + '\n')
+            percentage_error = np.inf
+            st_dev = np.inf
         else:
-            wr_line += (str(est_gp.to_string()) + ' : ' + str(round(est_sup, 3)) + ', -1\n')
-    return wr_line
+            percentage_error = ((est_sup - true_sup) / true_sup) * 100
+            st_dev = statistics.stdev([est_sup, true_sup])
+
+        if len(true_gp.gradual_items) == len(est_gp.gradual_items):
+            data.append([est_gp.to_string(), round(est_sup, 3), round(true_sup, 3), str(round(percentage_error, 3))+'%',
+                         round(st_dev, 3)])
+        else:
+            data.append([est_gp.to_string(), round(est_sup, 3), -1, np.inf, np.inf])
+    return tabulate(data, headers=headers)
 
 
 # -------- GRADUAL PATTERNS -------------

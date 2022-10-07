@@ -3,10 +3,10 @@
 @author: Dickson Owuor
 @credits: Thomas Runkler, Edmond Menya, and Anne Laurent
 @license: MIT
-@version: 0.2.5
+@version: 0.3.2
 @email: owuordickson@gmail.com
 @created: 21 July 2021
-@modified: 31 August 2022
+@modified: 07 October 2022
 
 SO4GP
 ------
@@ -733,6 +733,10 @@ class CluDataGP(DataGP):
 # -------- OTHER METHODS -----------
 
 def get_num_cores():
+    """
+    Finds the count of CPU cores in a computer or a SLURM super-computer.
+    :return: number of cpu cores (int)
+    """
     num_cores = get_slurm_cores()
     if not num_cores:
         num_cores = mp.cpu_count()
@@ -740,6 +744,10 @@ def get_num_cores():
 
 
 def get_slurm_cores():
+    """
+    Test computer to see if it is a SLURM environment, then gets number of CPU cores.
+    :return: count of CPUs (int) or False
+    """
     try:
         cores = int(os.environ['SLURM_JOB_CPUS_PER_NODE'])
         return cores
@@ -761,6 +769,13 @@ def get_slurm_cores():
 
 
 def write_file(data, path, wr=True):
+    """
+    Writes data into a file
+    :param data: information to be written
+    :param path: name of file and storage path
+    :param wr: writes data into file if True
+    :return:
+    """
     if wr:
         with open(path, 'w') as f:
             f.write(data)
@@ -769,7 +784,14 @@ def write_file(data, path, wr=True):
         pass
 
 
-def analyze_gps(file, min_sup,  est_gps):
+def analyze_with_bfs(file, min_sup,  est_gps):
+    """
+    For each estimated GP, computes its true support using GRAANK approach and returns the statistics (% error, and standard deviation)
+    :param file: data set file
+    :param min_sup: minimum support (set by user)
+    :param est_gps: estimated GPs
+    :return: tabulated results
+    """
     d_set = DataGP(file, min_sup)
     d_set.init_attributes()
     headers = ["Gradual Pattern", "Estimated Support", "True Support", "Percentage Error", "Standard Deviation"]

@@ -8,6 +8,7 @@ Updates
 - analyze_gps computes error, std, and returns tabulated results
 - added docs
 - added class DfsDataGP
+- added method inv_gi
 
 
 0.3.1

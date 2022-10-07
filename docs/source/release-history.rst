@@ -15,6 +15,8 @@ RELEASE HISTORY
 
 * added class DfsDataGP
 
+* added method inv_gi
+
 
 0.3.1 (2022-10-04)
 ---------------------------

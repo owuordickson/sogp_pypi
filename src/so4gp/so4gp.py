@@ -896,22 +896,30 @@ def write_file(data, path, wr=True):
         pass
 
 
-def analyze_with_bfs(file, min_sup,  est_gps):
+def analyze_gps(file, min_sup, est_gps, approach='bfs'):
     """
     For each estimated GP, computes its true support using GRAANK approach and returns the statistics (% error, and standard deviation)
     :param file: data set file
     :param min_sup: minimum support (set by user)
     :param est_gps: estimated GPs
+    :param approach: 'bfs' (default) or 'dfs'
     :return: tabulated results
     """
-    d_set = DataGP(file, min_sup)
-    d_set.init_bitmap()
+    if approach == 'dfs':
+        d_set = DfsDataGP(file, min_sup)
+        d_set.init_transaction_ids()
+    else:
+        d_set = DataGP(file, min_sup)
+        d_set.init_bitmap()
     headers = ["Gradual Pattern", "Estimated Support", "True Support", "Percentage Error", "Standard Deviation"]
     data = []
     for est_gp in est_gps:
         est_sup = est_gp.support
         est_gp.set_support(0)
-        true_gp = est_gp.validate(d_set)
+        if approach == 'dfs':
+            true_gp = est_gp.validate_tree(d_set)
+        else:
+            true_gp = est_gp.validate_graank(d_set)
         true_sup = true_gp.support
 
         if true_sup == 0:
@@ -927,23 +935,6 @@ def analyze_with_bfs(file, min_sup,  est_gps):
         else:
             data.append([est_gp.to_string(), round(est_sup, 3), -1, np.inf, np.inf])
     return tabulate(data, headers=headers)
-
-
-def analyze_with_dfs(file, min_sup,  est_gps):
-    """
-    For each estimated GP, computes its true support using LCM (FP-Tree) approach and returns the statistics (% error, and standard deviation)
-    :param file: data set file
-    :param min_sup: minimum support (set by user)
-    :param est_gps: estimated GPs
-    :return: tabulated results
-    """
-    d_set = DfsDataGP(file, min_sup)
-    d_set.init_transaction_ids()
-    headers = ["Gradual Pattern", "Estimated Support", "True Support", "Percentage Error", "Standard Deviation"]
-    data = []
-    for est_gp in est_gps:
-        est_sup = est_gp.support
-        est_gp.set_support(0)
 
 
 # -------- GRADUAL PATTERNS -------------
@@ -1008,7 +999,7 @@ class GI:
     def inv(self):
         """
         Inverts a GI to the opposite variation (i.e., from - to +; or, from + to -)
-        :return: inverted GI
+        :return: inverted GI (ndarray)
         """
         if self.symbol == '+':
             # temp = tuple([self.attribute_col, '-'])
@@ -1019,6 +1010,18 @@ class GI:
         else:
             temp = np.array((self.attribute_col, 'x'), dtype='i, S1')
         return temp
+
+    def inv_gi(self):
+        """
+        Inverts a GI to the opposite variation (i.e., from - to +; or, from + to -)
+        :return: inverted GI object
+        """
+        if self.symbol == '+':
+            sym = '-'
+        else:
+            sym = '+'
+        new_gi = GI(self.attribute_col, sym)
+        return new_gi
 
     def as_integer(self):
         """
@@ -1323,7 +1326,7 @@ class ExtGP(GP):
         self.freq_count = 0
         """:type freq_count: int"""
 
-    def validate(self, d_set):
+    def validate_graank(self, d_set):
         """
         Validates a candidate gradual pattern (GP) based on support computation. A GP is invalid if its support value is
         less than the minimum support threshold set by the user.
@@ -1335,7 +1338,7 @@ class ExtGP(GP):
         min_supp = d_set.thd_supp
         n = d_set.attr_size
         gen_pattern = ExtGP()
-        """type gen_pattern: GP"""
+        """type gen_pattern: ExtGP"""
         bin_arr = np.array([])
 
         for gi in self.gradual_items:
@@ -1354,6 +1357,57 @@ class ExtGP(GP):
                         bin_arr[0] = temp_bin.copy()
                         gen_pattern.add_gradual_item(gi)
                         gen_pattern.set_support(supp)
+        if len(gen_pattern.gradual_items) <= 1:
+            return self
+        else:
+            return gen_pattern
+
+    def validate_tree(self, d_set):
+        min_supp = d_set.thd_supp
+        n = d_set.row_count
+        gen_pattern = ExtGP()
+        """type gen_pattern: ExtGP"""
+        temp_tids = None
+        for gi in self.gradual_items:
+            gi_int = gi.as_integer()
+            node = int(gi_int[0] + 1) * gi_int[1]
+            gi_int = (gi.inv_gi()).as_integer()
+            node_inv = int(gi_int[0] + 1) * gi_int[1]
+            for k, v in d_set.item_to_tids.items():
+                if node == k:
+                    if temp_tids is None:
+                        temp_tids = v
+                        gen_pattern.add_gradual_item(gi)
+                    else:
+                        temp = temp_tids.copy()
+                        temp = temp.intersection(v)
+                        if len(temp) > 1:
+                            x = np.unique(np.array(list(temp))[:, 0], axis=0)
+                            supp = len(x) / n
+                        else:
+                            supp = len(temp) / n
+
+                        if supp >= min_supp:
+                            temp_tids = temp.copy()
+                            gen_pattern.add_gradual_item(gi)
+                            gen_pattern.set_support(supp)
+                elif node_inv == k:
+                    if temp_tids is None:
+                        temp_tids = v
+                        gen_pattern.add_gradual_item(gi)
+                    else:
+                        temp = temp_tids.copy()
+                        temp = temp.intersection(v)
+                        if len(temp) > 1:
+                            x = np.unique(np.array(list(temp))[:, 0], axis=0)
+                            supp = len(x) / n
+                        else:
+                            supp = len(temp) / n
+
+                        if supp >= min_supp:
+                            temp_tids = temp.copy()
+                            gen_pattern.add_gradual_item(gi)
+                            gen_pattern.set_support(supp)
         if len(gen_pattern.gradual_items) <= 1:
             return self
         else:
@@ -1783,7 +1837,7 @@ def acogps(f_path, min_supp=MIN_SUPPORT, evaporation_factor=EVAPORATION_FACTOR,
                 is_sub = rand_gp.check_am(winner_gps, subset=True)
                 if is_super or is_sub:
                     continue
-                gen_gp = rand_gp.validate(d_set)
+                gen_gp = rand_gp.validate_graank(d_set)
                 """:type gen_gp: ExtGP"""
                 is_present = gen_gp.is_duplicate(winner_gps, loser_gps)
                 is_sub = gen_gp.check_am(winner_gps, subset=True)
@@ -2035,7 +2089,7 @@ def gagps(data_src, min_supp=MIN_SUPPORT, max_iteration=MAX_ITERATIONS, n_pop=N_
         pop = sorted(pop, key=lambda x: x.cost)
         pop = pop[0:n_pop]
 
-        best_gp = NumericSS.decode_gp(attr_keys, best_sol.position).validate(d_set)
+        best_gp = NumericSS.decode_gp(attr_keys, best_sol.position).validate_graank(d_set)
         """:type best_gp: ExtGP"""
         is_present = best_gp.is_duplicate(best_patterns)
         is_sub = best_gp.check_am(best_patterns, subset=True)
@@ -2238,7 +2292,7 @@ def psogps(data_src, min_supp=MIN_SUPPORT, max_iteration=MAX_ITERATIONS, n_parti
                            (coef_g * random.random()) * (gbest_particle.position - particle_pop[i].position)
             particle_pop[i].position = particle_pop[i].position + new_velocity
 
-        best_gp = NumericSS.decode_gp(attr_keys, best_particle.position).validate(d_set)
+        best_gp = NumericSS.decode_gp(attr_keys, best_particle.position).validate_graank(d_set)
         """:type best_gp: ExtGP"""
         is_present = best_gp.is_duplicate(best_patterns)
         is_sub = best_gp.check_am(best_patterns, subset=True)
@@ -2367,7 +2421,7 @@ def hcgps(data_src, min_supp=MIN_SUPPORT, max_iteration=MAX_ITERATIONS, step_siz
         eval_count += 1
         str_eval += "{}: {} \n".format(eval_count, best_sol.cost)
 
-        best_gp = NumericSS.decode_gp(attr_keys, best_sol.position).validate(d_set)
+        best_gp = NumericSS.decode_gp(attr_keys, best_sol.position).validate_graank(d_set)
         """:type best_gp: ExtGP"""
         is_present = best_gp.is_duplicate(best_patterns)
         is_sub = best_gp.check_am(best_patterns, subset=True)
@@ -2487,7 +2541,7 @@ def rsgps(data_src, min_supp=MIN_SUPPORT, max_iteration=MAX_ITERATIONS, return_g
         eval_count += 1
         str_eval += "{}: {} \n".format(eval_count, best_sol.cost)
 
-        best_gp = NumericSS.decode_gp(attr_keys, best_sol.position).validate(d_set)
+        best_gp = NumericSS.decode_gp(attr_keys, best_sol.position).validate_graank(d_set)
         """:type best_gp: ExtGP"""
         is_present = best_gp.is_duplicate(best_patterns)
         is_sub = best_gp.check_am(best_patterns, subset=True)

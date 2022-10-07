@@ -7,9 +7,9 @@ RELEASE HISTORY
 ---------------------------
 **Updates**
 
-* renamed method compare_gps to analyze_with_bfs
+* renamed method compare_gps to analyze_gps
 
-* analyze_with_bfs computes error, std, and returns tabulated results
+* analyze_gps computes error, std, and returns tabulated results
 
 * added docs
 

@@ -35,6 +35,7 @@ SO4GP
 """
 
 import csv
+from collections import defaultdict
 from dateutil.parser import parse
 import time
 import gc
@@ -246,7 +247,7 @@ class DataGP:
                 temp_pos = np.where(col_data < col_data[:, np.newaxis], 1, 0)
             return temp_pos
 
-    def init_attributes(self, attr_data=None):
+    def init_bitmap(self, attr_data=None):
         """
         Generates bitmaps for columns with numeric objects. It only stores (attribute valid_bins) those bitmaps whose
         computed support values are greater or equal to the minimum support threshold value.
@@ -418,6 +419,117 @@ class DataGP:
         titles = np.rec.fromarrays((keys, values), names=('key', 'value'))
         # print("Data cleaned")
         return titles, df.values
+
+
+class DfsDataGP:
+
+    def __init__(self, file_path, min_sup=0):
+        self.thd_supp = min_sup
+        self.titles, self.data = DataGP.read(file_path)
+        self.row_count, self.col_count = self.data.shape
+        self.time_cols = self.get_time_cols()
+        self.attr_cols = self.get_attr_cols()
+        self.cost_matrix = np.ones((self.col_count, 3), dtype=int)
+        self.min_len = self.thd_supp * self.row_count
+        self.item_to_tids = defaultdict(set)
+        # self.encoded_data = np.array([])
+
+    def get_attr_cols(self):
+        """
+        Returns indices of all columns with non-datetime objects
+
+        :return: ndarray
+        """
+        all_cols = np.arange(self.col_count)
+        attr_cols = np.setdiff1d(all_cols, self.time_cols)
+        return attr_cols
+
+    def get_time_cols(self):
+        """
+        Tests each column's objects for date-time values. Returns indices of all columns with date-time objects
+
+        :return: ndarray
+        """
+        # Retrieve first column only
+        time_cols = list()
+        n = self.col_count
+        for i in range(n):  # check every column/attribute for time format
+            row_data = str(self.data[0][i])
+            try:
+                time_ok, t_stamp = DataGP.test_time(row_data)
+                if time_ok:
+                    time_cols.append(i)
+            except ValueError:
+                continue
+        return np.array(time_cols)
+
+    def encode_data(self):
+        attr_data = self.data.T
+        # self.attr_size = len(attr_data[self.attr_cols[0]])
+        size = self.row_count  # self.attr_size
+        n = len(self.attr_cols) + 2
+        encoded_data = list()
+        for i in range(size):
+            j = i + 1
+            if j >= size:
+                continue
+
+            temp_arr = np.empty([n, (size - j)], dtype=int)
+            temp_arr[0] = np.repeat(i, (size - j))
+            temp_arr[1] = np.arange(j, size)
+            k = 2
+            for col in self.attr_cols:
+                row_in = attr_data[col][i]
+                row_js = attr_data[col][(i+1):size]
+                v = col + 1
+                row = np.where(row_js > row_in, v, np.where(row_js < row_in, -v, 0))
+                temp_arr[k] = row
+                k += 1
+                pos_cost = np.count_nonzero(row == v)
+                neg_cost = np.count_nonzero(row == -v)
+                inv_cost = np.count_nonzero(row == 0)
+                self.cost_matrix[col][0] += (neg_cost + inv_cost)
+                self.cost_matrix[col][1] += (pos_cost + inv_cost)
+                self.cost_matrix[col][2] += (pos_cost + neg_cost)
+            temp_arr = temp_arr.T
+            encoded_data.extend(temp_arr)
+        self.data = None
+        gc.collect()
+        return np.array(encoded_data)
+
+    def remove_inv_attrs(self, encoded_data):
+        c_matrix = self.cost_matrix
+        # 1. remove invalid attributes
+        valid_a1 = list()
+        valid_a2 = [-2, -1]
+        for i in range(len(self.attr_cols)):
+            a = self.attr_cols[i]
+            valid = (c_matrix[a][0] < c_matrix[a][2]) or \
+                    (c_matrix[a][1] < c_matrix[a][2])
+            if valid:
+                valid_a1.append(i)
+                valid_a2.append(i)
+        self.attr_cols = self.attr_cols[valid_a1]
+        valid_a2 = np.array(valid_a2) + 2
+        encoded_data = encoded_data[:, valid_a2]
+        return encoded_data
+
+    def init_transaction_ids(self):
+
+        encoded_data = self.remove_inv_attrs(self.encode_data())
+
+        # 1. group similar items
+        for t in range(len(encoded_data)):
+            transaction = encoded_data[t][2:]
+            for item in transaction:
+                self.item_to_tids[item].add(tuple(encoded_data[t][:2]))
+
+        low_supp_items = [k for k, v in self.item_to_tids.items()
+                          if len(np.unique(np.array(list(v))[:, 0], axis=0))
+                          < self.min_len]
+        for item in low_supp_items:
+            del self.item_to_tids[item]
+        gc.collect()
 
 
 class CluDataGP(DataGP):
@@ -793,7 +905,7 @@ def analyze_with_bfs(file, min_sup,  est_gps):
     :return: tabulated results
     """
     d_set = DataGP(file, min_sup)
-    d_set.init_attributes()
+    d_set.init_bitmap()
     headers = ["Gradual Pattern", "Estimated Support", "True Support", "Percentage Error", "Standard Deviation"]
     data = []
     for est_gp in est_gps:
@@ -815,6 +927,23 @@ def analyze_with_bfs(file, min_sup,  est_gps):
         else:
             data.append([est_gp.to_string(), round(est_sup, 3), -1, np.inf, np.inf])
     return tabulate(data, headers=headers)
+
+
+def analyze_with_dfs(file, min_sup,  est_gps):
+    """
+    For each estimated GP, computes its true support using LCM (FP-Tree) approach and returns the statistics (% error, and standard deviation)
+    :param file: data set file
+    :param min_sup: minimum support (set by user)
+    :param est_gps: estimated GPs
+    :return: tabulated results
+    """
+    d_set = DfsDataGP(file, min_sup)
+    d_set.init_transaction_ids()
+    headers = ["Gradual Pattern", "Estimated Support", "True Support", "Percentage Error", "Standard Deviation"]
+    data = []
+    for est_gp in est_gps:
+        est_sup = est_gp.support
+        est_gp.set_support(0)
 
 
 # -------- GRADUAL PATTERNS -------------
@@ -1506,7 +1635,7 @@ def graank(f_path=None, min_sup=MIN_SUPPORT, eq=False, return_gps=False):
 
     d_set = DataGP(f_path, min_sup, eq)
     """:type d_set: DataGP"""
-    d_set.init_attributes()
+    d_set.init_bitmap()
 
     patterns = []
     """:type patterns: GP list"""
@@ -1616,7 +1745,7 @@ def acogps(f_path, min_supp=MIN_SUPPORT, evaporation_factor=EVAPORATION_FACTOR,
     # 0. Initialize and prepare data set
     d_set = DataGP(f_path, min_supp)
     """:type d_set: DataGP"""
-    d_set.init_attributes()
+    d_set.init_bitmap()
     # attr_index = d_set.attr_cols
     # e_factor = evaporation_factor
     d, attr_keys = gen_d(d_set.valid_bins)  # distance matrix (d) & attributes corresponding to d
@@ -1788,7 +1917,7 @@ def gagps(data_src, min_supp=MIN_SUPPORT, max_iteration=MAX_ITERATIONS, n_pop=N_
 
     # Prepare data set
     d_set = DataGP(data_src, min_supp)
-    d_set.init_attributes()
+    d_set.init_bitmap()
     attr_keys = [GI(x[0], x[1].decode()).as_string() for x in d_set.valid_bins[:, 0]]
 
     if d_set.no_bins:
@@ -2034,7 +2163,7 @@ def psogps(data_src, min_supp=MIN_SUPPORT, max_iteration=MAX_ITERATIONS, n_parti
     """
     # Prepare data set
     d_set = DataGP(data_src, min_supp)
-    d_set.init_attributes()
+    d_set.init_bitmap()
     # self.target = 1
     # self.target_error = 1e-6
     attr_keys = [GI(x[0], x[1].decode()).as_string() for x in d_set.valid_bins[:, 0]]
@@ -2185,7 +2314,7 @@ def hcgps(data_src, min_supp=MIN_SUPPORT, max_iteration=MAX_ITERATIONS, step_siz
     """
     # Prepare data set
     d_set = DataGP(data_src, min_supp)
-    d_set.init_attributes()
+    d_set.init_bitmap()
     attr_keys = [GI(x[0], x[1].decode()).as_string() for x in d_set.valid_bins[:, 0]]
 
     if d_set.no_bins:
@@ -2311,7 +2440,7 @@ def rsgps(data_src, min_supp=MIN_SUPPORT, max_iteration=MAX_ITERATIONS, return_g
     """
     # Prepare data set
     d_set = DataGP(data_src, min_supp)
-    d_set.init_attributes()
+    d_set.init_bitmap()
     attr_keys = [GI(x[0], x[1].decode()).as_string() for x in d_set.valid_bins[:, 0]]
 
     if d_set.no_bins:

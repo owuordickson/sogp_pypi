@@ -13,6 +13,8 @@ RELEASE HISTORY
 
 * added docs
 
+* added class DfsDataGP
+
 
 0.3.1 (2022-10-04)
 ---------------------------

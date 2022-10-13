@@ -3,6 +3,29 @@ RELEASE HISTORY
 ***************
 
 
+0.3.4 (2022-10-13)
+---------------------------
+**Bug fixes**
+
+* aco_graank returns DataGP object
+
+**Updates**
+
+* made get_attr_cols, get_time_cols private
+
+* made construct_matrices, estimate_score_vector, estimate_support private
+
+* renamed init_bitmap method to fit_bitmap
+
+* added discover method to CluDataGP
+
+* converted graank method to class
+
+* converted aco_graank method to class
+
+* converted ga_graank method to class
+
+
 0.3.3 (2022-10-13)
 ---------------------------
 **Bug fixes**

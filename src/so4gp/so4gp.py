@@ -59,17 +59,17 @@ MIN_SUPPORT = 0.5
 MAX_ITERATIONS = 1
 N_VAR = 1  # DO NOT CHANGE
 
-# ACO-GRAD Configurations:
+# ACO-GRAANK Configurations:
 EVAPORATION_FACTOR = 0.5
 
-# GA-GRAD Configurations:
+# GA-GRAANK Configurations:
 N_POPULATION = 5
 PC = 0.5
 GAMMA = 1  # Cross-over
 MU = 0.9  # Mutation
 SIGMA = 0.9  # Mutation
 
-# PSO-GRAD Configurations:
+# PSO-GRAANK Configurations:
 VELOCITY = 0.9  # higher values helps to move to next number in search space
 PERSONAL_COEFF = 0.01
 GLOBAL_COEFF = 0.9
@@ -77,7 +77,7 @@ TARGET = 1
 TARGET_ERROR = 1e-6
 N_PARTICLES = 5
 
-# PLS-GRAD Configurations
+# PLS-GRAANK Configurations
 STEP_SIZE = 0.5
 
 # CluGRAD Configurations
@@ -202,15 +202,15 @@ class DataGP:
         """:type titles: ndarray"""
         """:type data: ndarray"""
         self.row_count, self.col_count = self.data.shape
-        self.time_cols = self.get_time_cols()
-        self.attr_cols = self.get_attr_cols()
+        self.time_cols = self._get_time_cols()
+        self.attr_cols = self._get_attr_cols()
         self.valid_bins = np.array([])
         self.no_bins = False
         self.step_name = ''  # For T-GRAANK
         self.attr_size = 0  # For T-GRAANK
         self.gradual_patterns = None
 
-    def get_attr_cols(self):
+    def _get_attr_cols(self):
         """
         Returns indices of all columns with non-datetime objects
 
@@ -220,7 +220,7 @@ class DataGP:
         attr_cols = np.setdiff1d(all_cols, self.time_cols)
         return attr_cols
 
-    def get_time_cols(self):
+    def _get_time_cols(self):
         """
         Tests each column's objects for date-time values. Returns indices of all columns with date-time objects
 
@@ -258,7 +258,7 @@ class DataGP:
                 temp_pos = np.where(col_data < col_data[:, np.newaxis], 1, 0)
             return temp_pos
 
-    def init_bitmap(self, attr_data=None):
+    def fit_bitmap(self, attr_data=None):
         """
         Generates bitmaps for columns with numeric objects. It only stores (attribute valid_bins) those bitmaps whose
         computed support values are greater or equal to the minimum support threshold value.
@@ -542,320 +542,6 @@ class DfsDataGP:
         gc.collect()
 
 
-class CluDataGP(DataGP):
-    """Description of class CluDataGP (Clustering DataGP)
-
-    CluDataGP stands for Clustering DataGP. It is a class that inherits the DataGP class in order to create data-gp
-    objects for the clustering approach. This class inherits the DataGP class which is used to create data-gp objects.
-    The classical data-gp object is meant to store all the parameters required by GP algorithms to extract gradual
-    patterns (GP). It takes a numeric file (in CSV format) as input and converts it into an object whose attributes are
-    used by algorithms to extract GPs.
-
-    class DataGP provides the following attributes:
-        thd_supp: minimum support threshold
-
-        equal: eq value
-
-        titles: column names of data source
-
-        data: all the objects organized into their respective column
-
-        row_count: number of objects
-
-        col_count: number of all columns
-
-        time_cols: column indices of the columns with data-time objects
-
-        attr_cols: column indices of the columns with numeric values
-
-        valid_bins: valid bitmaps (in the form of ndarray) of all gradual items corresponding to the attr_cols, a bitmap
-        is valid if its computed support is equal or greater than the minimum support threshold
-
-        no_bins: True if all none of the attr_cols yields a valid bitmap
-
-        gradual_patterns: list of GP objects
-
-    This class adds the parameters required for clustering gradual items to the data-gp object. The class provides the
-    following additional attributes:
-        e_prob: erasure probability (a value between 0 - 1)
-
-        mat_iter: maximum iteration value for score vector estimation
-
-    CluDataGP adds the following functions:
-        construct_matrices: generates the net-win matrix
-
-        infer_gps: infers GPs from clusters of Gradual Items
-
-        estimate_score_vector: estimates the score vector based on the cumulative wins
-
-        estimate_support:  estimates the frequency support of a GP based on its score vector
-
-    """
-
-    def __init__(self, *args, e_prob=ERASURE_PROBABILITY, max_iter=SCORE_VECTOR_ITERATIONS, no_prob=False):
-        """Description of class CluDataGP (Clustering DataGP)
-
-        A class for creating data-gp objects for the clustering approach. This class inherits the DataGP class which is
-        used to create data-gp objects. This class adds the parameters required for clustering gradual items to the
-        data-gp object.
-
-        The class provides the following additional attributes:
-
-            e_prob: erasure probability (a value between 0 - 1). Erasure probability determines the proportion of ij
-            columns to be used by the algorithm, the rest are ignored.
-
-            mat_iter: maximum iteration value for score vector estimation
-
-        :param args: [required] data-source, [optional] minimum-support
-        :param e_prob: [optional] erasure probability, the default is 0.5
-        :param max_iter: [optional] maximum iteration for score vector estimation, the default is 10
-        """
-        super(CluDataGP, self).__init__(*args)
-        self.erasure_probability = e_prob
-        """:type erasure_probability: float"""
-        self.max_iteration = max_iter
-        """:type max_iteration: int"""
-        if not no_prob:
-            self.gradual_items, self.cum_wins, self.net_win_mat, self.ij = self.construct_matrices(e_prob)
-            """:type gradual_items: ndarray"""
-            """:type cum_wins: ndarray"""
-            """:type net_win_mat: ndarray"""
-            """:type ij: ndarray"""
-            self.win_mat = np.array([])
-            """:type win_mat: ndarray"""
-        else:
-            self.gradual_items, self.win_mat, self.cum_wins, self.net_win_mat, self.ij = self.construct_all_matrices()
-            """:type gradual_items: ndarray"""
-            """:type win_mat: ndarray"""
-            """:type cum_wins: ndarray"""
-            """:type net_win_mat: ndarray"""
-            """:type ij: ndarray"""
-
-    def construct_matrices(self, e):
-        """
-        Generates all the gradual items and, constructs: (1) net-win matrix, (2) cumulative wins, (3) pairwise objects.
-
-        :param e: [required] erasure probability
-        :return: list of gradual items, net-win matrix, cumulative win matrix, selected pairwise (ij) objects
-        """
-
-        n = self.row_count
-        prob = 1 - e  # Sample probability
-
-        if prob == 1:
-            # 1a. Generate all possible pairs
-            pair_ij = np.array(np.meshgrid(np.arange(n), np.arange(n))).T.reshape(-1, 2)
-
-            # 1b. Remove duplicates or reversed pairs
-            pair_ij = pair_ij[np.argwhere(pair_ij[:, 0] < pair_ij[:, 1])[:, 0]]
-        else:
-            # 1a. Generate random pairs using erasure-probability
-            total_pair_count = int(n * (n - 1) * 0.5)
-            rand_1d = np.random.choice(n, int(prob * total_pair_count) * 2, replace=True)
-            pair_ij = np.reshape(rand_1d, (-1, 2))
-
-            # 1b. Remove duplicates
-            pair_ij = pair_ij[np.argwhere(pair_ij[:, 0] != pair_ij[:, 1])[:, 0]]
-
-        # 2. Variable declarations
-        attr_data = self.data.T  # Feature data objects
-        lst_gis = []  # List of GIs
-        s_mat = []  # S-Matrix (made up of S-Vectors)
-        cum_wins = []  # Cumulative wins
-
-        # 3. Construct S matrix from data set
-        for col in np.nditer(self.attr_cols):
-            # Feature data objects
-            col_data = np.array(attr_data[col], dtype=np.float)  # Feature data objects
-
-            # Cumulative Wins: for estimation of score-vector
-            temp_cum_wins = np.where(col_data[pair_ij[:, 0]] < col_data[pair_ij[:, 1]], 1,
-                                     np.where(col_data[pair_ij[:, 0]] > col_data[pair_ij[:, 1]], -1, 0))
-            # print(col)
-            # print(temp_cum_wins)
-
-            # S-vector
-            s_vec = np.zeros((n,), dtype=np.int32)
-            for w in [1, -1]:
-                positions = np.flatnonzero(temp_cum_wins == w)
-                i, counts_i = np.unique(pair_ij[positions, 0], return_counts=True)
-                j, counts_j = np.unique(pair_ij[positions, 1], return_counts=True)
-                s_vec[i] += w * counts_i  # i wins/loses (1/-1)
-                s_vec[j] += -w * counts_j  # j loses/wins (1/-1)
-            # print(s_vec)
-            # print("\n")
-            # Normalize S-vector
-            if np.count_nonzero(s_vec) > 0:
-                s_vec[s_vec > 0] = 1  # Normalize net wins
-                s_vec[s_vec < 0] = -1  # Normalize net loses
-
-                lst_gis.append(GI(col, '+'))
-                cum_wins.append(temp_cum_wins)
-                s_mat.append(s_vec)
-
-                lst_gis.append(GI(col, '-'))
-                cum_wins.append(-temp_cum_wins)
-                s_mat.append(-s_vec)
-
-        return np.array(lst_gis), np.array(cum_wins), np.array(s_mat), pair_ij
-
-    def construct_all_matrices(self):
-        """
-        Generates all the gradual items and, constructs: (1) win matrix (2) net-win matrix, (3) cumulative wins,
-        (4) pairwise objects.
-
-        :return: list of gradual items, win matrix, net-win matrix, cumulative win matrix, selected (ij) objects
-        """
-
-        n = self.row_count
-
-        # 1a. Generate all possible pairs
-        pair_ij = np.array(np.meshgrid(np.arange(n), np.arange(n))).T.reshape(-1, 2)
-
-        # 1b. Remove duplicates or reversed pairs
-        pair_ij = pair_ij[np.argwhere(pair_ij[:, 0] < pair_ij[:, 1])[:, 0]]
-
-        # 2. Variable declarations
-        attr_data = self.data.T  # Feature data objects
-        lst_gis = []  # List of GIs
-        s_mat = []  # S-Matrix (made up of S-Vectors)
-        w_mat = []  # win matrix
-        cum_wins = []  # Cumulative wins
-
-        # 3. Construct S matrix from data set
-        for col in np.nditer(self.attr_cols):
-            # Feature data objects
-            col_data = np.array(attr_data[col], dtype=np.float)  # Feature data objects
-
-            # Cumulative Wins: for estimation of score-vector
-            temp_cum_wins = np.where(col_data[pair_ij[:, 0]] < col_data[pair_ij[:, 1]], 1,
-                                     np.where(col_data[pair_ij[:, 0]] > col_data[pair_ij[:, 1]], -1, 0))
-
-            # S-vector
-            s_vec = np.zeros((n,), dtype=np.int32)
-            for w in [1, -1]:
-                positions = np.flatnonzero(temp_cum_wins == w)
-                i, counts_i = np.unique(pair_ij[positions, 0], return_counts=True)
-                j, counts_j = np.unique(pair_ij[positions, 1], return_counts=True)
-                s_vec[i] += w * counts_i  # i wins/loses (1/-1)
-                s_vec[j] += -w * counts_j  # j loses/wins (1/-1)
-
-            # Normalize S-vector
-            if np.count_nonzero(s_vec) > 0:
-                w_mat.append(np.copy(s_vec))
-
-                s_vec[s_vec > 0] = 1  # Normalize net wins
-                s_vec[s_vec < 0] = -1  # Normalize net loses
-
-                lst_gis.append(GI(col, '+'))
-                cum_wins.append(temp_cum_wins)
-                s_mat.append(s_vec)
-
-                lst_gis.append(GI(col, '-'))
-                cum_wins.append(-temp_cum_wins)
-                s_mat.append(-s_vec)
-
-        return np.array(lst_gis), np.array(w_mat), np.array(cum_wins), np.array(s_mat), pair_ij
-
-    def infer_gps(self, clusters):
-        """
-        A function that infers GPs from clusters of gradual items.
-
-        :param clusters: [required] groups of gradual items clustered through K-MEANS algorithm
-        :return: list of (str) patterns, list of GP objects
-        """
-
-        patterns = []
-        str_patterns = []
-
-        all_gis = self.gradual_items
-        cum_wins = self.cum_wins
-
-        lst_indices = [np.where(clusters == element)[0] for element in np.unique(clusters)]
-        for grp_idx in lst_indices:
-            if grp_idx.size > 1:
-                # 1. Retrieve all cluster-pairs and the corresponding GIs
-                cluster_gis = all_gis[grp_idx]
-                cluster_cum_wins = cum_wins[grp_idx]  # All the rows of selected groups
-
-                # 2. Compute score vector from R matrix
-                score_vectors = []  # Approach 2
-                for c_win in cluster_cum_wins:
-                    temp = self.estimate_score_vector(c_win)
-                    score_vectors.append(temp)
-
-                # 3. Estimate support
-                est_sup = self.estimate_support(score_vectors)
-
-                # 4. Infer GPs from the clusters
-                if est_sup >= self.thd_supp:
-                    gp = ExtGP()
-                    for gi in cluster_gis:
-                        gp.add_gradual_item(gi)
-                    gp.set_support(est_sup)
-                    patterns.append(gp)
-                    str_patterns.append(gp.print(self.titles))
-        return str_patterns, patterns
-
-    def estimate_score_vector(self, c_wins):
-        """
-        A function that estimates the score vector based on the cumulative wins.
-
-        :param c_wins: [required] cumulative wins
-        :return: score vector (ndarray)
-        """
-
-        # Estimate score vector from pairs
-        n = self.row_count
-        score_vector = np.ones(shape=(n,))
-        arr_ij = self.ij
-
-        # Construct a win-matrix
-        temp_vec = np.zeros(shape=(n,))
-        pair_count = arr_ij.shape[0]
-
-        # Compute score vector
-        for k in range(self.max_iteration):
-            if np.count_nonzero(score_vector == 0) > 1:
-                break
-            else:
-                for pr in range(pair_count):
-                    pr_val = c_wins[pr]
-                    i = arr_ij[pr][0]
-                    j = arr_ij[pr][1]
-                    if pr_val == 1:
-                        log = math.log(
-                            math.exp(score_vector[i]) / (math.exp(score_vector[i]) + math.exp(score_vector[j])),
-                            10)
-                        temp_vec[i] += pr_val * log
-                    elif pr_val == -1:
-                        log = math.log(
-                            math.exp(score_vector[j]) / (math.exp(score_vector[i]) + math.exp(score_vector[j])),
-                            10)
-                        temp_vec[j] += -pr_val * log
-                score_vector = abs(temp_vec / np.sum(temp_vec))
-        return score_vector
-
-    def estimate_support(self, score_vectors):
-        """
-        A function that estimates the frequency support of a GP based on its score vector.
-
-        :param score_vectors: score vector (ndarray)
-        :return: estimated support (float)
-        """
-
-        # Estimate support - use different score-vectors to construct pairs
-        n = self.row_count
-        bin_mat = np.ones((n, n), dtype=np.bool)
-        for vec in score_vectors:
-            temp_bin = vec < vec[:, np.newaxis]
-            bin_mat = np.multiply(bin_mat, temp_bin)
-
-        est_sup = float(np.sum(bin_mat)) / float(n * (n - 1.0) / 2.0)
-        """:type est_sup: float"""
-        return est_sup
-
-
 # -------- OTHER METHODS -----------
 
 def get_num_cores():
@@ -926,7 +612,7 @@ def analyze_gps(file, min_sup, est_gps, approach='bfs'):
         d_set.init_transaction_ids()
     else:
         d_set = DataGP(file, min_sup)
-        d_set.init_bitmap()
+        d_set.fit_bitmap()
     headers = ["Gradual Pattern", "Estimated Support", "True Support", "Percentage Error", "Standard Deviation"]
     data = []
     for est_gp in est_gps:
@@ -1096,6 +782,14 @@ class GI:
         else:
             symbol = '+'
         return GI(attr_col, symbol)
+
+    @staticmethod
+    def inv_arr(g_item):
+        if g_item[1] == '+':
+            temp = tuple([g_item[0], '-'])
+        else:
+            temp = tuple([g_item[0], '+'])
+        return temp
 
 
 class GP:
@@ -1623,138 +1317,121 @@ CHANGES:
 """
 
 
-def inv(g_item):
-    if g_item[1] == '+':
-        temp = tuple([g_item[0], '-'])
-    else:
-        temp = tuple([g_item[0], '+'])
-    return temp
+class GRAANK(DataGP):
 
+    def _gen_apriori_candidates(self, gi_bins):
+        """
+        Generates Apriori GP candidates
+        :param gi_bins: GI together with bitmaps
+        :return:
+        """
+        sup = self.thd_supp
+        n = self.row_count
 
-def gen_apriori_candidates(gi_bins, sup, n):
-    """
-    Generates Apriori GP candidates
-    :param gi_bins: GI together with bitmaps
-    :param sup: minimum support threshold
-    :param n: number of objects
-    :return:
-    """
-    invalid_count = 0
-    res = []
-    all_candidates = []
-    if len(gi_bins) < 2:
-        return []
-    try:
-        set_gi = [{x[0]} for x in gi_bins]
-    except TypeError:
-        set_gi = [set(x[0]) for x in gi_bins]
+        invalid_count = 0
+        res = []
+        all_candidates = []
+        if len(gi_bins) < 2:
+            return []
+        try:
+            set_gi = [{x[0]} for x in gi_bins]
+        except TypeError:
+            set_gi = [set(x[0]) for x in gi_bins]
 
-    for i in range(len(gi_bins) - 1):
-        for j in range(i + 1, len(gi_bins)):
-            try:
-                gi_i = {gi_bins[i][0]}
-                gi_j = {gi_bins[j][0]}
-                gi_o = {gi_bins[0][0]}
-            except TypeError:
-                gi_i = set(gi_bins[i][0])
-                gi_j = set(gi_bins[j][0])
-                gi_o = set(gi_bins[0][0])
-            gp_cand = gi_i | gi_j
-            inv_gp_cand = {inv(x) for x in gp_cand}
-            if (len(gp_cand) == len(gi_o) + 1) and (not (all_candidates != [] and gp_cand in all_candidates)) \
-                    and (not (all_candidates != [] and inv_gp_cand in all_candidates)):
-                test = 1
-                for k in gp_cand:
-                    try:
-                        k_set = {k}
-                    except TypeError:
-                        k_set = set(k)
-                    gp_cand_2 = gp_cand - k_set
-                    inv_gp_cand_2 = {inv(x) for x in gp_cand_2}
-                    if gp_cand_2 not in set_gi and inv_gp_cand_2 not in set_gi:
-                        test = 0
-                        break
-                if test == 1:
-                    m = gi_bins[i][1] * gi_bins[j][1]
-                    t = float(np.sum(m)) / float(n * (n - 1.0) / 2.0)
-                    if t > sup:
-                        res.append([gp_cand, m])
-                    else:
-                        invalid_count += 1
-                all_candidates.append(gp_cand)
-                gc.collect()
-    return res, invalid_count
+        for i in range(len(gi_bins) - 1):
+            for j in range(i + 1, len(gi_bins)):
+                try:
+                    gi_i = {gi_bins[i][0]}
+                    gi_j = {gi_bins[j][0]}
+                    gi_o = {gi_bins[0][0]}
+                except TypeError:
+                    gi_i = set(gi_bins[i][0])
+                    gi_j = set(gi_bins[j][0])
+                    gi_o = set(gi_bins[0][0])
+                gp_cand = gi_i | gi_j
+                inv_gp_cand = {GI.inv_arr(x) for x in gp_cand}
+                if (len(gp_cand) == len(gi_o) + 1) and (not (all_candidates != [] and gp_cand in all_candidates)) \
+                        and (not (all_candidates != [] and inv_gp_cand in all_candidates)):
+                    test = 1
+                    for k in gp_cand:
+                        try:
+                            k_set = {k}
+                        except TypeError:
+                            k_set = set(k)
+                        gp_cand_2 = gp_cand - k_set
+                        inv_gp_cand_2 = {GI.inv_arr(x) for x in gp_cand_2}
+                        if gp_cand_2 not in set_gi and inv_gp_cand_2 not in set_gi:
+                            test = 0
+                            break
+                    if test == 1:
+                        m = gi_bins[i][1] * gi_bins[j][1]
+                        t = float(np.sum(m)) / float(n * (n - 1.0) / 2.0)
+                        if t > sup:
+                            res.append([gp_cand, m])
+                        else:
+                            invalid_count += 1
+                    all_candidates.append(gp_cand)
+                    gc.collect()
+        return res, invalid_count
 
+    def discover(self):
+        """
+        Extracts gradual patterns (GPs) from a numeric data source using the GRAANK approach (proposed in a published
+        research paper by Anne Laurent).
 
-def graank(f_path=None, min_sup=MIN_SUPPORT, eq=False, return_obj=False):
-    """
-    Extracts gradual patterns (GPs) from a numeric data source using the GRAANK approach (proposed in a published
-    research paper by Anne Laurent).
+         A GP is a set of gradual items (GI) and its quality is measured by its computed support value. For example
+         given a data set with 3 columns (age, salary, cars) and 10 objects. A GP may take the form: {age+, salary-}
+         with a support of 0.8. This implies that 8 out of 10 objects have the values of column age 'increasing' and
+         column 'salary' decreasing.
 
-     A GP is a set of gradual items (GI) and its quality is measured by its computed support value. For example given a
-     data set with 3 columns (age, salary, cars) and 10 objects. A GP may take the form: {age+, salary-} with a support
-     of 0.8. This implies that 8 out of 10 objects have the values of column age 'increasing' and column 'salary'
-     decreasing.
+        :return: JSON object
+        """
 
-    :param f_path: [required] a numeric data source, it can either be a 'file in csv format' or a 'Pandas DataFrame'
-    :param min_sup: [optional] minimum support threshold, the default is 0.5
-    :param eq: [optional] encode equal
-    values as gradual, the default is False
-    :param return_obj: [optional] additionally return DataGP object, the default
-    is False. If set to True, the method returns 2 items: JSON object, DataGP object
-    :return: JSON object
-    """
+        self.fit_bitmap()
 
-    d_set = DataGP(f_path, min_sup, eq)
-    """:type d_set: DataGP"""
-    d_set.init_bitmap()
+        self.gradual_patterns = []
+        """:type patterns: GP list"""
+        str_winner_gps = []
+        n = self.attr_size
+        valid_bins = self.valid_bins
 
-    d_set.gradual_patterns = []
-    """:type patterns: GP list"""
-    str_winner_gps = []
-    n = d_set.attr_size
-    valid_bins = d_set.valid_bins
+        invalid_count = 0
+        while len(valid_bins) > 0:
+            valid_bins, inv_count = self._gen_apriori_candidates(valid_bins)
+            invalid_count += inv_count
+            i = 0
+            while i < len(valid_bins) and valid_bins != []:
+                gi_tuple = valid_bins[i][0]
+                bin_data = valid_bins[i][1]
+                sup = float(np.sum(np.array(bin_data))) / float(n * (n - 1.0) / 2.0)
+                if sup < self.thd_supp:
+                    del valid_bins[i]
+                    invalid_count += 1
+                else:
+                    z = 0
+                    while z < (len(self.gradual_patterns) - 1):
+                        if set(self.gradual_patterns[z].get_pattern()).issubset(set(gi_tuple)):
+                            del self.gradual_patterns[z]
+                        else:
+                            z = z + 1
 
-    invalid_count = 0
-    while len(valid_bins) > 0:
-        valid_bins, inv_count = gen_apriori_candidates(valid_bins, min_sup, n)
-        invalid_count += inv_count
-        i = 0
-        while i < len(valid_bins) and valid_bins != []:
-            gi_tuple = valid_bins[i][0]
-            bin_data = valid_bins[i][1]
-            sup = float(np.sum(np.array(bin_data))) / float(n * (n - 1.0) / 2.0)
-            if sup < min_sup:
-                del valid_bins[i]
-                invalid_count += 1
-            else:
-                z = 0
-                while z < (len(d_set.gradual_patterns) - 1):
-                    if set(d_set.gradual_patterns[z].get_pattern()).issubset(set(gi_tuple)):
-                        del d_set.gradual_patterns[z]
-                    else:
-                        z = z + 1
-
-                gp = GP()
-                """:type gp: GP"""
-                for obj in valid_bins[i][0]:
-                    gi = GI(obj[0], obj[1].decode())
-                    """:type gi: GI"""
-                    gp.add_gradual_item(gi)
-                gp.set_support(sup)
-                d_set.gradual_patterns.append(gp)
-                str_winner_gps.append(gp.print(d_set.titles))
-                i += 1
-    # Output
-    out = json.dumps({"Algorithm": "GRAANK", "Patterns": str_winner_gps, "Invalid Count": invalid_count})
-    """:type out: object"""
-    if return_obj:
-        return out, d_set
-    else:
+                    gp = GP()
+                    """:type gp: GP"""
+                    for obj in valid_bins[i][0]:
+                        gi = GI(obj[0], obj[1].decode())
+                        """:type gi: GI"""
+                        gp.add_gradual_item(gi)
+                    gp.set_support(sup)
+                    self.gradual_patterns.append(gp)
+                    str_winner_gps.append(gp.print(self.titles))
+                    i += 1
+        # Output
+        out = json.dumps({"Algorithm": "GRAANK", "Patterns": str_winner_gps, "Invalid Count": invalid_count})
+        """:type out: object"""
         return out
 
 
-# -------- ACO-GRAD -------------
+# -------- ACO-GRAANK -------------
 
 """
 CHANGES:
@@ -1763,183 +1440,179 @@ CHANGES:
 """
 
 
-def gen_d(valid_bins):
-    """
-    Generates the distance matrix (d)
-    :param valid_bins: valid GP bitmaps (whose computed support is greater than the minimum support threshold)
-    :return: distance matrix (d) and attribute keys
-    """
-    v_bins = valid_bins
-    # 1. Fetch valid bins group
-    attr_keys = [GI(x[0], x[1].decode()).as_string() for x in v_bins[:, 0]]
+class AntGRAANK(DataGP):
 
-    # 2. Initialize an empty d-matrix
-    n = len(attr_keys)
-    d = np.zeros((n, n), dtype=np.dtype('i8'))  # cumulative sum of all segments
-    for i in range(n):
-        for j in range(n):
-            if GI.parse_gi(attr_keys[i]).attribute_col == GI.parse_gi(attr_keys[j]).attribute_col:
-                # Ignore similar attributes (+ or/and -)
-                continue
-            else:
-                bin_1 = v_bins[i][1]
-                bin_2 = v_bins[j][1]
-                # Cumulative sum of all segments for 2x2 (all attributes) gradual items
-                d[i][j] += np.sum(np.multiply(bin_1, bin_2))
-    # print(d)
-    return d, attr_keys
+    def __init__(self, *args, max_iter=MAX_ITERATIONS, e_factor=EVAPORATION_FACTOR):
+        super(AntGRAANK, self).__init__(*args)
+        self.evaporation_factor = e_factor
+        self.max_iteration = max_iter
+        self.distance_matrix = None
+        self.attribute_keys = None
 
+    def _fit(self):
+        """
+        Generates the distance matrix (d)
+        :return: distance matrix (d) and attribute keys
+        """
+        v_bins = self.valid_bins
+        # 1. Fetch valid bins group
+        attr_keys = [GI(x[0], x[1].decode()).as_string() for x in v_bins[:, 0]]
 
-def aco_graank(f_path, min_supp=MIN_SUPPORT, evaporation_factor=EVAPORATION_FACTOR,
-               max_iteration=MAX_ITERATIONS, return_obj=False):
-    """
-    Extract gradual patterns (GPs) from a numeric data source using the Ant Colony Optimization (ACO-GRAD) approach
-    (proposed in a published research paper by Dickson Owuor). A GP is a set of gradual items (GI) and its quality is
-    measured by its computed support value. For example given a data set with 3 columns (age, salary, cars) and 10
-    objects. A GP may take the form: {age+, salary-} with a support of 0.8. This implies that 8 out of 10 objects have
-    the values of column age 'increasing' and column 'salary' decreasing.
-
-     In this approach, it is assumed that every column can be converted into gradual item (GI). If the GI is valid (i.e.
-     its computed support is greater than the minimum support threshold) then it is either increasing or decreasing (+
-     or -), otherwise it is irrelevant (x). Therefore, a pheromone matrix is built using the number of columns and the
-     possible variations (increasing, decreasing, irrelevant) or (+, -, x). The algorithm starts by randomly generating
-     GP candidates using the pheromone matrix, each candidate is validated by confirming that its computed support is
-     greater or equal to the minimum support threshold. The valid GPs are used to update the pheromone levels and better
-     candidates are generated.
-
-    :param f_path: [required] a numeric data source, it can either be a 'file in csv format' or a 'Pandas DataFrame'
-    :param min_supp: [optional] minimum support threshold, the default is 0.5
-    :param evaporation_factor: [optional]
-    evaporation factor default = 0.5
-    :param max_iteration: [optional] maximum iterations default = 1
-    :param return_obj: [optional] additionally return DataGP object, the default is False. If set to True, the method
-    returns 2 items: JSON object, DataGP object
-    :return: JSON object
-    """
-    # 0. Initialize and prepare data set
-    d_set = DataGP(f_path, min_supp)
-    """:type d_set: DataGP"""
-    d_set.init_bitmap()
-    # attr_index = d_set.attr_cols
-    # e_factor = evaporation_factor
-    d, attr_keys = gen_d(d_set.valid_bins)  # distance matrix (d) & attributes corresponding to d
-
-    a = d_set.attr_size
-    d_set.gradual_patterns = list()  # subsets
-    loser_gps = list()  # supersets
-    str_winner_gps = list()  # subsets
-    repeated = 0
-    it_count = 0
-    counter = 0
-
-    if d_set.no_bins:
-        return []
-
-    # 1. Remove d[i][j] < frequency-count of min_supp
-    fr_count = ((min_supp * a * (a - 1)) / 2)
-    d[d < fr_count] = 0
-
-    # 3. Initialize pheromones (p_matrix)
-    pheromones = np.ones(d.shape, dtype=float)
-
-    invalid_count = 0
-    # 4. Iterations for ACO
-    # while repeated < 1:
-    while counter < max_iteration:
-        rand_gp, pheromones = gen_aco_candidates(attr_keys, d, pheromones, evaporation_factor)
-        if len(rand_gp.gradual_items) > 1:
-            # print(rand_gp.get_pattern())
-            exits = rand_gp.is_duplicate(d_set.gradual_patterns, loser_gps)
-            if not exits:
-                repeated = 0
-                # check for anti-monotony
-                is_super = rand_gp.check_am(loser_gps, subset=False)
-                is_sub = rand_gp.check_am(d_set.gradual_patterns, subset=True)
-                if is_super or is_sub:
+        # 2. Initialize an empty d-matrix
+        n = len(attr_keys)
+        d = np.zeros((n, n), dtype=np.dtype('i8'))  # cumulative sum of all segments
+        for i in range(n):
+            for j in range(n):
+                if GI.parse_gi(attr_keys[i]).attribute_col == GI.parse_gi(attr_keys[j]).attribute_col:
+                    # Ignore similar attributes (+ or/and -)
                     continue
-                gen_gp = rand_gp.validate_graank(d_set)
-                """:type gen_gp: ExtGP"""
-                is_present = gen_gp.is_duplicate(d_set.gradual_patterns, loser_gps)
-                is_sub = gen_gp.check_am(d_set.gradual_patterns, subset=True)
-                if is_present or is_sub:
-                    repeated += 1
                 else:
-                    if gen_gp.support >= min_supp:
-                        pheromones = update_pheromones(attr_keys, gen_gp, pheromones)
-                        d_set.gradual_patterns.append(gen_gp)
-                        str_winner_gps.append(gen_gp.print(d_set.titles))
+                    bin_1 = v_bins[i][1]
+                    bin_2 = v_bins[j][1]
+                    # Cumulative sum of all segments for 2x2 (all attributes) gradual items
+                    d[i][j] += np.sum(np.multiply(bin_1, bin_2))
+        # print(d)
+        self.distance_matrix = d
+        self.attribute_keys = attr_keys
+        gc.collect()
+
+    def _gen_aco_candidates(self, p_matrix):
+        v_matrix = self.distance_matrix
+        pattern = ExtGP()
+        ":type pattern: ExtGP"
+
+        # 1. Generate gradual items with the highest pheromone and visibility
+        m = p_matrix.shape[0]
+        for i in range(m):
+            combine_feature = np.multiply(v_matrix[i], p_matrix[i])
+            total = np.sum(combine_feature)
+            with np.errstate(divide='ignore', invalid='ignore'):
+                probability = combine_feature / total
+            cum_prob = np.cumsum(probability)
+            r = np.random.random_sample()
+            try:
+                j = np.nonzero(cum_prob > r)[0][0]
+                gi = GI.parse_gi(self.attribute_keys[j])
+                """:type gi: GI"""
+                if not pattern.contains_attr(gi):
+                    pattern.add_gradual_item(gi)
+            except IndexError:
+                continue
+
+        # 2. Evaporate pheromones by factor e
+        p_matrix = (1 - self.evaporation_factor) * p_matrix
+        return pattern, p_matrix
+
+    def _update_pheromones(self, pattern, p_matrix):
+        """
+        Updates the pheromone level of the pheromone matrix
+
+        :param pattern: pattern used to update values
+        :param p_matrix: an existing pheromone matrix
+        :return: updated pheromone matrix
+        """
+        idx = [self.attribute_keys.index(x.as_string()) for x in pattern.gradual_items]
+        for n in range(len(idx)):
+            for m in range(n + 1, len(idx)):
+                i = idx[n]
+                j = idx[m]
+                p_matrix[i][j] += 1
+                p_matrix[j][i] += 1
+        return p_matrix
+
+    def discover(self):
+        """
+        Extract gradual patterns (GPs) from a numeric data source using the Ant Colony Optimization approach
+        (proposed in a published paper by Dickson Owuor). A GP is a set of gradual items (GI) and its quality is
+        measured by its computed support value. For example given a data set with 3 columns (age, salary, cars) and 10
+        objects. A GP may take the form: {age+, salary-} with a support of 0.8. This implies that 8 out of 10 objects
+        have the values of column age 'increasing' and column 'salary' decreasing.
+
+         In this approach, it is assumed that every column can be converted into gradual item (GI). If the GI is valid
+         (i.e. its computed support is greater than the minimum support threshold) then it is either increasing or
+         decreasing (+ or -), otherwise it is irrelevant (x). Therefore, a pheromone matrix is built using the number of
+         columns and the possible variations (increasing, decreasing, irrelevant) or (+, -, x). The algorithm starts by
+         randomly generating GP candidates using the pheromone matrix, each candidate is validated by confirming that
+         its computed support is greater or equal to the minimum support threshold. The valid GPs are used to update the
+         pheromone levels and better candidates are generated.
+
+        :return: JSON object
+        """
+        # 0. Initialize and prepare data set
+        # d_set = DataGP(f_path, min_supp)
+        # """:type d_set: DataGP"""
+        self.fit_bitmap()
+        # attr_index = d_set.attr_cols
+        # e_factor = evaporation_factor
+        self._fit()  # distance matrix (d) & attributes corresponding to d
+        d = self.distance_matrix
+
+        a = self.attr_size
+        self.gradual_patterns = list()  # subsets
+        loser_gps = list()  # supersets
+        str_winner_gps = list()  # subsets
+        repeated = 0
+        it_count = 0
+        counter = 0
+
+        if self.no_bins:
+            return []
+
+        # 1. Remove d[i][j] < frequency-count of min_supp
+        fr_count = ((self.thd_supp * a * (a - 1)) / 2)
+        d[d < fr_count] = 0
+
+        # 3. Initialize pheromones (p_matrix)
+        pheromones = np.ones(d.shape, dtype=float)
+
+        invalid_count = 0
+        # 4. Iterations for ACO
+        # while repeated < 1:
+        while counter < self.max_iteration:
+            rand_gp, pheromones = self._gen_aco_candidates(pheromones)
+            if len(rand_gp.gradual_items) > 1:
+                # print(rand_gp.get_pattern())
+                exits = rand_gp.is_duplicate(self.gradual_patterns, loser_gps)
+                if not exits:
+                    repeated = 0
+                    # check for anti-monotony
+                    is_super = rand_gp.check_am(loser_gps, subset=False)
+                    is_sub = rand_gp.check_am(self.gradual_patterns, subset=True)
+                    if is_super or is_sub:
+                        continue
+                    gen_gp = rand_gp.validate_graank(self)
+                    """:type gen_gp: ExtGP"""
+                    is_present = gen_gp.is_duplicate(self.gradual_patterns, loser_gps)
+                    is_sub = gen_gp.check_am(self.gradual_patterns, subset=True)
+                    if is_present or is_sub:
+                        repeated += 1
                     else:
-                        loser_gps.append(gen_gp)
-                        invalid_count += 1
-                if set(gen_gp.get_pattern()) != set(rand_gp.get_pattern()):
-                    loser_gps.append(rand_gp)
+                        if gen_gp.support >= self.thd_supp:
+                            pheromones = self._update_pheromones(gen_gp, pheromones)
+                            self.gradual_patterns.append(gen_gp)
+                            str_winner_gps.append(gen_gp.print(self.titles))
+                        else:
+                            loser_gps.append(gen_gp)
+                            invalid_count += 1
+                    if set(gen_gp.get_pattern()) != set(rand_gp.get_pattern()):
+                        loser_gps.append(rand_gp)
+                else:
+                    repeated += 1
             else:
-                repeated += 1
-        else:
-            invalid_count += 1
-        it_count += 1
-        if max_iteration == 1:
-            counter = repeated
-        else:
-            counter = it_count
-    # Output
-    out = json.dumps({"Algorithm": "ACO-GRAD", "Best Patterns": str_winner_gps, "Invalid Count": invalid_count,
-                      "Iterations": it_count})
-    """:type out: object"""
-    if return_obj:
-        return out, d_set.gradual_patterns
-    else:
+                invalid_count += 1
+            it_count += 1
+            if self.max_iteration == 1:
+                counter = repeated
+            else:
+                counter = it_count
+        # Output
+        out = json.dumps({"Algorithm": "ACO-GRAANK", "Best Patterns": str_winner_gps, "Invalid Count": invalid_count,
+                          "Iterations": it_count})
+        """:type out: object"""
         return out
 
 
-def gen_aco_candidates(attr_keys, d, p_matrix, e_factor):
-    v_matrix = d
-    pattern = ExtGP()
-    ":type pattern: ExtGP"
-
-    # 1. Generate gradual items with the highest pheromone and visibility
-    m = p_matrix.shape[0]
-    for i in range(m):
-        combine_feature = np.multiply(v_matrix[i], p_matrix[i])
-        total = np.sum(combine_feature)
-        with np.errstate(divide='ignore', invalid='ignore'):
-            probability = combine_feature / total
-        cum_prob = np.cumsum(probability)
-        r = np.random.random_sample()
-        try:
-            j = np.nonzero(cum_prob > r)[0][0]
-            gi = GI.parse_gi(attr_keys[j])
-            """:type gi: GI"""
-            if not pattern.contains_attr(gi):
-                pattern.add_gradual_item(gi)
-        except IndexError:
-            continue
-
-    # 2. Evaporate pheromones by factor e
-    p_matrix = (1 - e_factor) * p_matrix
-    return pattern, p_matrix
-
-
-def update_pheromones(attr_keys, pattern, p_matrix):
-    """
-    Updates the pheromone level of the pheromone matrix
-
-    :param attr_keys: attribute keys
-    :param pattern: pattern used to update values
-    :param p_matrix: an existing pheromone matrix
-    :return: updated pheromone matrix
-    """
-    idx = [attr_keys.index(x.as_string()) for x in pattern.gradual_items]
-    for n in range(len(idx)):
-        for m in range(n + 1, len(idx)):
-            i = idx[n]
-            j = idx[m]
-            p_matrix[i][j] += 1
-            p_matrix[j][i] += 1
-    return p_matrix
-
-
-# -------- GA-GRAD ----------
+# -------- GA-GRAANK ----------
 
 """
 
@@ -1953,7 +1626,7 @@ def update_pheromones(attr_keys, pattern, p_matrix):
 @email: "owuordickson@gmail.com"
 @created: "29 April 2021"
 @modified: "07 September 2021"
-Breath-First Search for gradual patterns using Genetic Algorithm (GA-GRAD).
+Breath-First Search for gradual patterns using Genetic Algorithm (GA-GRAANK).
 GA is used to learn gradual pattern candidates.
 CHANGES:
 1. uses normal functions
@@ -1962,237 +1635,227 @@ CHANGES:
 """
 
 
-def ga_graank(data_src, min_supp=MIN_SUPPORT, max_iteration=MAX_ITERATIONS, n_pop=N_POPULATION, pc=PC,
-              gamma=GAMMA, mu=MU, sigma=SIGMA, return_obj=False):
-    """
+class GeneticGRAANK(DataGP):
 
-    Extract gradual patterns (GPs) from a numeric data source using the Genetic Algorithm (GA-GRAD) approach (proposed
-    in a published research paper by Dickson Owuor). A GP is a set of gradual items (GI) and its quality is measured by
-    its computed support value. For example given a data set with 3 columns (age, salary, cars) and 10 objects. A GP may
-    take the form: {age+, salary-} with a support of 0.8. This implies that 8 out of 10 objects have the values of
-    column age 'increasing' and column 'salary' decreasing.
+    def __init__(self, *args, max_iter=MAX_ITERATIONS, n_pop=N_POPULATION, pc=PC, gamma=GAMMA, mu=MU, sigma=SIGMA):
+        super(GeneticGRAANK, self).__init__(*args)
+        self.max_iteration = max_iter
+        self.n_pop = n_pop
+        self.pc = pc
+        self.gamma = gamma
+        self.mu = mu
+        self.sigma = sigma
 
-     In this approach, it is assumed that every GP candidate may be represented as a binary gene (or individual) that
-     has a unique position and cost. The cost is derived from the computed support of that candidate, the higher the
-     support value the lower the cost. The aim of the algorithm is search through a population of individuals (or
-     candidates) and find those with the lowest cost as efficiently as possible.
+    def _crossover(self, p1, p2):
+        """
+        Crosses over the genes of 2 parents (an individual with a specific position and cost) in order to generate 2
+        different offsprings.
 
-    :param data_src: [required] a numeric data source, it can either be a 'file in csv format' or a 'Pandas DataFrame'
-    :param min_supp: [optional] minimum support threshold, the default is set to 0.5
-    :param max_iteration: [optional] maximum iterations, the default is set to 1
-    :param n_pop: [optional] initial population, the default is set to 5
-    :param pc: [optional] offspring population multiple, the default is set 0.5. This determines how fast the population
-     grows.
-    :param gamma: [optional] crossover rate, the default is set to 1
-    :param mu: [optional] mutation rate, the default is set to 0.9
-    :param sigma: [optional] mutation rate, the default is set to 0.9
-    :param return_obj: [optional] additionally return DataGP object, the default is False. If set to True, the method
-    returns 2 items: JSON object, DataGP object
-    :return: JSON object
-    """
+        :param p1: parent 1 individual
+        :param p2: parent 2 individual
+        :return: 2 offsprings (children)
+        """
+        c1 = p1.deepcopy()
+        c2 = p2.deepcopy()
+        alpha = np.random.uniform(0, self.gamma, 1)
+        c1.position = alpha * p1.position + (1 - alpha) * p2.position
+        c2.position = alpha * p2.position + (1 - alpha) * p1.position
+        return c1, c2
 
-    # Prepare data set
-    d_set = DataGP(data_src, min_supp)
-    d_set.init_bitmap()
-    attr_keys = [GI(x[0], x[1].decode()).as_string() for x in d_set.valid_bins[:, 0]]
+    def _mutate(self, x):
+        """
+        Mutates an individual's position in order to create a new and different individual.
 
-    if d_set.no_bins:
-        return []
+        :param x: existing individual
+        :return: new individual
+        """
+        y = x.deepcopy()
+        str_x = str(int(y.position))
+        flag = np.random.rand(*(len(str_x),)) <= self.mu
+        ind = np.argwhere(flag)
+        str_y = "0"
+        for i in ind:
+            val = float(str_x[i[0]])
+            val += self.sigma * np.random.uniform(0, 1, 1)
+            if i[0] == 0:
+                str_y = "".join(("", "{}".format(int(val)), str_x[1:]))
+            else:
+                str_y = "".join((str_x[:i[0] - 1], "{}".format(int(val)), str_x[i[0]:]))
+            str_x = str_y
+        y.position = int(str_y)
+        return y
 
-    # Problem Information
-    # cost_function
+    def discover(self):
+        """
 
-    # Parameters
-    # pc: Proportion of children (if its 1, then nc == npop
-    it_count = 0
-    eval_count = 0
-    counter = 0
-    var_min = 0
-    var_max = int(''.join(['1'] * len(attr_keys)), 2)
+        Extract gradual patterns (GPs) from a numeric data source using the Genetic Algorithm approach (proposed
+        in a published  paper by Dickson Owuor). A GP is a set of gradual items (GI) and its quality is measured by
+        its computed support value. For example given a data set with 3 columns (age, salary, cars) and 10 objects.
+        A GP may take the form: {age+, salary-} with a support of 0.8. This implies that 8 out of 10 objects have the
+        values of column age 'increasing' and column 'salary' decreasing.
 
-    nc = int(np.round(pc * n_pop / 2) * 2)  # Number of children. np.round is used to get even number of children
+         In this approach, we assume that every GP candidate may be represented as a binary gene (or individual) that
+         has a unique position and cost. The cost is derived from the computed support of that candidate, the higher the
+         support value the lower the cost. The aim of the algorithm is search through a population of individuals (or
+         candidates) and find those with the lowest cost as efficiently as possible.
 
-    # Empty Individual Template
-    empty_individual = structure()
-    empty_individual.position = None
-    empty_individual.cost = None
+        :return: JSON object
+        """
 
-    # Initialize Population
-    pop = empty_individual.repeat(n_pop)
-    for i in range(n_pop):
-        pop[i].position = random.randrange(var_min, var_max)
-        pop[i].cost = 1  # cost_function(pop[i].position, attr_keys, d_set)
-        # if pop[i].cost < best_sol.cost:
-        #    best_sol = pop[i].deepcopy()
+        # Prepare data set
+        self.fit_bitmap()
+        attr_keys = [GI(x[0], x[1].decode()).as_string() for x in self.valid_bins[:, 0]]
 
-    # Best Solution Ever Found
-    best_sol = empty_individual.deepcopy()
-    best_sol.position = pop[0].position
-    best_sol.cost = NumericSS.cost_function(best_sol.position, attr_keys, d_set)
+        if self.no_bins:
+            return []
 
-    # Best Cost of Iteration
-    best_costs = np.empty(max_iteration)
-    best_patterns = list()
-    str_best_gps = list()
-    str_iter = ''
-    str_eval = ''
+        # Problem Information
+        # cost_function
 
-    invalid_count = 0
-    repeated = 0
+        # Parameters
+        # pc: Proportion of children (if its 1, then nc == npop
+        it_count = 0
+        eval_count = 0
+        counter = 0
+        var_min = 0
+        var_max = int(''.join(['1'] * len(attr_keys)), 2)
 
-    while counter < max_iteration:
-        # while eval_count < max_evaluations:
-        # while repeated < 1:
+        nc = int(np.round(self.pc * self.n_pop / 2) * 2)  # No. of children np.round is used to get even number
 
-        c_pop = []  # Children population
-        for _ in range(nc // 2):
-            # Select Parents
-            q = np.random.permutation(n_pop)
-            p1 = pop[q[0]]
-            p2 = pop[q[1]]
+        # Empty Individual Template
+        empty_individual = structure()
+        empty_individual.position = None
+        empty_individual.cost = None
 
-            # a. Perform Crossover
-            c1, c2 = crossover(p1, p2, gamma)
+        # Initialize Population
+        pop = empty_individual.repeat(self.n_pop)
+        for i in range(self.n_pop):
+            pop[i].position = random.randrange(var_min, var_max)
+            pop[i].cost = 1  # cost_function(pop[i].position, attr_keys, d_set)
+            # if pop[i].cost < best_sol.cost:
+            #    best_sol = pop[i].deepcopy()
 
-            # Apply Bound
-            NumericSS.apply_bound(c1, var_min, var_max)
-            NumericSS.apply_bound(c2, var_min, var_max)
+        # Best Solution Ever Found
+        best_sol = empty_individual.deepcopy()
+        best_sol.position = pop[0].position
+        best_sol.cost = NumericSS.cost_function(best_sol.position, attr_keys, self)
 
-            # Evaluate First Offspring
-            c1.cost = NumericSS.cost_function(c1.position, attr_keys, d_set)
-            if c1.cost == 1:
-                invalid_count += 1
-            if c1.cost < best_sol.cost:
-                best_sol = c1.deepcopy()
-            eval_count += 1
-            str_eval += "{}: {} \n".format(eval_count, best_sol.cost)
+        # Best Cost of Iteration
+        best_costs = np.empty(self.max_iteration)
+        best_patterns = list()
+        str_best_gps = list()
+        str_iter = ''
+        str_eval = ''
 
-            # Evaluate Second Offspring
-            c2.cost = NumericSS.cost_function(c2.position, attr_keys, d_set)
-            if c1.cost == 1:
-                invalid_count += 1
-            if c2.cost < best_sol.cost:
-                best_sol = c2.deepcopy()
-            eval_count += 1
-            str_eval += "{}: {} \n".format(eval_count, best_sol.cost)
+        invalid_count = 0
+        repeated = 0
 
-            # b. Perform Mutation
-            c1 = mutate(c1, mu, sigma)
-            c2 = mutate(c2, mu, sigma)
+        while counter < self.max_iteration:
+            # while eval_count < max_evaluations:
+            # while repeated < 1:
 
-            # Apply Bound
-            NumericSS.apply_bound(c1, var_min, var_max)
-            NumericSS.apply_bound(c2, var_min, var_max)
+            c_pop = []  # Children population
+            for _ in range(nc // 2):
+                # Select Parents
+                q = np.random.permutation(self.n_pop)
+                p1 = pop[q[0]]
+                p2 = pop[q[1]]
 
-            # Evaluate First Offspring
-            c1.cost = NumericSS.cost_function(c1.position, attr_keys, d_set)
-            if c1.cost == 1:
-                invalid_count += 1
-            if c1.cost < best_sol.cost:
-                best_sol = c1.deepcopy()
-            eval_count += 1
-            str_eval += "{}: {} \n".format(eval_count, best_sol.cost)
+                # a. Perform Crossover
+                c1, c2 = self._crossover(p1, p2)
 
-            # Evaluate Second Offspring
-            c2.cost = NumericSS.cost_function(c2.position, attr_keys, d_set)
-            if c1.cost == 1:
-                invalid_count += 1
-            if c2.cost < best_sol.cost:
-                best_sol = c2.deepcopy()
-            eval_count += 1
-            str_eval += "{}: {} \n".format(eval_count, best_sol.cost)
+                # Apply Bound
+                NumericSS.apply_bound(c1, var_min, var_max)
+                NumericSS.apply_bound(c2, var_min, var_max)
 
-            # c. Add Offsprings to c_pop
-            c_pop.append(c1)
-            c_pop.append(c2)
+                # Evaluate First Offspring
+                c1.cost = NumericSS.cost_function(c1.position, attr_keys, self)
+                if c1.cost == 1:
+                    invalid_count += 1
+                if c1.cost < best_sol.cost:
+                    best_sol = c1.deepcopy()
+                eval_count += 1
+                str_eval += "{}: {} \n".format(eval_count, best_sol.cost)
 
-        # Merge, Sort and Select
-        pop += c_pop
-        pop = sorted(pop, key=lambda x: x.cost)
-        pop = pop[0:n_pop]
+                # Evaluate Second Offspring
+                c2.cost = NumericSS.cost_function(c2.position, attr_keys, self)
+                if c1.cost == 1:
+                    invalid_count += 1
+                if c2.cost < best_sol.cost:
+                    best_sol = c2.deepcopy()
+                eval_count += 1
+                str_eval += "{}: {} \n".format(eval_count, best_sol.cost)
 
-        best_gp = NumericSS.decode_gp(attr_keys, best_sol.position).validate_graank(d_set)
-        """:type best_gp: ExtGP"""
-        is_present = best_gp.is_duplicate(best_patterns)
-        is_sub = best_gp.check_am(best_patterns, subset=True)
-        if is_present or is_sub:
-            repeated += 1
-        else:
-            if best_gp.support >= min_supp:
-                best_patterns.append(best_gp)
-                str_best_gps.append(best_gp.print(d_set.titles))
-            # else:
-            #    best_sol.cost = 1
+                # b. Perform Mutation
+                c1 = self._mutate(c1)
+                c2 = self._mutate(c2)
 
-        try:
-            # Show Iteration Information
-            # Store Best Cost
-            best_costs[it_count] = best_sol.cost
-            str_iter += "{}: {} \n".format(it_count, best_sol.cost)
-        except IndexError:
-            pass
-        it_count += 1
+                # Apply Bound
+                NumericSS.apply_bound(c1, var_min, var_max)
+                NumericSS.apply_bound(c2, var_min, var_max)
 
-        if max_iteration == 1:
-            counter = repeated
-        else:
-            counter = it_count
-    # Output
-    out = json.dumps({"Algorithm": "GA-GRAD", "Best Patterns": str_best_gps, "Invalid Count": invalid_count,
-                      "Iterations": it_count})
-    """:type out: object"""
-    d_set.gradual_patterns = best_patterns
-    if return_obj:
-        return out, d_set
-    else:
+                # Evaluate First Offspring
+                c1.cost = NumericSS.cost_function(c1.position, attr_keys, self)
+                if c1.cost == 1:
+                    invalid_count += 1
+                if c1.cost < best_sol.cost:
+                    best_sol = c1.deepcopy()
+                eval_count += 1
+                str_eval += "{}: {} \n".format(eval_count, best_sol.cost)
+
+                # Evaluate Second Offspring
+                c2.cost = NumericSS.cost_function(c2.position, attr_keys, self)
+                if c1.cost == 1:
+                    invalid_count += 1
+                if c2.cost < best_sol.cost:
+                    best_sol = c2.deepcopy()
+                eval_count += 1
+                str_eval += "{}: {} \n".format(eval_count, best_sol.cost)
+
+                # c. Add Offsprings to c_pop
+                c_pop.append(c1)
+                c_pop.append(c2)
+
+            # Merge, Sort and Select
+            pop += c_pop
+            pop = sorted(pop, key=lambda x: x.cost)
+            pop = pop[0:self.n_pop]
+
+            best_gp = NumericSS.decode_gp(attr_keys, best_sol.position).validate_graank(self)
+            """:type best_gp: ExtGP"""
+            is_present = best_gp.is_duplicate(best_patterns)
+            is_sub = best_gp.check_am(best_patterns, subset=True)
+            if is_present or is_sub:
+                repeated += 1
+            else:
+                if best_gp.support >= self.thd_supp:
+                    best_patterns.append(best_gp)
+                    str_best_gps.append(best_gp.print(self.titles))
+                # else:
+                #    best_sol.cost = 1
+
+            try:
+                # Show Iteration Information
+                # Store Best Cost
+                best_costs[it_count] = best_sol.cost
+                str_iter += "{}: {} \n".format(it_count, best_sol.cost)
+            except IndexError:
+                pass
+            it_count += 1
+
+            if self.max_iteration == 1:
+                counter = repeated
+            else:
+                counter = it_count
+        # Output
+        out = json.dumps({"Algorithm": "GA-GRAANK", "Best Patterns": str_best_gps, "Invalid Count": invalid_count,
+                          "Iterations": it_count})
+        """:type out: object"""
+        self.gradual_patterns = best_patterns
         return out
 
 
-def crossover(p1, p2, gamma=0.1):
-    """
-    Crosses over the genes of 2 parents (an individual with a specific position and cost) in order to generate 2
-    different offsprings.
-
-    :param p1: parent 1 individual
-    :param p2: parent 2 individual
-    :param gamma: cross-over rate
-    :return: 2 offsprings (children)
-    """
-    c1 = p1.deepcopy()
-    c2 = p2.deepcopy()
-    alpha = np.random.uniform(0, gamma, 1)
-    c1.position = alpha * p1.position + (1 - alpha) * p2.position
-    c2.position = alpha * p2.position + (1 - alpha) * p1.position
-    return c1, c2
-
-
-def mutate(x, mu, sigma):
-    """
-    Mutates an individual's position in order to create a new and different individual.
-
-    :param x: existing individual
-    :param mu: mutation rate 1
-    :param sigma: mutation rate 2
-    :return: new individual
-    """
-    y = x.deepcopy()
-    str_x = str(int(y.position))
-    flag = np.random.rand(*(len(str_x),)) <= mu
-    ind = np.argwhere(flag)
-    str_y = "0"
-    for i in ind:
-        val = float(str_x[i[0]])
-        val += sigma * np.random.uniform(0, 1, 1)
-        if i[0] == 0:
-            str_y = "".join(("", "{}".format(int(val)), str_x[1:]))
-        else:
-            str_y = "".join((str_x[:i[0] - 1], "{}".format(int(val)), str_x[i[0]:]))
-        str_x = str_y
-    y.position = int(str_y)
-    return y
-
-
-# -------- PSO-GRAD ----------
+# -------- PSO-GRAANK ----------
 
 """
 @author: "Dickson Owuor"
@@ -2214,7 +1877,7 @@ CHANGES:
 def pso_graank(data_src, min_supp=MIN_SUPPORT, max_iteration=MAX_ITERATIONS, n_particles=N_PARTICLES,
                velocity=VELOCITY, coef_p=PERSONAL_COEFF, coef_g=GLOBAL_COEFF, return_obj=False):
     """
-    Extract gradual patterns (GPs) from a numeric data source using the Particle Swarm Optimization Algorithm (PSO-GRAD)
+    Extract gradual patterns (GPs) from a numeric data source using the Particle Swarm Optimization Algorithm
     approach (proposed in a published research paper by Dickson Owuor). A GP is a set of gradual items (GI) and its
     quality is measured by its computed support value. For example given a data set with 3 columns (age, salary, cars)
     and 10 objects. A GP may take the form: {age+, salary-} with a support of 0.8. This implies that 8 out of 10 objects
@@ -2238,7 +1901,7 @@ def pso_graank(data_src, min_supp=MIN_SUPPORT, max_iteration=MAX_ITERATIONS, n_p
     """
     # Prepare data set
     d_set = DataGP(data_src, min_supp)
-    d_set.init_bitmap()
+    d_set.fit_bitmap()
     # self.target = 1
     # self.target_error = 1e-6
     attr_keys = [GI(x[0], x[1].decode()).as_string() for x in d_set.valid_bins[:, 0]]
@@ -2339,7 +2002,7 @@ def pso_graank(data_src, min_supp=MIN_SUPPORT, max_iteration=MAX_ITERATIONS, n_p
         else:
             counter = it_count
     # Output
-    out = json.dumps({"Algorithm": "PSO-GRAD", "Best Patterns": str_best_gps, "Invalid Count": invalid_count,
+    out = json.dumps({"Algorithm": "PSO-GRAANK", "Best Patterns": str_best_gps, "Invalid Count": invalid_count,
                       "Iterations": it_count})
     """:type out: object"""
     d_set.gradual_patterns = best_patterns
@@ -2349,7 +2012,7 @@ def pso_graank(data_src, min_supp=MIN_SUPPORT, max_iteration=MAX_ITERATIONS, n_p
         return out
 
 
-# -------- PLS-GRAD ----------
+# -------- PLS-GRAANK ----------
 
 """
 @author: "Dickson Owuor"
@@ -2359,7 +2022,7 @@ def pso_graank(data_src, min_supp=MIN_SUPPORT, max_iteration=MAX_ITERATIONS, n_p
 @email: "owuordickson@gmail.com"
 @created: "26 July 2021"
 @modified: "07 September 2021"
-Breath-First Search for gradual patterns using Pure Local Search (PLS-GRAD).
+Breath-First Search for gradual patterns using Pure Local Search (PLS-GRAANK).
 PLS is used to learn gradual pattern candidates.
 Adopted from: https://machinelearningmastery.com/iterated-local-search-from-scratch-in-python/
 CHANGES:
@@ -2370,7 +2033,7 @@ CHANGES:
 # hill climbing local search algorithm
 def hc_graank(data_src, min_supp=MIN_SUPPORT, max_iteration=MAX_ITERATIONS, step_size=STEP_SIZE, return_obj=False):
     """
-    Extract gradual patterns (GPs) from a numeric data source using the Hill Climbing (Local Search) Algorithm (LS-GRAD)
+    Extract gradual patterns (GPs) from a numeric data source using the Hill Climbing (Local Search) Algorithm
     approach (proposed in a published research paper by Dickson Owuor). A GP is a set of gradual items (GI) and its
     quality is measured by its computed support value. For example given a data set with 3 columns (age, salary, cars)
     and 10 objects. A GP may take the form: {age+, salary-} with a support of 0.8. This implies that 8 out of 10 objects
@@ -2391,7 +2054,7 @@ def hc_graank(data_src, min_supp=MIN_SUPPORT, max_iteration=MAX_ITERATIONS, step
     """
     # Prepare data set
     d_set = DataGP(data_src, min_supp)
-    d_set.init_bitmap()
+    d_set.fit_bitmap()
     attr_keys = [GI(x[0], x[1].decode()).as_string() for x in d_set.valid_bins[:, 0]]
 
     if d_set.no_bins:
@@ -2469,7 +2132,7 @@ def hc_graank(data_src, min_supp=MIN_SUPPORT, max_iteration=MAX_ITERATIONS, step
         else:
             counter = it_count
     # Output
-    out = json.dumps({"Algorithm": "LS-GRAD", "Best Patterns": str_best_gps, "Invalid Count": invalid_count,
+    out = json.dumps({"Algorithm": "LS-GRAANK", "Best Patterns": str_best_gps, "Invalid Count": invalid_count,
                       "Iterations": it_count})
     """:type out: object"""
     d_set.gradual_patterns = best_patterns
@@ -2479,7 +2142,7 @@ def hc_graank(data_src, min_supp=MIN_SUPPORT, max_iteration=MAX_ITERATIONS, step
         return out
 
 
-# -------- PRS-GRAD ----------
+# -------- PRS-GRAANK ----------
 
 """
 @author: "Dickson Owuor"
@@ -2489,7 +2152,7 @@ def hc_graank(data_src, min_supp=MIN_SUPPORT, max_iteration=MAX_ITERATIONS, step
 @email: "owuordickson@gmail.com"
 @created: "26 July 2021"
 @modified: "07 September 2021"
-Breath-First Search for gradual patterns using Pure Random Search (PRS-GRAD).
+Breath-First Search for gradual patterns using Pure Random Search (PRS-GRAANK).
 PRS is used to learn gradual pattern candidates.
 Adopted: https://medium.com/analytics-vidhya/how-does-random-search-algorithm-work-python-implementation-b69e779656d6
 CHANGES:
@@ -2499,7 +2162,7 @@ CHANGES:
 
 def rs_graank(data_src, min_supp=MIN_SUPPORT, max_iteration=MAX_ITERATIONS, return_obj=False):
     """
-    Extract gradual patterns (GPs) from a numeric data source using the Random Search Algorithm (LS-GRAD)
+    Extract gradual patterns (GPs) from a numeric data source using the Random Search Algorithm (LS-GRAANK)
     approach (proposed in a published research paper by Dickson Owuor). A GP is a set of gradual items (GI) and its
     quality is measured by its computed support value. For example given a data set with 3 columns (age, salary, cars)
     and 10 objects. A GP may take the form: {age+, salary-} with a support of 0.8. This implies that 8 out of 10 objects
@@ -2519,7 +2182,7 @@ def rs_graank(data_src, min_supp=MIN_SUPPORT, max_iteration=MAX_ITERATIONS, retu
     """
     # Prepare data set
     d_set = DataGP(data_src, min_supp)
-    d_set.init_bitmap()
+    d_set.fit_bitmap()
     attr_keys = [GI(x[0], x[1].decode()).as_string() for x in d_set.valid_bins[:, 0]]
 
     if d_set.no_bins:
@@ -2593,7 +2256,7 @@ def rs_graank(data_src, min_supp=MIN_SUPPORT, max_iteration=MAX_ITERATIONS, retu
         else:
             counter = it_count
     # Output
-    out = json.dumps({"Algorithm": "RS-GRAD", "Best Patterns": str_best_gps, "Invalid Count": invalid_count,
+    out = json.dumps({"Algorithm": "RS-GRAANK", "Best Patterns": str_best_gps, "Invalid Count": invalid_count,
                       "Iterations": it_count})
     """:type out: object"""
     d_set.gradual_patterns = best_patterns
@@ -2603,7 +2266,7 @@ def rs_graank(data_src, min_supp=MIN_SUPPORT, max_iteration=MAX_ITERATIONS, retu
         return out
 
 
-# -------- Clu-GRAD ----------
+# -------- Clu-GRAANK ----------
 """
 @author: Dickson Owuor
 @credits: Thomas Runkler, Lesley Bonyo and Anne Laurent
@@ -2617,83 +2280,382 @@ CHANGES:
 """
 
 
-def clu_bfs(data_src, min_supp=MIN_SUPPORT, e_probability=ERASURE_PROBABILITY, sv_max_iter=SCORE_VECTOR_ITERATIONS,
-            return_obj=False, testing=False):
+class CluDataGP(DataGP):
+    """Description of class CluDataGP (Clustering DataGP)
+
+    CluDataGP stands for Clustering DataGP. It is a class that inherits the DataGP class in order to create data-gp
+    objects for the clustering approach. This class inherits the DataGP class which is used to create data-gp objects.
+    The classical data-gp object is meant to store all the parameters required by GP algorithms to extract gradual
+    patterns (GP). It takes a numeric file (in CSV format) as input and converts it into an object whose attributes are
+    used by algorithms to extract GPs.
+
+    class DataGP provides the following attributes:
+        thd_supp: minimum support threshold
+
+        equal: eq value
+
+        titles: column names of data source
+
+        data: all the objects organized into their respective column
+
+        row_count: number of objects
+
+        col_count: number of all columns
+
+        time_cols: column indices of the columns with data-time objects
+
+        attr_cols: column indices of the columns with numeric values
+
+        valid_bins: valid bitmaps (in the form of ndarray) of all gradual items corresponding to the attr_cols, a bitmap
+        is valid if its computed support is equal or greater than the minimum support threshold
+
+        no_bins: True if all none of the attr_cols yields a valid bitmap
+
+        gradual_patterns: list of GP objects
+
+    This class adds the parameters required for clustering gradual items to the data-gp object. The class provides the
+    following additional attributes:
+        e_prob: erasure probability (a value between 0 - 1)
+
+        mat_iter: maximum iteration value for score vector estimation
+
+    CluDataGP adds the following functions:
+        construct_matrices: generates the net-win matrix
+
+        infer_gps: infers GPs from clusters of Gradual Items
+
+        estimate_score_vector: estimates the score vector based on the cumulative wins
+
+        estimate_support:  estimates the frequency support of a GP based on its score vector
+
     """
-    Clustering Gradual Items
-    ------------------------
 
-    A gradual pattern (GP) is a set of gradual items (GI) and its quality is measured by its computed support value. A
-    GI is a pair (i,v) where i is a column and v is a variation symbol: increasing/decreasing. Each column of a data set
-    yields 2 GIs; for example, column age yields GI age+ or age-. For example given a data set with 3 columns
-    (age, salary, cars) and 10 objects. A GP may take the form: {age+, salary-} with a support of 0.8. This implies
-    that 8 out of 10 objects have the values of column age 'increasing' and column 'salary' decreasing.
+    def __init__(self, *args, e_prob=ERASURE_PROBABILITY, max_iter=SCORE_VECTOR_ITERATIONS, no_prob=False):
+        """Description of class CluDataGP (Clustering DataGP)
 
-     We borrow the net-win concept used in the work 'Clustering Using Pairwise Comparisons' proposed by R. Srikant to
-     the problem of extracting gradual patterns (GPs). In order to mine for GPs, each feature yields 2 gradual items
-     which we use to construct a bitmap matrix comparing each row to each other (i.e., (r1,r2), (r1,r3), (r1,r4),
-     (r2,r3), (r2,r4), (r3,r4)).
+        A class for creating data-gp objects for the clustering approach. This class inherits the DataGP class which is
+        used to create data-gp objects. This class adds the parameters required for clustering gradual items to the
+        data-gp object.
 
-    In this approach, we convert the bitmap matrices into 'net-win vectors'. Finally, we apply spectral clustering to
-    determine which gradual items belong to the same group based on the similarity of net-win vectors. Gradual items
-    in the same cluster should have almost similar score vector.
+        The class provides the following additional attributes:
 
-    :param data_src: [required] a numeric data source, it can either be a 'file in csv format' or a 'Pandas DataFrame'
-    :param min_supp: [optional] minimum support threshold, the default is set to 0.5
-    :param e_probability: [optional] erasure probability (determines the number of objects to be used), default is 0.5
-    :param sv_max_iter: [optional] score vector maximum iteration, the default is 10
-    :param return_obj: [optional] additionally return DataGP object, the default is False. If set to True, the method
-    returns 2 items: JSON object, DataGP object
-    :param testing: [optional] returns different format if algorithm is used in a test environment
-    :return: JSON object
-    """
+            e_prob: erasure probability (a value between 0 - 1). Erasure probability determines the proportion of ij
+            columns to be used by the algorithm, the rest are ignored.
 
-    # 1. Create a DataGP object
-    d_gp = CluDataGP(data_src, min_supp, e_prob=e_probability, max_iter=sv_max_iter)
-    """:type d_gp: CluDataGP"""
+            mat_iter: maximum iteration value for score vector estimation
 
-    # 2. Generate net-win matrices
-    s_matrix = d_gp.net_win_mat  # Net-win matrix (S)
-    if s_matrix.size < 1:
-        raise Exception("Erasure probability is too high, consider reducing it.")
-    # print(s_matrix)
+        :param args: [required] data-source, [optional] minimum-support
+        :param e_prob: [optional] erasure probability, the default is 0.5
+        :param max_iter: [optional] maximum iteration for score vector estimation, the default is 10
+        """
+        super(CluDataGP, self).__init__(*args)
+        self.erasure_probability = e_prob
+        """:type erasure_probability: float"""
+        self.max_iteration = max_iter
+        """:type max_iteration: int"""
+        if not no_prob:
+            self.gradual_items, self.cum_wins, self.net_win_mat, self.ij = self._construct_matrices(e_prob)
+            """:type gradual_items: ndarray"""
+            """:type cum_wins: ndarray"""
+            """:type net_win_mat: ndarray"""
+            """:type ij: ndarray"""
+            self.win_mat = np.array([])
+            """:type win_mat: ndarray"""
+        else:
+            self.gradual_items, self.win_mat, self.cum_wins, self.net_win_mat, self.ij = self._construct_all_matrices()
+            """:type gradual_items: ndarray"""
+            """:type win_mat: ndarray"""
+            """:type cum_wins: ndarray"""
+            """:type net_win_mat: ndarray"""
+            """:type ij: ndarray"""
 
-    start = time.time()  # TO BE REMOVED
-    # 3a. Spectral Clustering: perform SVD to determine the independent rows
-    u, s, vt = np.linalg.svd(s_matrix)
+    def _construct_matrices(self, e):
+        """
+        Generates all the gradual items and, constructs: (1) net-win matrix, (2) cumulative wins, (3) pairwise objects.
 
-    # 3b. Spectral Clustering: compute rank of net-wins matrix
-    r = np.linalg.matrix_rank(s_matrix)  # approximated r
+        :param e: [required] erasure probability
+        :return: list of gradual items, net-win matrix, cumulative win matrix, selected pairwise (ij) objects
+        """
 
-    # 3c. Spectral Clustering: rank approximation
-    s_matrix_approx = u[:, :r] @ np.diag(s[:r]) @ vt[:r, :]
+        n = self.row_count
+        prob = 1 - e  # Sample probability
 
-    # 3d. Clustering using K-Means (using sklearn library)
-    kmeans = KMeans(n_clusters=r, random_state=0)
-    y_predicted = kmeans.fit_predict(s_matrix_approx)
+        if prob == 1:
+            # 1a. Generate all possible pairs
+            pair_ij = np.array(np.meshgrid(np.arange(n), np.arange(n))).T.reshape(-1, 2)
 
-    end = time.time()  # TO BE REMOVED
+            # 1b. Remove duplicates or reversed pairs
+            pair_ij = pair_ij[np.argwhere(pair_ij[:, 0] < pair_ij[:, 1])[:, 0]]
+        else:
+            # 1a. Generate random pairs using erasure-probability
+            total_pair_count = int(n * (n - 1) * 0.5)
+            rand_1d = np.random.choice(n, int(prob * total_pair_count) * 2, replace=True)
+            pair_ij = np.reshape(rand_1d, (-1, 2))
 
-    # 4. Infer GPs
-    str_gps, estimated_gps = d_gp.infer_gps(y_predicted)
+            # 1b. Remove duplicates
+            pair_ij = pair_ij[np.argwhere(pair_ij[:, 0] != pair_ij[:, 1])[:, 0]]
 
-    # 5. Output - DO NOT ADD TO PyPi Package
-    out = structure()
-    out.estimated_gps = estimated_gps
-    out.max_iteration = sv_max_iter
-    out.titles = d_gp.titles
-    out.col_count = d_gp.col_count
-    out.row_count = d_gp.row_count
-    out.e_prob = e_probability
-    out.cluster_time = (end - start)  # TO BE REMOVED
-    if testing:
-        return out
+        # 2. Variable declarations
+        attr_data = self.data.T  # Feature data objects
+        lst_gis = []  # List of GIs
+        s_mat = []  # S-Matrix (made up of S-Vectors)
+        cum_wins = []  # Cumulative wins
 
-    # Output
-    out = json.dumps({"Algorithm": "Clu-GRAD", "Patterns": str_gps, "Invalid Count": 0})
-    """:type out: object"""
-    d_gp.gradual_patterns = estimated_gps
-    if return_obj:
-        return out, d_gp
-    else:
+        # 3. Construct S matrix from data set
+        for col in np.nditer(self.attr_cols):
+            # Feature data objects
+            col_data = np.array(attr_data[col], dtype=np.float)  # Feature data objects
+
+            # Cumulative Wins: for estimation of score-vector
+            temp_cum_wins = np.where(col_data[pair_ij[:, 0]] < col_data[pair_ij[:, 1]], 1,
+                                     np.where(col_data[pair_ij[:, 0]] > col_data[pair_ij[:, 1]], -1, 0))
+            # print(col)
+            # print(temp_cum_wins)
+
+            # S-vector
+            s_vec = np.zeros((n,), dtype=np.int32)
+            for w in [1, -1]:
+                positions = np.flatnonzero(temp_cum_wins == w)
+                i, counts_i = np.unique(pair_ij[positions, 0], return_counts=True)
+                j, counts_j = np.unique(pair_ij[positions, 1], return_counts=True)
+                s_vec[i] += w * counts_i  # i wins/loses (1/-1)
+                s_vec[j] += -w * counts_j  # j loses/wins (1/-1)
+            # print(s_vec)
+            # print("\n")
+            # Normalize S-vector
+            if np.count_nonzero(s_vec) > 0:
+                s_vec[s_vec > 0] = 1  # Normalize net wins
+                s_vec[s_vec < 0] = -1  # Normalize net loses
+
+                lst_gis.append(GI(col, '+'))
+                cum_wins.append(temp_cum_wins)
+                s_mat.append(s_vec)
+
+                lst_gis.append(GI(col, '-'))
+                cum_wins.append(-temp_cum_wins)
+                s_mat.append(-s_vec)
+
+        return np.array(lst_gis), np.array(cum_wins), np.array(s_mat), pair_ij
+
+    def _construct_all_matrices(self):
+        """
+        Generates all the gradual items and, constructs: (1) win matrix (2) net-win matrix, (3) cumulative wins,
+        (4) pairwise objects.
+
+        :return: list of gradual items, win matrix, net-win matrix, cumulative win matrix, selected (ij) objects
+        """
+
+        n = self.row_count
+
+        # 1a. Generate all possible pairs
+        pair_ij = np.array(np.meshgrid(np.arange(n), np.arange(n))).T.reshape(-1, 2)
+
+        # 1b. Remove duplicates or reversed pairs
+        pair_ij = pair_ij[np.argwhere(pair_ij[:, 0] < pair_ij[:, 1])[:, 0]]
+
+        # 2. Variable declarations
+        attr_data = self.data.T  # Feature data objects
+        lst_gis = []  # List of GIs
+        s_mat = []  # S-Matrix (made up of S-Vectors)
+        w_mat = []  # win matrix
+        cum_wins = []  # Cumulative wins
+
+        # 3. Construct S matrix from data set
+        for col in np.nditer(self.attr_cols):
+            # Feature data objects
+            col_data = np.array(attr_data[col], dtype=np.float)  # Feature data objects
+
+            # Cumulative Wins: for estimation of score-vector
+            temp_cum_wins = np.where(col_data[pair_ij[:, 0]] < col_data[pair_ij[:, 1]], 1,
+                                     np.where(col_data[pair_ij[:, 0]] > col_data[pair_ij[:, 1]], -1, 0))
+
+            # S-vector
+            s_vec = np.zeros((n,), dtype=np.int32)
+            for w in [1, -1]:
+                positions = np.flatnonzero(temp_cum_wins == w)
+                i, counts_i = np.unique(pair_ij[positions, 0], return_counts=True)
+                j, counts_j = np.unique(pair_ij[positions, 1], return_counts=True)
+                s_vec[i] += w * counts_i  # i wins/loses (1/-1)
+                s_vec[j] += -w * counts_j  # j loses/wins (1/-1)
+
+            # Normalize S-vector
+            if np.count_nonzero(s_vec) > 0:
+                w_mat.append(np.copy(s_vec))
+
+                s_vec[s_vec > 0] = 1  # Normalize net wins
+                s_vec[s_vec < 0] = -1  # Normalize net loses
+
+                lst_gis.append(GI(col, '+'))
+                cum_wins.append(temp_cum_wins)
+                s_mat.append(s_vec)
+
+                lst_gis.append(GI(col, '-'))
+                cum_wins.append(-temp_cum_wins)
+                s_mat.append(-s_vec)
+
+        return np.array(lst_gis), np.array(w_mat), np.array(cum_wins), np.array(s_mat), pair_ij
+
+    def infer_gps(self, clusters):
+        """
+        A function that infers GPs from clusters of gradual items.
+
+        :param clusters: [required] groups of gradual items clustered through K-MEANS algorithm
+        :return: list of (str) patterns, list of GP objects
+        """
+
+        patterns = []
+        str_patterns = []
+
+        all_gis = self.gradual_items
+        cum_wins = self.cum_wins
+
+        lst_indices = [np.where(clusters == element)[0] for element in np.unique(clusters)]
+        for grp_idx in lst_indices:
+            if grp_idx.size > 1:
+                # 1. Retrieve all cluster-pairs and the corresponding GIs
+                cluster_gis = all_gis[grp_idx]
+                cluster_cum_wins = cum_wins[grp_idx]  # All the rows of selected groups
+
+                # 2. Compute score vector from R matrix
+                score_vectors = []  # Approach 2
+                for c_win in cluster_cum_wins:
+                    temp = self._estimate_score_vector(c_win)
+                    score_vectors.append(temp)
+
+                # 3. Estimate support
+                est_sup = self._estimate_support(score_vectors)
+
+                # 4. Infer GPs from the clusters
+                if est_sup >= self.thd_supp:
+                    gp = ExtGP()
+                    for gi in cluster_gis:
+                        gp.add_gradual_item(gi)
+                    gp.set_support(est_sup)
+                    patterns.append(gp)
+                    str_patterns.append(gp.print(self.titles))
+        return str_patterns, patterns
+
+    def _estimate_score_vector(self, c_wins):
+        """
+        A function that estimates the score vector based on the cumulative wins.
+
+        :param c_wins: [required] cumulative wins
+        :return: score vector (ndarray)
+        """
+
+        # Estimate score vector from pairs
+        n = self.row_count
+        score_vector = np.ones(shape=(n,))
+        arr_ij = self.ij
+
+        # Construct a win-matrix
+        temp_vec = np.zeros(shape=(n,))
+        pair_count = arr_ij.shape[0]
+
+        # Compute score vector
+        for k in range(self.max_iteration):
+            if np.count_nonzero(score_vector == 0) > 1:
+                break
+            else:
+                for pr in range(pair_count):
+                    pr_val = c_wins[pr]
+                    i = arr_ij[pr][0]
+                    j = arr_ij[pr][1]
+                    if pr_val == 1:
+                        log = math.log(
+                            math.exp(score_vector[i]) / (math.exp(score_vector[i]) + math.exp(score_vector[j])),
+                            10)
+                        temp_vec[i] += pr_val * log
+                    elif pr_val == -1:
+                        log = math.log(
+                            math.exp(score_vector[j]) / (math.exp(score_vector[i]) + math.exp(score_vector[j])),
+                            10)
+                        temp_vec[j] += -pr_val * log
+                score_vector = abs(temp_vec / np.sum(temp_vec))
+        return score_vector
+
+    def _estimate_support(self, score_vectors):
+        """
+        A function that estimates the frequency support of a GP based on its score vector.
+
+        :param score_vectors: score vector (ndarray)
+        :return: estimated support (float)
+        """
+
+        # Estimate support - use different score-vectors to construct pairs
+        n = self.row_count
+        bin_mat = np.ones((n, n), dtype=np.bool)
+        for vec in score_vectors:
+            temp_bin = vec < vec[:, np.newaxis]
+            bin_mat = np.multiply(bin_mat, temp_bin)
+
+        est_sup = float(np.sum(bin_mat)) / float(n * (n - 1.0) / 2.0)
+        """:type est_sup: float"""
+        return est_sup
+
+    def discover(self, testing=False):
+        """
+        Clustering Gradual Items
+        ------------------------
+
+        A gradual pattern (GP) is a set of gradual items (GI) and its quality is measured by its computed support value.
+        A GI is a pair (i,v) where i is a column and v is a variation symbol: increasing/decreasing. Each column of a
+        data set yields 2 GIs; for example, column age yields GI age+ or age-. For example given a data set with 3
+        columns (age, salary, cars) and 10 objects. A GP may take the form: {age+, salary-} with a support of 0.8. This
+        implies that 8 out of 10 objects have the values of column age 'increasing' and column 'salary' decreasing.
+
+         We borrow the net-win concept used in 'Clustering Using Pairwise Comparisons' proposed by R. Srikant to
+         the problem of extracting gradual patterns (GPs). In order to mine for GPs, each feature yields 2 gradual items
+         which we use to construct a bitmap matrix comparing each row to each other (i.e., (r1,r2), (r1,r3), (r1,r4),
+         (r2,r3), (r2,r4), (r3,r4)).
+
+        In this approach, we convert the bitmap matrices into 'net-win vectors'. Lastly, we apply spectral clustering to
+        determine which gradual items belong to the same group based on the similarity of net-win vectors. Gradual items
+        in the same cluster should have almost similar score vector.
+
+        :param testing: [optional] returns different format if algorithm is used in a test environment
+        :return: JSON object
+        """
+
+        # 1. Generate net-win matrices
+        s_matrix = self.net_win_mat  # Net-win matrix (S)
+        if s_matrix.size < 1:
+            raise Exception("Erasure probability is too high, consider reducing it.")
+        # print(s_matrix)
+
+        start = time.time()  # TO BE REMOVED
+        # 2a. Spectral Clustering: perform SVD to determine the independent rows
+        u, s, vt = np.linalg.svd(s_matrix)
+
+        # 2b. Spectral Clustering: compute rank of net-wins matrix
+        r = np.linalg.matrix_rank(s_matrix)  # approximated r
+
+        # 2c. Spectral Clustering: rank approximation
+        s_matrix_approx = u[:, :r] @ np.diag(s[:r]) @ vt[:r, :]
+
+        # 2d. Clustering using K-Means (using sklearn library)
+        kmeans = KMeans(n_clusters=r, random_state=0)
+        y_predicted = kmeans.fit_predict(s_matrix_approx)
+
+        end = time.time()  # TO BE REMOVED
+
+        # 3. Infer GPs
+        str_gps, estimated_gps = self.infer_gps(y_predicted)
+
+        # 4. Output - DO NOT ADD TO PyPi Package
+        out = structure()
+        out.estimated_gps = estimated_gps
+        out.max_iteration = self.max_iteration
+        out.titles = self.titles
+        out.col_count = self.col_count
+        out.row_count = self.row_count
+        out.e_prob = self.erasure_probability
+        out.cluster_time = (end - start)  # TO BE REMOVED
+        if testing:
+            return out
+
+        # Output
+        out = json.dumps({"Algorithm": "Clu-GRAANK", "Patterns": str_gps, "Invalid Count": 0})
+        """:type out: object"""
+        self.gradual_patterns = estimated_gps
         return out

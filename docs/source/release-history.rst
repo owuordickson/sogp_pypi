@@ -3,6 +3,36 @@ RELEASE HISTORY
 ***************
 
 
+0.3.3 (2022-10-13)
+---------------------------
+**Bug fixes**
+
+* renamed CluDataGP attribute from all to no_prob
+
+* renamed variables in gen_apriori_candidates
+
+* corrected typos in docs
+
+**Updates**
+
+* added attribute gradual_patterns to DataGP class
+
+* modified graank, acograd, psograd, gagrad, lsgrad, prgrad, clugrad to return DataGP object
+
+* renamed acogps to aco_graank
+
+* renamed gagps to ga_graank
+
+* renamed psogps to pso_graank
+
+* renamed hcgps to hc_graank
+
+* renamed rsgps to rs_graank
+
+* renamed clugps to clu_bfs
+
+
+
 0.3.2 (2022-10-06)
 ---------------------------
 **Updates**

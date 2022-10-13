@@ -17,7 +17,9 @@ RELEASE HISTORY
 
 * renamed init_bitmap method to fit_bitmap
 
-* added discover method to CluDataGP
+* renamed CluDataGP to ClusterGP
+
+* added discover method to ClusterGP
 
 * converted graank method to class
 

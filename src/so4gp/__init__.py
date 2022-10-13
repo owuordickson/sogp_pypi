@@ -6,7 +6,7 @@ from .so4gp import ExtGP
 from .so4gp import NumericSS
 from .so4gp import TimeLag
 
-from .so4gp import CluDataGP
+from .so4gp import ClusterGP
 from .so4gp import GRAANK
 from .so4gp import AntGRAANK
 from .so4gp import GeneticGRAANK

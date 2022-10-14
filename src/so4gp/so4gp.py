@@ -3,10 +3,10 @@
 @author: Dickson Owuor
 @credits: Thomas Runkler, Edmond Menya, and Anne Laurent
 @license: MIT
-@version: 0.3.2
+@version: 0.3.4
 @email: owuordickson@gmail.com
 @created: 21 July 2021
-@modified: 07 October 2022
+@modified: 14 October 2022
 
 SO4GP
 ------
@@ -201,7 +201,8 @@ class DataGP:
         self.gradual_patterns = None
 
     def _get_attr_cols(self):
-        """
+        """Description
+
         Returns indices of all columns with non-datetime objects
 
         :return: ndarray
@@ -211,7 +212,8 @@ class DataGP:
         return attr_cols
 
     def _get_time_cols(self):
-        """
+        """Description
+
         Tests each column's objects for date-time values. Returns indices of all columns with date-time objects
 
         :return: ndarray
@@ -230,7 +232,8 @@ class DataGP:
         return np.array(time_cols)
 
     def get_gi_bitmap(self, col):
-        """
+        """Description
+
         Computes and returns the bitmap matrix corresponding to an attribute.
 
         :param col: specific attribute (or column)
@@ -249,7 +252,8 @@ class DataGP:
             return temp_pos
 
     def fit_bitmap(self, attr_data=None):
-        """
+        """Description
+
         Generates bitmaps for columns with numeric objects. It only stores (attribute valid_bins) those bitmaps whose
         computed support values are greater or equal to the minimum support threshold value.
 
@@ -294,7 +298,8 @@ class DataGP:
 
     @staticmethod
     def read(data_src):
-        """
+        """Description
+
         Reads all the contents of a file (in CSV format) or a data-frame. Checks if its columns have numeric values. It
         separates its columns headers (titles) from the objects.
 
@@ -357,7 +362,8 @@ class DataGP:
 
     @staticmethod
     def test_time(date_str):
-        """
+        """Description
+
         Tests if a str represents a date-time variable.
 
         :param date_str: str value
@@ -381,7 +387,8 @@ class DataGP:
 
     @staticmethod
     def clean_data(df):
-        """
+        """Description
+
         Cleans a data-frame (i.e., missing values, outliers) before extraction of GPs
         :param df: data-frame
         :return: list (column titles), numpy (cleaned data)
@@ -535,7 +542,8 @@ class DfsDataGP:
 # -------- OTHER METHODS -----------
 
 def analyze_gps(file, min_sup, est_gps, approach='bfs'):
-    """
+    """Description
+
     For each estimated GP, computes its true support using GRAANK approach and returns the statistics (% error,
     and standard deviation).
 
@@ -578,7 +586,8 @@ def analyze_gps(file, min_sup, est_gps, approach='bfs'):
 
 
 def get_num_cores():
-    """
+    """Description
+
     Finds the count of CPU cores in a computer or a SLURM super-computer.
     :return: number of cpu cores (int)
     """
@@ -589,7 +598,8 @@ def get_num_cores():
 
 
 def get_slurm_cores():
-    """
+    """Description
+
     Test computer to see if it is a SLURM environment, then gets number of CPU cores.
     :return: count of CPUs (int) or False
     """
@@ -614,7 +624,8 @@ def get_slurm_cores():
 
 
 def write_file(data, path, wr=True):
-    """
+    """Description
+
     Writes data into a file
     :param data: information to be written
     :param path: name of file and storage path
@@ -682,7 +693,8 @@ class GI:
         self.rank_sum = 0
 
     def inv(self):
-        """
+        """Description
+
         Inverts a GI to the opposite variation (i.e., from - to +; or, from + to -)
         :return: inverted GI (ndarray)
         """
@@ -697,7 +709,8 @@ class GI:
         return temp
 
     def inv_gi(self):
-        """
+        """Description
+
         Inverts a GI to the opposite variation (i.e., from - to +; or, from + to -)
         :return: inverted GI object
         """
@@ -709,7 +722,8 @@ class GI:
         return new_gi
 
     def as_integer(self):
-        """
+        """Description
+
         Converts variation symbol into an integer (i.e., + to 1; and - to -1)
         :return: GI with an integer variation symbol
         """
@@ -722,7 +736,8 @@ class GI:
         return temp
 
     def as_string(self):
-        """
+        """Description
+
         Stringifies a GI. It converts variation symbol into a string (i.e., + to _pos; and - to _neg)
         :return: GI with a string variation symbol
         """
@@ -735,14 +750,16 @@ class GI:
         return temp
 
     def to_string(self):
-        """
+        """Description
+
         Returns a GI in string format
         :return: string
         """
         return str(self.attribute_col) + self.symbol
 
     def is_decrement(self):
-        """
+        """Description
+
         Checks if a GI's variation corresponds to decreasing
         :return: True is GI has a decreasing variation, False otherwise
         """
@@ -753,7 +770,8 @@ class GI:
 
     @staticmethod
     def parse_gi(gi_str):
-        """
+        """Description
+
         Converts a stringified GI into normal GI.
         :param gi_str: stringified GI
         :return: GI
@@ -768,6 +786,13 @@ class GI:
 
     @staticmethod
     def inv_arr(g_item):
+        """Description
+
+        Computes the inverse of a GI formated as an array or tuple
+
+        :param g_item: gradual item (array/tuple)
+        :return: inverted gradual item
+        """
         if g_item[1] == '+':
             temp = tuple([g_item[0], '-'])
         else:
@@ -811,7 +836,8 @@ class GP:
         """:type support: float"""
 
     def set_support(self, support):
-        """
+        """Description
+
         Sets the computed support value of the gradual pattern (GP)
         :param support: support value
         :return: void
@@ -819,7 +845,8 @@ class GP:
         self.support = round(support, 3)
 
     def add_gradual_item(self, item):
-        """
+        """Description
+
         Adds a gradual item (GI) into the gradual pattern (GP)
         :param item: gradual item
         :return: void
@@ -830,7 +857,8 @@ class GP:
             pass
 
     def add_items_from_list(self, lst_items):
-        """
+        """Description
+
         Adds gradual items from a list of str or a list of sets.
 
         :param lst_items: str or set
@@ -843,7 +871,8 @@ class GP:
                 self.add_gradual_item(GI(int(str_gi[0]), str(str_gi[1].decode())))
 
     def get_pattern(self):
-        """
+        """Description
+
         Returns the gradual pattern (GP) as a list
         :return: gradual pattern
         """
@@ -853,7 +882,8 @@ class GP:
         return pattern
 
     def get_np_pattern(self):
-        """
+        """Description
+
         Returns a gradual pattern (GP) as a ndarray
         :return: ndarray
         """
@@ -863,7 +893,8 @@ class GP:
         return np.array(pattern)
 
     def get_tuples(self):
-        """
+        """Description
+
         Returns the gradual pattern (GP) as a list of GI tuples
         :return: list of GI tuples
         """
@@ -874,7 +905,8 @@ class GP:
         return pattern
 
     def get_attributes(self):
-        """
+        """Description
+
         Breaks down all the gradual items (GIs) in the gradual pattern into columns and variation symbols and returns
         them as separate variables
         :return: separate columns and variation symbols
@@ -888,7 +920,8 @@ class GP:
         return attrs, syms
 
     def get_index(self, gi):
-        """
+        """Description
+
         Returns the index position of a gradual item in the gradual pattern
         :param gi: gradual item
         :return: index of gradual item
@@ -900,7 +933,8 @@ class GP:
         return -1
 
     def inv_pattern(self):
-        """
+        """Description
+
         Inverts all the variation symbols of all the gradual items (GIs) in the gradual pattern (GP)
         :return: inverted GP
         """
@@ -910,7 +944,8 @@ class GP:
         return pattern
 
     def contains(self, gi):
-        """
+        """Description
+
         Checks if a gradual item (GI) is a member of a gradual pattern (GP)
         :param gi: gradual item
         :return: True if it is a member, otherwise False
@@ -922,7 +957,8 @@ class GP:
         return False
 
     def contains_strict(self, gi):
-        """
+        """Description
+
         Strictly checks if a gradual item (GI) is a member of a gradual pattern (GP)
         :param gi: gradual item
         :return: True if it is a member, otherwise False
@@ -935,7 +971,8 @@ class GP:
         return False
 
     def contains_attr(self, gi):
-        """
+        """Description
+
         Checks is any gradual item (GI) in the gradual pattern (GP) is composed of the column
         :param gi: gradual item
         :return: True if column exists, False otherwise
@@ -948,7 +985,8 @@ class GP:
         return False
 
     def to_string(self):
-        """
+        """Description
+
         Returns the GP in string format
         :return: string
         """
@@ -958,7 +996,8 @@ class GP:
         return pattern
 
     def to_dict(self):
-        """
+        """Description
+
         Returns the GP as a dictionary
         :return: dict
         """
@@ -968,7 +1007,8 @@ class GP:
         return gi_dict
 
     def print(self, columns):
-        """
+        """Description
+
         Returns patterns with actual column names
         :param columns: Columns names
         :return: GP with actual column names
@@ -1022,7 +1062,8 @@ class ExtGP(GP):
         """:type freq_count: int"""
 
     def validate_graank(self, d_set):
-        """
+        """Description
+
         Validates a candidate gradual pattern (GP) based on support computation. A GP is invalid if its support value is
         less than the minimum support threshold set by the user.
 
@@ -1109,7 +1150,8 @@ class ExtGP(GP):
             return gen_pattern
 
     def check_am(self, gp_list, subset=True):
-        """
+        """Description
+
         Anti-monotonicity check. Checks if a GP is a subset or superset of an already existing GP
 
         :param gp_list: list of existing GPs
@@ -1134,7 +1176,8 @@ class ExtGP(GP):
         return result
 
     def is_duplicate(self, valid_gps, invalid_gps=None):
-        """
+        """Description
+
         Checks if a pattern is in the list of winner GPs or loser GPs
 
         :param valid_gps: list of GPs
@@ -1169,7 +1212,8 @@ class NumericSS:
 
     @staticmethod
     def decode_gp(attr_keys, position):
-        """
+        """Description
+
         Decodes a numeric value (position) into a GP
 
         :param attr_keys: list of attribute keys
@@ -1195,7 +1239,8 @@ class NumericSS:
 
     @staticmethod
     def cost_function(position, attr_keys, d_set):
-        """
+        """Description
+
         Computes the fitness of a GP
 
         :param position: a value in the numeric search space
@@ -1224,7 +1269,8 @@ class NumericSS:
 
     @staticmethod
     def apply_bound(x, var_min, var_max):
-        """
+        """Description
+
         Modifies x (a numeric value) if it exceeds the lower/upper bound of the numeric search space.
 
         :param x: a value in the numeric search space
@@ -1364,7 +1410,8 @@ class AntGRAANK(DataGP):
         self.attribute_keys = None
 
     def _fit(self):
-        """
+        """Description
+
         Generates the distance matrix (d)
         :return: distance matrix (d) and attribute keys
         """
@@ -1391,6 +1438,13 @@ class AntGRAANK(DataGP):
         gc.collect()
 
     def _gen_aco_candidates(self, p_matrix):
+        """Description
+
+        Generates GP candidates based on the pheromone levels.
+
+        :param p_matrix: pheromone matrix (ndarray)
+        :return: pheromone matrix (ndarray)
+        """
         v_matrix = self.distance_matrix
         pattern = ExtGP()
         ":type pattern: ExtGP"
@@ -1418,7 +1472,8 @@ class AntGRAANK(DataGP):
         return pattern, p_matrix
 
     def _update_pheromones(self, pattern, p_matrix):
-        """
+        """Description
+
         Updates the pheromone level of the pheromone matrix
 
         :param pattern: pattern used to update values
@@ -1435,7 +1490,8 @@ class AntGRAANK(DataGP):
         return p_matrix
 
     def discover(self):
-        """
+        """Description
+
         Applies ant-colony optimization algorithm and uses pheromone levels to find GP candidates. The candidates are
         validated if their computed support is greater than or equal to the minimum support threshold specified by the
         user.
@@ -1604,7 +1660,8 @@ class ClusterGP(DataGP):
             """:type ij: ndarray"""
 
     def _construct_matrices(self, e):
-        """
+        """Description
+
         Generates all the gradual items and, constructs: (1) net-win matrix, (2) cumulative wins, (3) pairwise objects.
 
         :param e: [required] erasure probability
@@ -1672,7 +1729,8 @@ class ClusterGP(DataGP):
         return np.array(lst_gis), np.array(cum_wins), np.array(s_mat), pair_ij
 
     def _construct_all_matrices(self):
-        """
+        """Description
+
         Generates all the gradual items and, constructs: (1) win matrix (2) net-win matrix, (3) cumulative wins,
         (4) pairwise objects.
 
@@ -1730,7 +1788,8 @@ class ClusterGP(DataGP):
         return np.array(lst_gis), np.array(w_mat), np.array(cum_wins), np.array(s_mat), pair_ij
 
     def infer_gps(self, clusters):
-        """
+        """Description
+
         A function that infers GPs from clusters of gradual items.
 
         :param clusters: [required] groups of gradual items clustered through K-MEANS algorithm
@@ -1770,7 +1829,8 @@ class ClusterGP(DataGP):
         return str_patterns, patterns
 
     def _estimate_score_vector(self, c_wins):
-        """
+        """Description
+
         A function that estimates the score vector based on the cumulative wins.
 
         :param c_wins: [required] cumulative wins
@@ -1809,7 +1869,8 @@ class ClusterGP(DataGP):
         return score_vector
 
     def _estimate_support(self, score_vectors):
-        """
+        """Description
+
         A function that estimates the frequency support of a GP based on its score vector.
 
         :param score_vectors: score vector (ndarray)
@@ -1828,9 +1889,7 @@ class ClusterGP(DataGP):
         return est_sup
 
     def discover(self, testing=False):
-        """
-        Clustering Gradual Items
-        ------------------------
+        """Description
 
         Applies spectral clustering to determine which gradual items belong to the same group based on the similarity
         of net-win vectors. Gradual items in the same cluster should have almost similar score vector. The candidates
@@ -1924,10 +1983,10 @@ class GeneticGRAANK(DataGP):
         A GP may take the form: {age+, salary-} with a support of 0.8. This implies that 8 out of 10 objects have the
         values of column age 'increasing' and column 'salary' decreasing.
 
-             In this approach, we assume that every GP candidate may be represented as a binary gene (or individual) that
-             has a unique position and cost. The cost is derived from the computed support of that candidate, the higher the
-             support value the lower the cost. The aim of the algorithm is search through a population of individuals (or
-             candidates) and find those with the lowest cost as efficiently as possible.
+             In this approach, we assume that every GP candidate may be represented as a binary gene (or individual)
+             that has a unique position and cost. The cost is derived from the computed support of that candidate, the
+             higher the support value the lower the cost. The aim of the algorithm is search through a population of
+             individuals (or candidates) and find those with the lowest cost as efficiently as possible.
 
         This class extends class DataGP, and it provides the following additional attributes:
 
@@ -1961,7 +2020,8 @@ class GeneticGRAANK(DataGP):
         self.sigma = sigma
 
     def _crossover(self, p1, p2):
-        """
+        """Description
+
         Crosses over the genes of 2 parents (an individual with a specific position and cost) in order to generate 2
         different offsprings.
 
@@ -1977,7 +2037,8 @@ class GeneticGRAANK(DataGP):
         return c1, c2
 
     def _mutate(self, x):
-        """
+        """Description
+
         Mutates an individual's position in order to create a new and different individual.
 
         :param x: existing individual
@@ -2000,7 +2061,8 @@ class GeneticGRAANK(DataGP):
         return y
 
     def discover(self):
-        """
+        """Description
+
         Uses genetic algorithm to find GP candidates. The candidates are validated if their computed support is greater
         than or equal to the minimum support threshold specified by the user.
 
@@ -2162,6 +2224,7 @@ class GeneticGRAANK(DataGP):
 
 class GRAANK(DataGP):
     """Description
+
     Extracts gradual patterns (GPs) from a numeric data source using the GRAANK approach (proposed in a published
     research paper by Anne Laurent).
 
@@ -2175,7 +2238,8 @@ class GRAANK(DataGP):
     """
 
     def _gen_apriori_candidates(self, gi_bins):
-        """
+        """Description
+
         Generates Apriori GP candidates
         :param gi_bins: GI together with bitmaps
         :return:
@@ -2230,7 +2294,8 @@ class GRAANK(DataGP):
         return res, invalid_count
 
     def discover(self):
-        """
+        """Description
+
         Uses apriori algorithm to find GP candidates. The candidates are validated if their computed support is greater
         than or equal to the minimum support threshold specified by the user.
 
@@ -2312,7 +2377,7 @@ class HillClimbingGRAANK(DataGP):
         cars) and 10 objects. A GP may take the form: {age+, salary-} with a support of 0.8. This implies that 8 out of
         10 objects have the values of column age 'increasing' and column 'salary' decreasing.
 
-             In this approach, it is assumed that every GP candidate may be represented as a position that has a cost value
+             In this approach, we assume that every GP candidate may be represented as a position that has cost value
              associated with it. The cost is derived from the computed support of that candidate, the higher the support
              value the lower the cost. The aim of the algorithm is search through group of positions and find those with
              the lowest cost as efficiently as possible.
@@ -2332,7 +2397,8 @@ class HillClimbingGRAANK(DataGP):
         self.max_iteration = max_iter
 
     def discover(self):
-        """
+        """Description
+
         Uses hill-climbing algorithm to find GP candidates. The candidates are validated if their computed support is
         greater than or equal to the minimum support threshold specified by the user.
 
@@ -2495,7 +2561,8 @@ class ParticleGRAANK(DataGP):
         self.coeff_g = coeff_g
 
     def discover(self):
-        """
+        """Description
+
         Searches through particle positions to find GP candidates. The candidates are validated if their computed
         support is greater than or equal to the minimum support threshold specified by the user.
 
@@ -2642,7 +2709,7 @@ class RandomGRAANK(DataGP):
         cars) and 10 objects. A GP may take the form: {age+, salary-} with a support of 0.8. This implies that 8 out of
         10 objects have the values of column age 'increasing' and column 'salary' decreasing.
 
-            In this approach, it is assumed that every GP candidate may be represented as a position that has a cost value
+            In this approach, we assume that every GP candidate may be represented as a position that has a cost value
             associated with it. The cost is derived from the computed support of that candidate, the higher the support
             value the lower the cost. The aim of the algorithm is search through group of positions and find those with
             the lowest cost as efficiently as possible.
@@ -2658,7 +2725,8 @@ class RandomGRAANK(DataGP):
         self.max_iteration = max_iter
 
     def discover(self):
-        """
+        """Description
+
         Uses random search to find GP candidates. The candidates are validated if their computed support is greater
         than or equal to the minimum support threshold specified by the user.
 

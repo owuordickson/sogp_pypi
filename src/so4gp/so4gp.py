@@ -1887,6 +1887,7 @@ class ClusterGP(DataGP):
 
 class GeneticGRAANK(DataGP):
     """Description
+
     Extract gradual patterns (GPs) from a numeric data source using the Genetic Algorithm approach (proposed
     in a published  paper by Dickson Owuor). A GP is a set of gradual items (GI) and its quality is measured by
     its computed support value. For example given a data set with 3 columns (age, salary, cars) and 10 objects.
@@ -1915,6 +1916,42 @@ class GeneticGRAANK(DataGP):
     """
 
     def __init__(self, *args, max_iter=MAX_ITERATIONS, n_pop=N_POPULATION, pc=PC, gamma=GAMMA, mu=MU, sigma=SIGMA):
+        """Description
+
+        Extract gradual patterns (GPs) from a numeric data source using the Genetic Algorithm approach (proposed
+        in a published  paper by Dickson Owuor). A GP is a set of gradual items (GI) and its quality is measured by
+        its computed support value. For example given a data set with 3 columns (age, salary, cars) and 10 objects.
+        A GP may take the form: {age+, salary-} with a support of 0.8. This implies that 8 out of 10 objects have the
+        values of column age 'increasing' and column 'salary' decreasing.
+
+             In this approach, we assume that every GP candidate may be represented as a binary gene (or individual) that
+             has a unique position and cost. The cost is derived from the computed support of that candidate, the higher the
+             support value the lower the cost. The aim of the algorithm is search through a population of individuals (or
+             candidates) and find those with the lowest cost as efficiently as possible.
+
+        This class extends class DataGP, and it provides the following additional attributes:
+
+            max_iteration: integer value determines the number of iterations for the algorithm
+
+            n_pop: integer value that determines the initial population size of individuals
+
+            pc: a value that determines the proportion of children
+
+            gamma: a value in the range 0-1 that determines the cross-over rate
+
+            mu: a value in the range 0-1 that determines the mutation rate
+
+            sigma: a value in the range 0-1 that determines the mutation rate
+
+
+        :param args: [required] data-source, [optional] minimum-support
+        :param max_iter: maximum_iteration, default is 1
+        :param n_pop: initial individual population, default is 5
+        :param pc: children proportion, default is 0.5
+        :param gamma: cross-over gamma ratio, default is 1
+        :param mu: mutation mu ratio, default is 0.9
+        :param sigma: mutation sigma ratio, default is 0.9
+        """
         super(GeneticGRAANK, self).__init__(*args)
         self.max_iteration = max_iter
         self.n_pop = n_pop
@@ -2133,7 +2170,7 @@ class GRAANK(DataGP):
          with a support of 0.8. This implies that 8 out of 10 objects have the values of column age 'increasing' and
          column 'salary' decreasing.
 
-    This class extends class DataGP.
+    This class extends class DataGP which is responsible for generating the GP bitmaps.
 
     """
 
@@ -2257,9 +2294,39 @@ class HillClimbingGRAANK(DataGP):
          associated with it. The cost is derived from the computed support of that candidate, the higher the support
          value the lower the cost. The aim of the algorithm is search through group of positions and find those with
          the lowest cost as efficiently as possible.
+
+    This class extends class DataGP, and it provides the following additional attributes:
+
+        max_iteration: integer value determines the number of iterations for the algorithm
+
+        step_size: integer value that steps the algorithm takes per iteration
+
     """
 
     def __init__(self, *args, max_iter=MAX_ITERATIONS, step_size=STEP_SIZE):
+        """Description
+
+        Extract gradual patterns (GPs) from a numeric data source using the Hill Climbing (Local Search) Algorithm
+        approach (proposed in a published research paper by Dickson Owuor). A GP is a set of gradual items (GI) and its
+        quality is measured by its computed support value. For example given a data set with 3 columns (age, salary,
+        cars) and 10 objects. A GP may take the form: {age+, salary-} with a support of 0.8. This implies that 8 out of
+        10 objects have the values of column age 'increasing' and column 'salary' decreasing.
+
+             In this approach, it is assumed that every GP candidate may be represented as a position that has a cost value
+             associated with it. The cost is derived from the computed support of that candidate, the higher the support
+             value the lower the cost. The aim of the algorithm is search through group of positions and find those with
+             the lowest cost as efficiently as possible.
+
+        This class extends class DataGP, and it provides the following additional attributes:
+
+            max_iteration: integer value determines the number of iterations for the algorithm
+
+            step_size: integer value that steps the algorithm takes per iteration
+
+        :param args: [required] data-source, [optional] minimum-support
+        :param max_iter: maximum_iteration, default is 1
+        :param step_size: step size, default is 0.5
+        """
         super(HillClimbingGRAANK, self).__init__(*args)
         self.step_size = step_size
         self.max_iteration = max_iter
@@ -2388,6 +2455,38 @@ class ParticleGRAANK(DataGP):
 
     def __init__(self, *args, max_iter=MAX_ITERATIONS, n_particle=N_PARTICLES, vel=VELOCITY, coeff_p=PERSONAL_COEFF,
                  coeff_g=GLOBAL_COEFF):
+        """Description
+
+        Extract gradual patterns (GPs) from a numeric data source using the Particle Swarm Optimization Algorithm
+        approach (proposed in a published research paper by Dickson Owuor). A GP is a set of gradual items (GI) and its
+        quality is measured by its computed support value. For example given a data set with 3 columns (age, salary,
+        cars) and 10 objects. A GP may take the form: {age+, salary-} with a support of 0.8. This implies that 8 out of
+        10 objects have the values of column age 'increasing' and column 'salary' decreasing.
+
+            In this approach, it is assumed that every GP candidate may be represented as a particle that has a unique
+            position and fitness. The fitness is derived from the computed support of that candidate, the higher the
+            support value the higher the fitness. The aim of the algorithm is search through a population of particles
+            (or candidates) and find those with the highest fitness as efficiently as possible.
+
+        This class extends class DataGP, and it provides the following additional attributes:
+
+            max_iteration: integer value determines the number of iterations for the algorithm
+
+            n_particle: integer value that determines the initial population size of particles
+
+            vel: a value that determines the velocity of particles
+
+            coeff_p: a value in the range 0-1, personal coefficient
+
+            coeff_g: a value in the range 0-1, global coefficient
+
+        :param args: [required] data-source, [optional] minimum-support
+        :param max_iter: maximum_iteration, default is 1
+        :param n_particle: initial particle population, default is 5
+        :param vel: velocity, default is 0.9
+        :param coeff_p: personal coefficient, default is 0.01
+        :param coeff_g: global coefficient, default is 0.9
+        """
         super(ParticleGRAANK, self).__init__(*args)
         self.max_iteration = max_iter
         self.n_particles = n_particle
@@ -2528,9 +2627,33 @@ class RandomGRAANK(DataGP):
          value the lower the cost. The aim of the algorithm is search through group of positions and find those with
          the lowest cost as efficiently as possible.
 
+    This class extends class DataGP, and it provides the following additional attributes:
+
+        max_iteration: integer value determines the number of iterations for the algorithm
+
     """
 
     def __init__(self, *args, max_iter=MAX_ITERATIONS):
+        """Description
+
+        Extract gradual patterns (GPs) from a numeric data source using the Random Search Algorithm (LS-GRAANK)
+        approach (proposed in a published research paper by Dickson Owuor). A GP is a set of gradual items (GI) and its
+        quality is measured by its computed support value. For example given a data set with 3 columns (age, salary,
+        cars) and 10 objects. A GP may take the form: {age+, salary-} with a support of 0.8. This implies that 8 out of
+        10 objects have the values of column age 'increasing' and column 'salary' decreasing.
+
+            In this approach, it is assumed that every GP candidate may be represented as a position that has a cost value
+            associated with it. The cost is derived from the computed support of that candidate, the higher the support
+            value the lower the cost. The aim of the algorithm is search through group of positions and find those with
+            the lowest cost as efficiently as possible.
+
+        This class extends class DataGP, and it provides the following additional attributes:
+
+            max_iteration: integer value determines the number of iterations for the algorithm
+
+        :param args: [required] data-source, [optional] minimum-support
+        :param max_iter: maximum_iteration, default is 1
+        """
         super(RandomGRAANK, self).__init__(*args)
         self.max_iteration = max_iter
 

@@ -3,7 +3,7 @@ RELEASE HISTORY
 ***************
 
 
-0.3.4 (2022-10-13)
+0.3.4 (2022-10-14)
 ---------------------------
 **Bug fixes**
 
@@ -26,6 +26,12 @@ RELEASE HISTORY
 * converted aco_graank method to class
 
 * converted ga_graank method to class
+
+* converted pso_graank method to class
+
+* converted rs_graank method to class
+
+* converted hc_graank method to class
 
 
 0.3.3 (2022-10-13)

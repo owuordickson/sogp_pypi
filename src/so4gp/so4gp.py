@@ -2199,356 +2199,349 @@ class ClusterGP(DataGP):
         return out
 
 
-def pso_graank(data_src, min_supp=MIN_SUPPORT, max_iteration=MAX_ITERATIONS, n_particles=N_PARTICLES,
-               velocity=VELOCITY, coef_p=PERSONAL_COEFF, coef_g=GLOBAL_COEFF, return_obj=False):
-    """
-    Extract gradual patterns (GPs) from a numeric data source using the Particle Swarm Optimization Algorithm
-    approach (proposed in a published research paper by Dickson Owuor). A GP is a set of gradual items (GI) and its
-    quality is measured by its computed support value. For example given a data set with 3 columns (age, salary, cars)
-    and 10 objects. A GP may take the form: {age+, salary-} with a support of 0.8. This implies that 8 out of 10 objects
-    have the values of column age 'increasing' and column 'salary' decreasing.
+class ParticleGRAANK(DataGP):
 
-     In this approach, it is assumed that every GP candidate may be represented as a particle that has a unique position
-     and fitness. The fitness is derived from the computed support of that candidate, the higher the support value the
-     higher the fitness. The aim of the algorithm is search through a population of particles (or candidates) and find
-     those with the highest fitness as efficiently as possible.
+    def __init__(self, *args, max_iter=MAX_ITERATIONS, n_pop=N_PARTICLES, vel=VELOCITY, co_p=PERSONAL_COEFF,
+                 co_g=GLOBAL_COEFF):
+        super(ParticleGRAANK, self).__init__(*args)
+        self.max_iteration = max_iter
+        self.n_particles = n_pop
+        self.velocity = vel
+        self.coeff_p = co_p
+        self.coeff_g = co_g
 
-    :param data_src: [required] a numeric data source, it can either be a 'file in csv format' or a 'Pandas DataFrame'
-    :param min_supp: [optional] minimum support threshold, the default is set to 0.5
-    :param max_iteration: [optional] maximum iterations, the default is set to 1
-    :param n_particles: [optional] initial particle population, the default is set to 5
-    :param velocity: [optional] particle velocity, the default is set to 0.9
-    :param coef_p: [optional] personal coefficient rate, the default is set to 0.01
-    :param coef_g: [optional] global coefficient, the default is set to 0.9
-    :param return_obj: [optional] additionally return DataGP object, the default is False. If set to True, the method
-    returns 2 items: JSON object, DataGP object
-    :return: JSON object
-    """
-    # Prepare data set
-    d_set = DataGP(data_src, min_supp)
-    d_set.fit_bitmap()
-    # self.target = 1
-    # self.target_error = 1e-6
-    attr_keys = [GI(x[0], x[1].decode()).as_string() for x in d_set.valid_bins[:, 0]]
+    def discover(self):
+        """
+        Extract gradual patterns (GPs) from a numeric data source using the Particle Swarm Optimization Algorithm
+        approach (proposed in a published research paper by Dickson Owuor). A GP is a set of gradual items (GI) and its
+        quality is measured by its computed support value. For example given a data set with 3 columns (age, salary,
+        cars) and 10 objects. A GP may take the form: {age+, salary-} with a support of 0.8. This implies that 8 out of
+        10 objects have the values of column age 'increasing' and column 'salary' decreasing.
 
-    if d_set.no_bins:
-        return []
+         In this approach, it is assumed that every GP candidate may be represented as a particle that has a unique
+         position and fitness. The fitness is derived from the computed support of that candidate, the higher the
+         support value the higher the fitness. The aim of the algorithm is search through a population of particles
+         (or candidates) and find those with the highest fitness as efficiently as possible.
 
-    it_count = 0
-    eval_count = 0
-    counter = 0
-    var_min = 0
-    var_max = int(''.join(['1'] * len(attr_keys)), 2)
+        :return: JSON object
+        """
 
-    # Empty particle template
-    empty_particle = structure()
-    empty_particle.position = None
-    empty_particle.fitness = None
+        # Prepare data set
+        self.fit_bitmap()
 
-    # Initialize Population
-    particle_pop = empty_particle.repeat(n_particles)
-    for i in range(n_particles):
-        particle_pop[i].position = random.randrange(var_min, var_max)
-        particle_pop[i].fitness = 1
+        # self.target = 1
+        # self.target_error = 1e-6
+        attr_keys = [GI(x[0], x[1].decode()).as_string() for x in self.valid_bins[:, 0]]
 
-    pbest_pop = particle_pop.copy()
-    gbest_particle = pbest_pop[0]
+        if self.no_bins:
+            return []
 
-    # Best particle (ever found)
-    best_particle = empty_particle.deepcopy()
-    best_particle.position = gbest_particle.position
-    best_particle.fitness = NumericSS.cost_function(best_particle.position, attr_keys, d_set)
+        it_count = 0
+        eval_count = 0
+        counter = 0
+        var_min = 0
+        var_max = int(''.join(['1'] * len(attr_keys)), 2)
 
-    velocity_vector = np.ones(n_particles)
-    best_fitness_arr = np.empty(max_iteration)
-    best_patterns = []
-    str_best_gps = list()
-    str_iter = ''
-    str_eval = ''
+        # Empty particle template
+        empty_particle = structure()
+        empty_particle.position = None
+        empty_particle.fitness = None
 
-    invalid_count = 0
-    repeated = 0
+        # Initialize Population
+        particle_pop = empty_particle.repeat(self.n_particles)
+        for i in range(self.n_particles):
+            particle_pop[i].position = random.randrange(var_min, var_max)
+            particle_pop[i].fitness = 1
 
-    while counter < max_iteration:
-        # while eval_count < max_evaluations:
-        # while repeated < 1:
-        for i in range(n_particles):
-            # UPDATED
-            if particle_pop[i].position < var_min or particle_pop[i].position > var_max:
-                particle_pop[i].fitness = 1
+        pbest_pop = particle_pop.copy()
+        gbest_particle = pbest_pop[0]
+
+        # Best particle (ever found)
+        best_particle = empty_particle.deepcopy()
+        best_particle.position = gbest_particle.position
+        best_particle.fitness = NumericSS.cost_function(best_particle.position, attr_keys, self)
+
+        velocity_vector = np.ones(self.n_particles)
+        best_fitness_arr = np.empty(self.max_iteration)
+        best_patterns = []
+        str_best_gps = list()
+        str_iter = ''
+        str_eval = ''
+
+        invalid_count = 0
+        repeated = 0
+
+        while counter < self.max_iteration:
+            # while eval_count < max_evaluations:
+            # while repeated < 1:
+            for i in range(self.n_particles):
+                # UPDATED
+                if particle_pop[i].position < var_min or particle_pop[i].position > var_max:
+                    particle_pop[i].fitness = 1
+                else:
+                    particle_pop[i].fitness = NumericSS.cost_function(particle_pop[i].position, attr_keys, self)
+                    if particle_pop[i].fitness == 1:
+                        invalid_count += 1
+                    eval_count += 1
+                    str_eval += "{}: {} \n".format(eval_count, particle_pop[i].fitness)
+
+                if pbest_pop[i].fitness > particle_pop[i].fitness:
+                    pbest_pop[i].fitness = particle_pop[i].fitness
+                    pbest_pop[i].position = particle_pop[i].position
+
+                if gbest_particle.fitness > particle_pop[i].fitness:
+                    gbest_particle.fitness = particle_pop[i].fitness
+                    gbest_particle.position = particle_pop[i].position
+            # if abs(gbest_fitness_value - self.target) < self.target_error:
+            #    break
+            if best_particle.fitness > gbest_particle.fitness:
+                best_particle = gbest_particle.deepcopy()
+
+            for i in range(self.n_particles):
+                new_velocity = (self.velocity * velocity_vector[i]) + \
+                               (self.coeff_p * random.random()) * (pbest_pop[i].position - particle_pop[i].position) + \
+                               (self.coeff_g * random.random()) * (gbest_particle.position - particle_pop[i].position)
+                particle_pop[i].position = particle_pop[i].position + new_velocity
+
+            best_gp = NumericSS.decode_gp(attr_keys, best_particle.position).validate_graank(self)
+            """:type best_gp: ExtGP"""
+            is_present = best_gp.is_duplicate(best_patterns)
+            is_sub = best_gp.check_am(best_patterns, subset=True)
+            if is_present or is_sub:
+                repeated += 1
             else:
-                particle_pop[i].fitness = NumericSS.cost_function(particle_pop[i].position, attr_keys, d_set)
-                if particle_pop[i].fitness == 1:
-                    invalid_count += 1
-                eval_count += 1
-                str_eval += "{}: {} \n".format(eval_count, particle_pop[i].fitness)
+                if best_gp.support >= self.thd_supp:
+                    best_patterns.append(best_gp)
+                    str_best_gps.append(best_gp.print(self.titles))
+                # else:
+                #    best_particle.fitness = 1
 
-            if pbest_pop[i].fitness > particle_pop[i].fitness:
-                pbest_pop[i].fitness = particle_pop[i].fitness
-                pbest_pop[i].position = particle_pop[i].position
+            try:
+                # Show Iteration Information
+                best_fitness_arr[it_count] = best_particle.fitness
+                str_iter += "{}: {} \n".format(it_count, best_particle.fitness)
+            except IndexError:
+                pass
+            it_count += 1
 
-            if gbest_particle.fitness > particle_pop[i].fitness:
-                gbest_particle.fitness = particle_pop[i].fitness
-                gbest_particle.position = particle_pop[i].position
-        # if abs(gbest_fitness_value - self.target) < self.target_error:
-        #    break
-        if best_particle.fitness > gbest_particle.fitness:
-            best_particle = gbest_particle.deepcopy()
+            if self.max_iteration == 1:
+                counter = repeated
+            else:
+                counter = it_count
+        # Output
+        out = json.dumps({"Algorithm": "PSO-GRAANK", "Best Patterns": str_best_gps, "Invalid Count": invalid_count,
+                          "Iterations": it_count})
+        """:type out: object"""
+        self.gradual_patterns = best_patterns
 
-        for i in range(n_particles):
-            new_velocity = (velocity * velocity_vector[i]) + \
-                           (coef_p * random.random()) * (pbest_pop[i].position - particle_pop[i].position) + \
-                           (coef_g * random.random()) * (gbest_particle.position - particle_pop[i].position)
-            particle_pop[i].position = particle_pop[i].position + new_velocity
-
-        best_gp = NumericSS.decode_gp(attr_keys, best_particle.position).validate_graank(d_set)
-        """:type best_gp: ExtGP"""
-        is_present = best_gp.is_duplicate(best_patterns)
-        is_sub = best_gp.check_am(best_patterns, subset=True)
-        if is_present or is_sub:
-            repeated += 1
-        else:
-            if best_gp.support >= min_supp:
-                best_patterns.append(best_gp)
-                str_best_gps.append(best_gp.print(d_set.titles))
-            # else:
-            #    best_particle.fitness = 1
-
-        try:
-            # Show Iteration Information
-            best_fitness_arr[it_count] = best_particle.fitness
-            str_iter += "{}: {} \n".format(it_count, best_particle.fitness)
-        except IndexError:
-            pass
-        it_count += 1
-
-        if max_iteration == 1:
-            counter = repeated
-        else:
-            counter = it_count
-    # Output
-    out = json.dumps({"Algorithm": "PSO-GRAANK", "Best Patterns": str_best_gps, "Invalid Count": invalid_count,
-                      "Iterations": it_count})
-    """:type out: object"""
-    d_set.gradual_patterns = best_patterns
-    if return_obj:
-        return out, d_set
-    else:
         return out
 
 
-def hc_graank(data_src, min_supp=MIN_SUPPORT, max_iteration=MAX_ITERATIONS, step_size=STEP_SIZE, return_obj=False):
-    """
-    Extract gradual patterns (GPs) from a numeric data source using the Hill Climbing (Local Search) Algorithm
-    approach (proposed in a published research paper by Dickson Owuor). A GP is a set of gradual items (GI) and its
-    quality is measured by its computed support value. For example given a data set with 3 columns (age, salary, cars)
-    and 10 objects. A GP may take the form: {age+, salary-} with a support of 0.8. This implies that 8 out of 10 objects
-    have the values of column age 'increasing' and column 'salary' decreasing.
+class HillClimbingGRAANK(DataGP):
 
-     In this approach, it is assumed that every GP candidate may be represented as a position that has a cost value
-     associated with it. The cost is derived from the computed support of that candidate, the higher the support value
-     the lower the cost. The aim of the algorithm is search through group of positions and find those with the lowest
-     cost as efficiently as possible.
+    def __init__(self, *args, max_iter=MAX_ITERATIONS, step_size=STEP_SIZE):
+        super(HillClimbingGRAANK, self).__init__(*args)
+        self.step_size = step_size
+        self.max_iteration = max_iter
 
-    :param data_src: [required] a numeric data source, it can either be a 'file in csv format' or a 'Pandas DataFrame'
-    :param min_supp: [optional] minimum support threshold, the default is set to 0.5
-    :param max_iteration: [optional] maximum iterations, the default is set to 1
-    :param step_size: [optional] step size, the default is set to 0.5
-    :param return_obj: [optional] additionally return DataGP object, the default is False. If set to True, the method
-    returns 2 items: JSON object, DataGP object
-    :return: JSON object
-    """
-    # Prepare data set
-    d_set = DataGP(data_src, min_supp)
-    d_set.fit_bitmap()
-    attr_keys = [GI(x[0], x[1].decode()).as_string() for x in d_set.valid_bins[:, 0]]
+    def discover(self):
+        """
+        Extract gradual patterns (GPs) from a numeric data source using the Hill Climbing (Local Search) Algorithm
+        approach (proposed in a published research paper by Dickson Owuor). A GP is a set of gradual items (GI) and its
+        quality is measured by its computed support value. For example given a data set with 3 columns (age, salary,
+        cars) and 10 objects. A GP may take the form: {age+, salary-} with a support of 0.8. This implies that 8 out of
+        10 objects have the values of column age 'increasing' and column 'salary' decreasing.
 
-    if d_set.no_bins:
-        return []
+         In this approach, it is assumed that every GP candidate may be represented as a position that has a cost value
+         associated with it. The cost is derived from the computed support of that candidate, the higher the support
+         value the lower the cost. The aim of the algorithm is search through group of positions and find those with
+         the lowest cost as efficiently as possible.
 
-    # Parameters
-    it_count = 0
-    var_min = 0
-    counter = 0
-    var_max = int(''.join(['1'] * len(attr_keys)), 2)
-    eval_count = 0
+        :return: JSON object
+        """
+        # Prepare data set
+        self.fit_bitmap()
+        attr_keys = [GI(x[0], x[1].decode()).as_string() for x in self.valid_bins[:, 0]]
 
-    # Empty Individual Template
-    best_sol = structure()
-    candidate = structure()
+        if self.no_bins:
+            return []
 
-    # generate an initial point
-    best_sol.position = None
-    # candidate.position = None
-    if best_sol.position is None:
-        best_sol.position = np.random.uniform(var_min, var_max, N_VAR)
-    # evaluate the initial point
-    NumericSS.apply_bound(best_sol, var_min, var_max)
-    best_sol.cost = NumericSS.cost_function(best_sol.position, attr_keys, d_set)
+        # Parameters
+        it_count = 0
+        var_min = 0
+        counter = 0
+        var_max = int(''.join(['1'] * len(attr_keys)), 2)
+        eval_count = 0
 
-    # Best Cost of Iteration
-    best_costs = np.empty(max_iteration)
-    best_patterns = []
-    str_best_gps = list()
-    str_iter = ''
-    str_eval = ''
+        # Empty Individual Template
+        best_sol = structure()
+        candidate = structure()
 
-    invalid_count = 0
-    repeated = 0
+        # generate an initial point
+        best_sol.position = None
+        # candidate.position = None
+        if best_sol.position is None:
+            best_sol.position = np.random.uniform(var_min, var_max, N_VAR)
+        # evaluate the initial point
+        NumericSS.apply_bound(best_sol, var_min, var_max)
+        best_sol.cost = NumericSS.cost_function(best_sol.position, attr_keys, self)
 
-    # run the hill climb
-    while counter < max_iteration:
-        # while eval_count < max_evaluations:
-        # take a step
+        # Best Cost of Iteration
+        best_costs = np.empty(self.max_iteration)
+        best_patterns = []
+        str_best_gps = list()
+        str_iter = ''
+        str_eval = ''
+
+        invalid_count = 0
+        repeated = 0
+
+        # run the hill climb
+        while counter < self.max_iteration:
+            # while eval_count < max_evaluations:
+            # take a step
+            candidate.position = None
+            if candidate.position is None:
+                candidate.position = best_sol.position + (random.randrange(var_min, var_max) * self.step_size)
+            NumericSS.apply_bound(candidate, var_min, var_max)
+            candidate.cost = NumericSS.cost_function(candidate.position, attr_keys, self)
+            if candidate.cost == 1:
+                invalid_count += 1
+
+            if candidate.cost < best_sol.cost:
+                best_sol = candidate.deepcopy()
+            eval_count += 1
+            str_eval += "{}: {} \n".format(eval_count, best_sol.cost)
+
+            best_gp = NumericSS.decode_gp(attr_keys, best_sol.position).validate_graank(self)
+            """:type best_gp: ExtGP"""
+            is_present = best_gp.is_duplicate(best_patterns)
+            is_sub = best_gp.check_am(best_patterns, subset=True)
+            if is_present or is_sub:
+                repeated += 1
+            else:
+                if best_gp.support >= self.thd_supp:
+                    best_patterns.append(best_gp)
+                    str_best_gps.append(best_gp.print(self.titles))
+
+            try:
+                # Show Iteration Information
+                # Store Best Cost
+                best_costs[it_count] = best_sol.cost
+                str_iter += "{}: {} \n".format(it_count, best_sol.cost)
+            except IndexError:
+                pass
+            it_count += 1
+
+            if self.max_iteration == 1:
+                counter = repeated
+            else:
+                counter = it_count
+        # Output
+        out = json.dumps({"Algorithm": "LS-GRAANK", "Best Patterns": str_best_gps, "Invalid Count": invalid_count,
+                          "Iterations": it_count})
+        """:type out: object"""
+        self.gradual_patterns = best_patterns
+        return out
+
+
+class RandomGRAANK(DataGP):
+
+    def __init__(self, *args, max_iter=MAX_ITERATIONS):
+        super(RandomGRAANK, self).__init__(*args)
+        self.max_iteration = max_iter
+
+    def discover(self):
+        """
+        Extract gradual patterns (GPs) from a numeric data source using the Random Search Algorithm (LS-GRAANK)
+        approach (proposed in a published research paper by Dickson Owuor). A GP is a set of gradual items (GI) and its
+        quality is measured by its computed support value. For example given a data set with 3 columns (age, salary,
+        cars) and 10 objects. A GP may take the form: {age+, salary-} with a support of 0.8. This implies that 8 out of
+        10 objects have the values of column age 'increasing' and column 'salary' decreasing.
+
+         In this approach, it is assumed that every GP candidate may be represented as a position that has a cost value
+         associated with it. The cost is derived from the computed support of that candidate, the higher the support
+         value the lower the cost. The aim of the algorithm is search through group of positions and find those with
+         the lowest cost as efficiently as possible.
+
+        :return: JSON object
+        """
+        # Prepare data set
+        self.fit_bitmap()
+        attr_keys = [GI(x[0], x[1].decode()).as_string() for x in self.valid_bins[:, 0]]
+
+        if self.no_bins:
+            return []
+
+        # Parameters
+        it_count = 0
+        counter = 0
+        var_min = 0
+        var_max = int(''.join(['1'] * len(attr_keys)), 2)
+        eval_count = 0
+
+        # Empty Individual Template
+        candidate = structure()
         candidate.position = None
-        if candidate.position is None:
-            candidate.position = best_sol.position + (random.randrange(var_min, var_max) * step_size)
-        NumericSS.apply_bound(candidate, var_min, var_max)
-        candidate.cost = NumericSS.cost_function(candidate.position, attr_keys, d_set)
-        if candidate.cost == 1:
-            invalid_count += 1
+        candidate.cost = float('inf')
 
-        if candidate.cost < best_sol.cost:
-            best_sol = candidate.deepcopy()
-        eval_count += 1
-        str_eval += "{}: {} \n".format(eval_count, best_sol.cost)
+        # INITIALIZE
+        best_sol = candidate.deepcopy()
+        best_sol.position = np.random.uniform(var_min, var_max, N_VAR)
+        best_sol.cost = NumericSS.cost_function(best_sol.position, attr_keys, self)
 
-        best_gp = NumericSS.decode_gp(attr_keys, best_sol.position).validate_graank(d_set)
-        """:type best_gp: ExtGP"""
-        is_present = best_gp.is_duplicate(best_patterns)
-        is_sub = best_gp.check_am(best_patterns, subset=True)
-        if is_present or is_sub:
-            repeated += 1
-        else:
-            if best_gp.support >= min_supp:
-                best_patterns.append(best_gp)
-                str_best_gps.append(best_gp.print(d_set.titles))
+        # Best Cost of Iteration
+        best_costs = np.empty(self.max_iteration)
+        best_patterns = []
+        str_best_gps = list()
+        str_iter = ''
+        str_eval = ''
 
-        try:
-            # Show Iteration Information
-            # Store Best Cost
-            best_costs[it_count] = best_sol.cost
-            str_iter += "{}: {} \n".format(it_count, best_sol.cost)
-        except IndexError:
-            pass
-        it_count += 1
+        repeated = 0
+        invalid_count = 0
 
-        if max_iteration == 1:
-            counter = repeated
-        else:
-            counter = it_count
-    # Output
-    out = json.dumps({"Algorithm": "LS-GRAANK", "Best Patterns": str_best_gps, "Invalid Count": invalid_count,
-                      "Iterations": it_count})
-    """:type out: object"""
-    d_set.gradual_patterns = best_patterns
-    if return_obj:
-        return out, d_set
-    else:
-        return out
+        while counter < self.max_iteration:
+            # while eval_count < max_evaluations:
+            candidate.position = ((var_min + random.random()) * (var_max - var_min))
+            NumericSS.apply_bound(candidate, var_min, var_max)
+            candidate.cost = NumericSS.cost_function(candidate.position, attr_keys, self)
+            if candidate.cost == 1:
+                invalid_count += 1
 
+            if candidate.cost < best_sol.cost:
+                best_sol = candidate.deepcopy()
+            eval_count += 1
+            str_eval += "{}: {} \n".format(eval_count, best_sol.cost)
 
-def rs_graank(data_src, min_supp=MIN_SUPPORT, max_iteration=MAX_ITERATIONS, return_obj=False):
-    """
-    Extract gradual patterns (GPs) from a numeric data source using the Random Search Algorithm (LS-GRAANK)
-    approach (proposed in a published research paper by Dickson Owuor). A GP is a set of gradual items (GI) and its
-    quality is measured by its computed support value. For example given a data set with 3 columns (age, salary, cars)
-    and 10 objects. A GP may take the form: {age+, salary-} with a support of 0.8. This implies that 8 out of 10 objects
-    have the values of column age 'increasing' and column 'salary' decreasing.
+            best_gp = NumericSS.decode_gp(attr_keys, best_sol.position).validate_graank(self)
+            """:type best_gp: ExtGP"""
+            is_present = best_gp.is_duplicate(best_patterns)
+            is_sub = best_gp.check_am(best_patterns, subset=True)
+            if is_present or is_sub:
+                repeated += 1
+            else:
+                if best_gp.support >= self.thd_supp:
+                    best_patterns.append(best_gp)
+                    str_best_gps.append(best_gp.print(self.titles))
+                # else:
+                #    best_sol.cost = 1
 
-     In this approach, it is assumed that every GP candidate may be represented as a position that has a cost value
-     associated with it. The cost is derived from the computed support of that candidate, the higher the support value
-     the lower the cost. The aim of the algorithm is search through group of positions and find those with the lowest
-     cost as efficiently as possible.
+            try:
+                # Show Iteration Information
+                # Store Best Cost
+                best_costs[it_count] = best_sol.cost
+                str_iter += "{}: {} \n".format(it_count, best_sol.cost)
+            except IndexError:
+                pass
+            it_count += 1
 
-    :param data_src: [required] a numeric data source, it can either be a 'file in csv format' or a 'Pandas DataFrame'
-    :param min_supp: [optional] minimum support threshold, the default is set to 0.5
-    :param max_iteration: [optional] maximum iterations, the default is set to 1
-    :param return_obj: [optional] additionally return DataGP object, the default is False. If set to True, the method
-    returns 2 items: JSON object, DataGP object
-    :return: JSON object
-    """
-    # Prepare data set
-    d_set = DataGP(data_src, min_supp)
-    d_set.fit_bitmap()
-    attr_keys = [GI(x[0], x[1].decode()).as_string() for x in d_set.valid_bins[:, 0]]
-
-    if d_set.no_bins:
-        return []
-
-    # Parameters
-    it_count = 0
-    counter = 0
-    var_min = 0
-    var_max = int(''.join(['1'] * len(attr_keys)), 2)
-    eval_count = 0
-
-    # Empty Individual Template
-    candidate = structure()
-    candidate.position = None
-    candidate.cost = float('inf')
-
-    # INITIALIZE
-    best_sol = candidate.deepcopy()
-    best_sol.position = np.random.uniform(var_min, var_max, N_VAR)
-    best_sol.cost = NumericSS.cost_function(best_sol.position, attr_keys, d_set)
-
-    # Best Cost of Iteration
-    best_costs = np.empty(max_iteration)
-    best_patterns = []
-    str_best_gps = list()
-    str_iter = ''
-    str_eval = ''
-
-    repeated = 0
-    invalid_count = 0
-
-    while counter < max_iteration:
-        # while eval_count < max_evaluations:
-
-        candidate.position = ((var_min + random.random()) * (var_max - var_min))
-        NumericSS.apply_bound(candidate, var_min, var_max)
-        candidate.cost = NumericSS.cost_function(candidate.position, attr_keys, d_set)
-        if candidate.cost == 1:
-            invalid_count += 1
-
-        if candidate.cost < best_sol.cost:
-            best_sol = candidate.deepcopy()
-        eval_count += 1
-        str_eval += "{}: {} \n".format(eval_count, best_sol.cost)
-
-        best_gp = NumericSS.decode_gp(attr_keys, best_sol.position).validate_graank(d_set)
-        """:type best_gp: ExtGP"""
-        is_present = best_gp.is_duplicate(best_patterns)
-        is_sub = best_gp.check_am(best_patterns, subset=True)
-        if is_present or is_sub:
-            repeated += 1
-        else:
-            if best_gp.support >= min_supp:
-                best_patterns.append(best_gp)
-                str_best_gps.append(best_gp.print(d_set.titles))
-            # else:
-            #    best_sol.cost = 1
-
-        try:
-            # Show Iteration Information
-            # Store Best Cost
-            best_costs[it_count] = best_sol.cost
-            str_iter += "{}: {} \n".format(it_count, best_sol.cost)
-        except IndexError:
-            pass
-        it_count += 1
-
-        if max_iteration == 1:
-            counter = repeated
-        else:
-            counter = it_count
-    # Output
-    out = json.dumps({"Algorithm": "RS-GRAANK", "Best Patterns": str_best_gps, "Invalid Count": invalid_count,
-                      "Iterations": it_count})
-    """:type out: object"""
-    d_set.gradual_patterns = best_patterns
-    if return_obj:
-        return out, d_set
-    else:
+            if self.max_iteration == 1:
+                counter = repeated
+            else:
+                counter = it_count
+        # Output
+        out = json.dumps({"Algorithm": "RS-GRAANK", "Best Patterns": str_best_gps, "Invalid Count": invalid_count,
+                          "Iterations": it_count})
+        """:type out: object"""
+        self.gradual_patterns = best_patterns
         return out

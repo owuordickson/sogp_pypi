@@ -15,6 +15,9 @@ Updates
 - converted graank method to class
 - converted aco_graank method to class
 - converted ga_graank method to class
+- converted pso_graank method to class
+- converted rs_graank method to class
+- converted hc_graank method to class
 
 
 0.3.3

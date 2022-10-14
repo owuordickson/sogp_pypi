@@ -124,7 +124,7 @@ class DataGP:
         gradual_patterns: list of GP objects
 
 
-    The class provides the following function:
+    The class provides the following functions:
         get_attr_cols: retrieves all the columns with data that is numeric and not date-tme
 
         get_time_cols: retrieves the columns with date-time values
@@ -1298,8 +1298,65 @@ class TimeLag:
 
 
 class AntGRAANK(DataGP):
+    """Description of class AntGRAANK
+
+    Extract gradual patterns (GPs) from a numeric data source using the Ant Colony Optimization approach
+    (proposed in a published paper by Dickson Owuor). A GP is a set of gradual items (GI) and its quality is
+    measured by its computed support value. For example given a data set with 3 columns (age, salary, cars) and 10
+    objects. A GP may take the form: {age+, salary-} with a support of 0.8. This implies that 8 out of 10 objects
+    have the values of column age 'increasing' and column 'salary' decreasing.
+
+        In this approach, it is assumed that every column can be converted into gradual item (GI). If the GI is valid
+        (i.e. its computed support is greater than the minimum support threshold) then it is either increasing or
+        decreasing (+ or -), otherwise it is irrelevant (x). Therefore, a pheromone matrix is built using the number of
+        columns and the possible variations (increasing, decreasing, irrelevant) or (+, -, x). The algorithm starts by
+        randomly generating GP candidates using the pheromone matrix, each candidate is validated by confirming that
+        its computed support is greater or equal to the minimum support threshold. The valid GPs are used to update the
+        pheromone levels and better candidates are generated.
+
+    This class extends class DataGP, and it provides the following additional attributes:
+
+        max_iteration: integer value determines the number of iterations for the algorithm
+
+        evaporation_factor: value between 0-1 which determines how fast pheromone levels evaporate
+
+        distance_matrix: an array that stores the cost between travelling between nodes
+
+        attribute_keys: an array with attribute keys
+
+    """
 
     def __init__(self, *args, max_iter=MAX_ITERATIONS, e_factor=EVAPORATION_FACTOR):
+        """Description
+
+    Extract gradual patterns (GPs) from a numeric data source using the Ant Colony Optimization approach
+    (proposed in a published paper by Dickson Owuor). A GP is a set of gradual items (GI) and its quality is
+    measured by its computed support value. For example given a data set with 3 columns (age, salary, cars) and 10
+    objects. A GP may take the form: {age+, salary-} with a support of 0.8. This implies that 8 out of 10 objects
+    have the values of column age 'increasing' and column 'salary' decreasing.
+
+        In this approach, it is assumed that every column can be converted into gradual item (GI). If the GI is valid
+        (i.e. its computed support is greater than the minimum support threshold) then it is either increasing or
+        decreasing (+ or -), otherwise it is irrelevant (x). Therefore, a pheromone matrix is built using the number of
+        columns and the possible variations (increasing, decreasing, irrelevant) or (+, -, x). The algorithm starts by
+        randomly generating GP candidates using the pheromone matrix, each candidate is validated by confirming that
+        its computed support is greater or equal to the minimum support threshold. The valid GPs are used to update the
+        pheromone levels and better candidates are generated.
+
+    This class extends class DataGP, and it provides the following additional attributes:
+
+        max_iteration: integer value determines the number of iterations for the algorithm
+
+        evaporation_factor: value between 0-1 which determines how fast pheromone levels evaporate
+
+        distance_matrix: an array that stores the cost between travelling between nodes
+
+        attribute_keys: an array with attribute keys
+
+        :param args: [required] data-source, [optional] minimum-support
+        :param max_iter: maximum_iteration, default is 1
+        :param e_factor: evaporation factor, default is 0.5
+        """
         super(AntGRAANK, self).__init__(*args)
         self.evaporation_factor = e_factor
         self.max_iteration = max_iter
@@ -1379,19 +1436,9 @@ class AntGRAANK(DataGP):
 
     def discover(self):
         """
-        Extract gradual patterns (GPs) from a numeric data source using the Ant Colony Optimization approach
-        (proposed in a published paper by Dickson Owuor). A GP is a set of gradual items (GI) and its quality is
-        measured by its computed support value. For example given a data set with 3 columns (age, salary, cars) and 10
-        objects. A GP may take the form: {age+, salary-} with a support of 0.8. This implies that 8 out of 10 objects
-        have the values of column age 'increasing' and column 'salary' decreasing.
-
-         In this approach, it is assumed that every column can be converted into gradual item (GI). If the GI is valid
-         (i.e. its computed support is greater than the minimum support threshold) then it is either increasing or
-         decreasing (+ or -), otherwise it is irrelevant (x). Therefore, a pheromone matrix is built using the number of
-         columns and the possible variations (increasing, decreasing, irrelevant) or (+, -, x). The algorithm starts by
-         randomly generating GP candidates using the pheromone matrix, each candidate is validated by confirming that
-         its computed support is greater or equal to the minimum support threshold. The valid GPs are used to update the
-         pheromone levels and better candidates are generated.
+        Applies ant-colony optimization algorithm and uses pheromone levels to find GP candidates. The candidates are
+        validated if their computed support is greater than or equal to the minimum support threshold specified by the
+        user.
 
         :return: JSON object
         """
@@ -1399,8 +1446,6 @@ class AntGRAANK(DataGP):
         # d_set = DataGP(f_path, min_supp)
         # """:type d_set: DataGP"""
         self.fit_bitmap()
-        # attr_index = d_set.attr_cols
-        # e_factor = evaporation_factor
         self._fit()  # distance matrix (d) & attributes corresponding to d
         d = self.distance_matrix
 
@@ -1787,20 +1832,10 @@ class ClusterGP(DataGP):
         Clustering Gradual Items
         ------------------------
 
-        A gradual pattern (GP) is a set of gradual items (GI) and its quality is measured by its computed support value.
-        A GI is a pair (i,v) where i is a column and v is a variation symbol: increasing/decreasing. Each column of a
-        data set yields 2 GIs; for example, column age yields GI age+ or age-. For example given a data set with 3
-        columns (age, salary, cars) and 10 objects. A GP may take the form: {age+, salary-} with a support of 0.8. This
-        implies that 8 out of 10 objects have the values of column age 'increasing' and column 'salary' decreasing.
-
-         We borrow the net-win concept used in 'Clustering Using Pairwise Comparisons' proposed by R. Srikant to
-         the problem of extracting gradual patterns (GPs). In order to mine for GPs, each feature yields 2 gradual items
-         which we use to construct a bitmap matrix comparing each row to each other (i.e., (r1,r2), (r1,r3), (r1,r4),
-         (r2,r3), (r2,r4), (r3,r4)).
-
-        In this approach, we convert the bitmap matrices into 'net-win vectors'. Lastly, we apply spectral clustering to
-        determine which gradual items belong to the same group based on the similarity of net-win vectors. Gradual items
-        in the same cluster should have almost similar score vector.
+        Applies spectral clustering to determine which gradual items belong to the same group based on the similarity
+        of net-win vectors. Gradual items in the same cluster should have almost similar score vector. The candidates
+        are validated if their computed support is greater than or equal to the minimum support threshold specified by
+        the user.
 
         :param testing: [optional] returns different format if algorithm is used in a test environment
         :return: JSON object
@@ -1851,6 +1886,33 @@ class ClusterGP(DataGP):
 
 
 class GeneticGRAANK(DataGP):
+    """Description
+    Extract gradual patterns (GPs) from a numeric data source using the Genetic Algorithm approach (proposed
+    in a published  paper by Dickson Owuor). A GP is a set of gradual items (GI) and its quality is measured by
+    its computed support value. For example given a data set with 3 columns (age, salary, cars) and 10 objects.
+    A GP may take the form: {age+, salary-} with a support of 0.8. This implies that 8 out of 10 objects have the
+    values of column age 'increasing' and column 'salary' decreasing.
+
+         In this approach, we assume that every GP candidate may be represented as a binary gene (or individual) that
+         has a unique position and cost. The cost is derived from the computed support of that candidate, the higher the
+         support value the lower the cost. The aim of the algorithm is search through a population of individuals (or
+         candidates) and find those with the lowest cost as efficiently as possible.
+
+    This class extends class DataGP, and it provides the following additional attributes:
+
+        max_iteration: integer value determines the number of iterations for the algorithm
+
+        n_pop: integer value that determines the initial population size of individuals
+
+        pc: a value that determines the proportion of children
+
+        gamma: a value in the range 0-1 that determines the cross-over rate
+
+        mu: a value in the range 0-1 that determines the mutation rate
+
+        sigma: a value in the range 0-1 that determines the mutation rate
+
+    """
 
     def __init__(self, *args, max_iter=MAX_ITERATIONS, n_pop=N_POPULATION, pc=PC, gamma=GAMMA, mu=MU, sigma=SIGMA):
         super(GeneticGRAANK, self).__init__(*args)
@@ -1902,17 +1964,8 @@ class GeneticGRAANK(DataGP):
 
     def discover(self):
         """
-
-        Extract gradual patterns (GPs) from a numeric data source using the Genetic Algorithm approach (proposed
-        in a published  paper by Dickson Owuor). A GP is a set of gradual items (GI) and its quality is measured by
-        its computed support value. For example given a data set with 3 columns (age, salary, cars) and 10 objects.
-        A GP may take the form: {age+, salary-} with a support of 0.8. This implies that 8 out of 10 objects have the
-        values of column age 'increasing' and column 'salary' decreasing.
-
-         In this approach, we assume that every GP candidate may be represented as a binary gene (or individual) that
-         has a unique position and cost. The cost is derived from the computed support of that candidate, the higher the
-         support value the lower the cost. The aim of the algorithm is search through a population of individuals (or
-         candidates) and find those with the lowest cost as efficiently as possible.
+        Uses genetic algorithm to find GP candidates. The candidates are validated if their computed support is greater
+        than or equal to the minimum support threshold specified by the user.
 
         :return: JSON object
         """
@@ -2071,6 +2124,18 @@ class GeneticGRAANK(DataGP):
 
 
 class GRAANK(DataGP):
+    """Description
+    Extracts gradual patterns (GPs) from a numeric data source using the GRAANK approach (proposed in a published
+    research paper by Anne Laurent).
+
+         A GP is a set of gradual items (GI) and its quality is measured by its computed support value. For example
+         given a data set with 3 columns (age, salary, cars) and 10 objects. A GP may take the form: {age+, salary-}
+         with a support of 0.8. This implies that 8 out of 10 objects have the values of column age 'increasing' and
+         column 'salary' decreasing.
+
+    This class extends class DataGP.
+
+    """
 
     def _gen_apriori_candidates(self, gi_bins):
         """
@@ -2129,13 +2194,8 @@ class GRAANK(DataGP):
 
     def discover(self):
         """
-        Extracts gradual patterns (GPs) from a numeric data source using the GRAANK approach (proposed in a published
-        research paper by Anne Laurent).
-
-         A GP is a set of gradual items (GI) and its quality is measured by its computed support value. For example
-         given a data set with 3 columns (age, salary, cars) and 10 objects. A GP may take the form: {age+, salary-}
-         with a support of 0.8. This implies that 8 out of 10 objects have the values of column age 'increasing' and
-         column 'salary' decreasing.
+        Uses apriori algorithm to find GP candidates. The candidates are validated if their computed support is greater
+        than or equal to the minimum support threshold specified by the user.
 
         :return: JSON object
         """
@@ -2185,6 +2245,19 @@ class GRAANK(DataGP):
 
 
 class HillClimbingGRAANK(DataGP):
+    """Description
+
+    Extract gradual patterns (GPs) from a numeric data source using the Hill Climbing (Local Search) Algorithm
+    approach (proposed in a published research paper by Dickson Owuor). A GP is a set of gradual items (GI) and its
+    quality is measured by its computed support value. For example given a data set with 3 columns (age, salary,
+    cars) and 10 objects. A GP may take the form: {age+, salary-} with a support of 0.8. This implies that 8 out of
+    10 objects have the values of column age 'increasing' and column 'salary' decreasing.
+
+         In this approach, it is assumed that every GP candidate may be represented as a position that has a cost value
+         associated with it. The cost is derived from the computed support of that candidate, the higher the support
+         value the lower the cost. The aim of the algorithm is search through group of positions and find those with
+         the lowest cost as efficiently as possible.
+    """
 
     def __init__(self, *args, max_iter=MAX_ITERATIONS, step_size=STEP_SIZE):
         super(HillClimbingGRAANK, self).__init__(*args)
@@ -2193,16 +2266,8 @@ class HillClimbingGRAANK(DataGP):
 
     def discover(self):
         """
-        Extract gradual patterns (GPs) from a numeric data source using the Hill Climbing (Local Search) Algorithm
-        approach (proposed in a published research paper by Dickson Owuor). A GP is a set of gradual items (GI) and its
-        quality is measured by its computed support value. For example given a data set with 3 columns (age, salary,
-        cars) and 10 objects. A GP may take the form: {age+, salary-} with a support of 0.8. This implies that 8 out of
-        10 objects have the values of column age 'increasing' and column 'salary' decreasing.
-
-         In this approach, it is assumed that every GP candidate may be represented as a position that has a cost value
-         associated with it. The cost is derived from the computed support of that candidate, the higher the support
-         value the lower the cost. The aim of the algorithm is search through group of positions and find those with
-         the lowest cost as efficiently as possible.
+        Uses hill-climbing algorithm to find GP candidates. The candidates are validated if their computed support is
+        greater than or equal to the minimum support threshold specified by the user.
 
         :return: JSON object
         """
@@ -2293,28 +2358,47 @@ class HillClimbingGRAANK(DataGP):
 
 
 class ParticleGRAANK(DataGP):
+    """Description
 
-    def __init__(self, *args, max_iter=MAX_ITERATIONS, n_pop=N_PARTICLES, vel=VELOCITY, co_p=PERSONAL_COEFF,
-                 co_g=GLOBAL_COEFF):
-        super(ParticleGRAANK, self).__init__(*args)
-        self.max_iteration = max_iter
-        self.n_particles = n_pop
-        self.velocity = vel
-        self.coeff_p = co_p
-        self.coeff_g = co_g
-
-    def discover(self):
-        """
-        Extract gradual patterns (GPs) from a numeric data source using the Particle Swarm Optimization Algorithm
-        approach (proposed in a published research paper by Dickson Owuor). A GP is a set of gradual items (GI) and its
-        quality is measured by its computed support value. For example given a data set with 3 columns (age, salary,
-        cars) and 10 objects. A GP may take the form: {age+, salary-} with a support of 0.8. This implies that 8 out of
-        10 objects have the values of column age 'increasing' and column 'salary' decreasing.
+    Extract gradual patterns (GPs) from a numeric data source using the Particle Swarm Optimization Algorithm
+    approach (proposed in a published research paper by Dickson Owuor). A GP is a set of gradual items (GI) and its
+    quality is measured by its computed support value. For example given a data set with 3 columns (age, salary,
+    cars) and 10 objects. A GP may take the form: {age+, salary-} with a support of 0.8. This implies that 8 out of
+    10 objects have the values of column age 'increasing' and column 'salary' decreasing.
 
          In this approach, it is assumed that every GP candidate may be represented as a particle that has a unique
          position and fitness. The fitness is derived from the computed support of that candidate, the higher the
          support value the higher the fitness. The aim of the algorithm is search through a population of particles
          (or candidates) and find those with the highest fitness as efficiently as possible.
+
+    This class extends class DataGP, and it provides the following additional attributes:
+
+        max_iteration: integer value determines the number of iterations for the algorithm
+
+        n_particle: integer value that determines the initial population size of particles
+
+        vel: a value that determines the velocity of particles
+
+        coeff_p: a value in the range 0-1, personal coefficient
+
+        coeff_g: a value in the range 0-1, global coefficient
+
+
+    """
+
+    def __init__(self, *args, max_iter=MAX_ITERATIONS, n_particle=N_PARTICLES, vel=VELOCITY, coeff_p=PERSONAL_COEFF,
+                 coeff_g=GLOBAL_COEFF):
+        super(ParticleGRAANK, self).__init__(*args)
+        self.max_iteration = max_iter
+        self.n_particles = n_particle
+        self.velocity = vel
+        self.coeff_p = coeff_p
+        self.coeff_g = coeff_g
+
+    def discover(self):
+        """
+        Searches through particle positions to find GP candidates. The candidates are validated if their computed
+        support is greater than or equal to the minimum support threshold specified by the user.
 
         :return: JSON object
         """
@@ -2431,6 +2515,20 @@ class ParticleGRAANK(DataGP):
 
 
 class RandomGRAANK(DataGP):
+    """Description
+
+    Extract gradual patterns (GPs) from a numeric data source using the Random Search Algorithm (LS-GRAANK)
+    approach (proposed in a published research paper by Dickson Owuor). A GP is a set of gradual items (GI) and its
+    quality is measured by its computed support value. For example given a data set with 3 columns (age, salary,
+    cars) and 10 objects. A GP may take the form: {age+, salary-} with a support of 0.8. This implies that 8 out of
+    10 objects have the values of column age 'increasing' and column 'salary' decreasing.
+
+         In this approach, it is assumed that every GP candidate may be represented as a position that has a cost value
+         associated with it. The cost is derived from the computed support of that candidate, the higher the support
+         value the lower the cost. The aim of the algorithm is search through group of positions and find those with
+         the lowest cost as efficiently as possible.
+
+    """
 
     def __init__(self, *args, max_iter=MAX_ITERATIONS):
         super(RandomGRAANK, self).__init__(*args)
@@ -2438,16 +2536,8 @@ class RandomGRAANK(DataGP):
 
     def discover(self):
         """
-        Extract gradual patterns (GPs) from a numeric data source using the Random Search Algorithm (LS-GRAANK)
-        approach (proposed in a published research paper by Dickson Owuor). A GP is a set of gradual items (GI) and its
-        quality is measured by its computed support value. For example given a data set with 3 columns (age, salary,
-        cars) and 10 objects. A GP may take the form: {age+, salary-} with a support of 0.8. This implies that 8 out of
-        10 objects have the values of column age 'increasing' and column 'salary' decreasing.
-
-         In this approach, it is assumed that every GP candidate may be represented as a position that has a cost value
-         associated with it. The cost is derived from the computed support of that candidate, the higher the support
-         value the lower the cost. The aim of the algorithm is search through group of positions and find those with
-         the lowest cost as efficiently as possible.
+        Uses random search to find GP candidates. The candidates are validated if their computed support is greater
+        than or equal to the minimum support threshold specified by the user.
 
         :return: JSON object
         """

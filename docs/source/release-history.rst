@@ -33,6 +33,8 @@ RELEASE HISTORY
 
 * converted hc_graank method to class
 
+* updated usage documentation
+
 
 0.3.3 (2022-10-13)
 ---------------------------

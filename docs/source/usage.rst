@@ -18,12 +18,10 @@ This is the classical approach (initially proposed by Anne Laurent) for mining g
 
 .. code-block:: python
 
-    gp_json = sgp.graank(data_src, min_sup, eq, return_obj=False)
-    print(gp_json)
+    import so4gp as sgp
 
-    # OR
-
-    gp_json, gp_list = sgp.graank(data_src, min_sup, eq, return_obj=True)
+    mine_obj = sgp.GRAANK(data_source=f_path, min_sup=0.5, eq=False)
+    gp_json = mine_obj.discover()
     print(gp_json)
 
 where you specify the parameters as follows:
@@ -31,7 +29,6 @@ where you specify the parameters as follows:
 * **data_src** - *[required]* data source {either a ```file in csv format``` or a ```Pandas DataFrame```}
 * **min_sup** - *[optional]* minimum support ```default = 0.5```
 * **eq** - *[optional]* encode equal values as gradual ```default = False```
-* **return_obj** - *[optional]* additionally return DataGP object ```default = False```
 
 
 
@@ -44,7 +41,10 @@ Executing ACO for mining GPs:
 
 .. code-block:: python
 
-    gp_json = sgp.aco_graank(data_src, min_sup)
+    import so4gp as sgp
+
+    mine_obj = sgp.AntGRAANK(data_src)
+    gp_json = mine_obj.discover()
     print(gp_json)
 
 
@@ -52,9 +52,9 @@ where you specify the parameters as follows:
 
 * **data_src** - *[required]* data source {either a :code:`file in csv format` or a :code:`Pandas DataFrame`}
 * **min_sup** - *[optional]* minimum support :code:`default = 0.5`
-* **max_iterations** - *[optional]* maximum iterations :code:`default = 1`
+* **max_iteration** - *[optional]* maximum number of algorithm iterations :code:`default = 1`
 * **evaporation_factor** - *[optional]* evaporation factor :code:`default = 0.5`
-* **return_obj** - *[optional]* additionally return DataGP object ```default = False```
+
 
 Genetic Algorithm for GPs (GA-GRAANK)
 --------------------------------------
@@ -64,7 +64,10 @@ Executing GA for mining GPs:
 
 .. code-block:: python
 
-    gp_json = sgp.ga_graank(data_src, min_sup)
+    import so4gp as sgp
+
+    mine_obj = sgp.GeneticGRAANK(data_src)
+    gp_json = mine_obj.discover()
     print(gp_json)
 
 
@@ -72,13 +75,13 @@ where you specify the parameters as follows:
 
 * **data_src** - *[required]* data source {either a :code:`file in csv format` or a :code:`Pandas DataFrame`}
 * **min_sup** - *[optional]* minimum support :code:`default = 0.5`
-* **max_iterations** - *[optional]* maximum iterations :code:`default = 1`
+* **max_iteration** - *[optional]* maximum number of algorithm iterations :code:`default = 1`
 * **n_pop** - *[optional]* initial population :code:`default = 5`
 * **pc** - *[optional]* offspring population multiple :code:`default = 0.5`
 * **gamma** - *[optional]* crossover rate :code:`default = 1`
 * **mu** - *[optional]* mutation rate :code:`default = 0.9`
 * **sigma** - *[optional]* mutation rate :code:`default = 0.9`
-* **return_obj** - *[optional]* additionally return DataGP object ```default = False```
+
 
 Particle Swarm Optimization for GPs (PSO-GRAANK)
 -------------------------------------------------
@@ -88,7 +91,10 @@ Executing PSO for mining GPs:
 
 .. code-block:: python
 
-    gp_json = sgp.pso_graank(data_src, min_sup)
+    import so4gp as sgp
+
+    mine_obj = sgp.ParticleGRAANK(data_src)
+    gp_json = mine_obj.discover()
     print(gp_json)
 
 
@@ -96,12 +102,12 @@ where you specify the parameters as follows:
 
 * **data_src** - *[required]* data source {either a :code:`file in csv format:code:` or a :code:`Pandas DataFrame`}
 * **min_sup** - *[optional]* minimum support :code:`default = 0.5`
-* **max_iterations** - *[optional]* maximum iterations :code:`default = 1`
+* **max_iteration** - *[optional]* maximum number of algorithm iterations :code:`default = 1`
 * **n_particles** - *[optional]* initial particle population :code:`default = 5`
 * **velocity** - *[optional]* particle velocity :code:`default = 0.9`
 * **coeff_p** - *[optional]* personal coefficient rate :code:`default = 0.01`
 * **coeff_g** - *[optional]* global coefficient :code:`default = 0.9`
-* **return_obj** - *[optional]* additionally return DataGP object ```default = False```
+
 
 Local Search for GPs (LS-GRAANK)
 ---------------------------------
@@ -111,16 +117,19 @@ Executing LS for mining GPs:
 
 .. code-block:: python
 
-    gp_json = sgp.hc_graank(data_src, min_sup)
+    import so4gp as sgp
+
+    mine_obj = sgp.HillClimbingGRAANK(data_src, min_sup)
+    gp_json = mine_obj.discover()
     print(gp_json)
 
 where you specify the parameters as follows:
 
 * **data_src** - *[required]* data source {either a :code:`file in csv format` or a :code:`Pandas DataFrame`}
 * **min_sup** - *[optional]* minimum support :code:`default = 0.5`
-* **max_iterations** - *[optional]* maximum iterations :code:`default = 1`
+* **max_iteration** - *[optional]* maximum number of algorithm iterations :code:`default = 1`
 * **step_size** - *[optional]* step size :code:`default = 0.5`
-* **return_obj** - *[optional]* additionally return DataGP object ```default = False```
+
 
 Random Search for GPs (RS-GRAANK)
 ----------------------------------
@@ -130,7 +139,10 @@ Executing RS for mining GPs:
 
 .. code-block:: python
 
-    gp_json = sgp.rs_graank(data_src, min_sup)
+    import so4gp as sgp
+
+    mine_obj = sgp.RandomGRAANK(data_src, min_sup)
+    gp_json = mine_obj.discover()
     print(gp_json)
 
 
@@ -138,8 +150,8 @@ where you specify the parameters as follows:
 
 * **data_src** - *[required]* data source {either a :code:`file in csv format` or a :code:`Pandas DataFrame`}
 * **min_sup** - *[optional]* minimum support :code:`default = 0.5`
-* **max_iterations** - *[optional]* maximum iterations :code:`default = 1`
-* **return_obj** - *[optional]* additionally return DataGP object ```default = False```
+* **max_iteration** - *[optional]* maximum number of algorithm iterations :code:`default = 1`
+
 
 
 Clustering algorithm for GPs (Clu-BFS)
@@ -152,7 +164,10 @@ Executing Clustering algorithm for mining GPs:
 
 .. code-block:: python
 
-    gp_json = sgp.clu_bfs(data_src, min_sup)
+    import so4gp as sgp
+
+    mine_obj = sgp.ClusterGP(data_source=data_src, min_sup=0.5, e_prob=0.1)
+    gp_json = mine_obj.discover()
     print(gp_json)
 
 
@@ -162,7 +177,6 @@ where you specify the parameters as follows:
 * **min_sup** - *[optional]* minimum support :code:`default = 0.5`
 * **e_probability** - *[optional]* erasure probability ```default = 0.5```
 * **max_iteration** - *[optional]* maximum iterations for estimating score vectors ```default = 10```
-* **return_obj** - *[optional]* additionally return DataGP object ```default = False```
 
 
 

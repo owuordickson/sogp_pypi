@@ -33,13 +33,10 @@ This is the classical approach (initially proposed by Anne Laurent) for mining g
 
 ```python
 
-gp_json = sgp.graank(data_src, min_sup, eq, return_obj=False)
+mine_obj = sgp.GRAANK(data_source=f_path, min_sup=0.5, eq=False)
+gp_json = mine_obj.discover()
 print(gp_json)
 
-# OR
-
-gp_json, gp_list = sgp.graank(data_src, min_sup, eq, return_obj=True)
-print(gp_json)
 ```
 
 where you specify the parameters as follows:
@@ -47,7 +44,6 @@ where you specify the parameters as follows:
 * **data_src** - *[required]* data source {either a ```file in csv format``` or a ```Pandas DataFrame```}
 * **min_sup** - *[optional]* minimum support ```default = 0.5```
 * **eq** - *[optional]* encode equal values as gradual ```default = False```
-* **return_obj** - *[optional]* additionally return DataGP object ```default = False```
 
 
 ### 2. Ant Colony Optimization for GPs (ACO-GRAANK)
@@ -55,7 +51,8 @@ In this approach, it is assumed that every column can be converted into gradual 
 
 ```python
 
-gp_json = sgp.aco_graank(data_src, min_sup)
+mine_obj = sgp.AntGRAANK(data_src)
+gp_json = mine_obj.discover()
 print(gp_json)
 ```
 
@@ -63,9 +60,8 @@ where you specify the parameters as follows:
 
 * **data_src** - *[required]* data source {either a ```file in csv format``` or a ```Pandas DataFrame```}
 * **min_sup** - *[optional]* minimum support ```default = 0.5```
-* **max_iterations** - *[optional]* maximum iterations ```default = 1```
+* **max_iteration** - *[optional]* maximum number of iterations ```default = 1```
 * **evaporation_factor** - *[optional]* evaporation factor ```default = 0.5```
-* **return_obj** - *[optional]* additionally return DataGP object ```default = False```
 
 
 ### 3. Genetic Algorithm for GPs (GA-GRAANK)
@@ -73,7 +69,8 @@ In this approach, it is assumed that every GP candidate may be represented as a 
 
 ```python
 
-gp_json = sgp.ga_graank(data_src, min_sup)
+mine_obj = sgp.GeneticGRAANK(data_src)
+gp_json = mine_obj.discover()
 print(gp_json)
 ```
 
@@ -81,20 +78,20 @@ where you specify the parameters as follows:
 
 * **data_src** - *[required]* data source {either a ```file in csv format``` or a ```Pandas DataFrame```}
 * **min_sup** - *[optional]* minimum support ```default = 0.5```
-* **max_iterations** - *[optional]* maximum iterations ```default = 1```
+* **max_iteration** - *[optional]* maximum number of algorithm iterations ```default = 1```
 * **n_pop** - *[optional]* initial population ```default = 5```
 * **pc** - *[optional]* offspring population multiple ```default = 0.5```
 * **gamma** - *[optional]* crossover rate ```default = 1```
 * **mu** - *[optional]* mutation rate ```default = 0.9```
 * **sigma** - *[optional]* mutation rate ```default = 0.9```
-* **return_obj** - *[optional]* additionally return DataGP object ```default = False```
 
 ### 4. Particle Swarm Optimization for GPs (PSO-GRAANK)
 In this approach, it is assumed that every GP candidate may be represented as a particle that has a unique position and fitness. The fitness is derived from the computed support of that candidate, the higher the support value the higher the fitness. The aim of the algorithm is search through a population of particles (or candidates) and find those with the highest fitness as efficiently as possible.
 
 ```python
 
-gp_json = sgp.pso_graank(data_src, min_sup)
+mine_obj = sgp.ParticleGRAANK(data_src)
+gp_json = mine_obj.discover()
 print(gp_json)
 ```
 
@@ -102,19 +99,19 @@ where you specify the parameters as follows:
 
 * **data_src** - *[required]* data source {either a ```file in csv format``` or a ```Pandas DataFrame```}
 * **min_sup** - *[optional]* minimum support ```default = 0.5```
-* **max_iterations** - *[optional]* maximum iterations ```default = 1```
+* **max_iteration** - *[optional]* maximum number of algorithm iterations ```default = 1```
 * **n_particles** - *[optional]* initial particle population ```default = 5```
 * **velocity** - *[optional]* particle velocity ```default = 0.9```
 * **coeff_p** - *[optional]* personal coefficient rate ```default = 0.01```
 * **coeff_g** - *[optional]* global coefficient ```default = 0.9```
-* **return_obj** - *[optional]* additionally return DataGP object ```default = False```
 
 ### 5. Local Search for GPs (LS-GRAANK)
 In this approach, it is assumed that every GP candidate may be represented as a position that has a cost value associated with it. The cost is derived from the computed support of that candidate, the higher the support value the lower the cost. The aim of the algorithm is search through group of positions and find those with the lowest cost as efficiently as possible.
 
 ```python
 
-gp_json = sgp.hc_graank(data_src, min_sup)
+mine_obj = sgp.HillClimbingGRAANK(data_src, min_sup)
+gp_json = mine_obj.discover()
 print(gp_json)
 ```
 
@@ -122,9 +119,8 @@ where you specify the parameters as follows:
 
 * **data_src** - *[required]* data source {either a ```file in csv format``` or a ```Pandas DataFrame```}
 * **min_sup** - *[optional]* minimum support ```default = 0.5```
-* **max_iterations** - *[optional]* maximum iterations ```default = 1```
+* **max_iteration** - *[optional]* maximum number of algorithm iterations ```default = 1```
 * **step_size** - *[optional]* step size ```default = 0.5```
-* **return_obj** - *[optional]* additionally return DataGP object ```default = False```
 
 
 ### 6. Random Search for GPs (RS-GRAANK)
@@ -133,7 +129,8 @@ In this approach, it is assumed that every GP candidate may be represented as a 
 ```python
 import so4gp as sgp
 
-gp_json = sgp.rsgps(data_src, min_sup)
+mine_obj = sgp.RandomGRAANK(data_src, min_sup)
+gp_json = mine_obj.discover()
 print(gp_json)
 ```
 
@@ -141,8 +138,7 @@ where you specify the parameters as follows:
 
 * **data_src** - *[required]* data source {either a ```file in csv format``` or a ```Pandas DataFrame```}
 * **min_sup** - *[optional]* minimum support ```default = 0.5```
-* **max_iterations** - *[optional]* maximum iterations ```default = 1```
-* **return_obj** - *[optional]* additionally return DataGP object ```default = False```
+* **max_iteration** - *[optional]* maximum number of algorithm iterations ```default = 1```
 
 
 ### 7. Clustering algorithm for GPs (Clu-BFS)
@@ -153,7 +149,8 @@ In this approach, we convert the bitmap matrices into 'net-win vectors'. Finally
 ```python
 import so4gp as sgp
 
-gp_json = sgp.clugps(data_src, min_sup)
+mine_obj = sgp.ClusterGP(data_source=data_src, min_sup=0.5, e_prob=0.1)
+gp_json = mine_obj.discover()
 print(gp_json)
 ```
 
@@ -163,7 +160,6 @@ where you specify the parameters as follows:
 * **min_sup** - *[optional]* minimum support ```default = 0.5```
 * **e_probability** - *[optional]* erasure probability ```default = 0.5```
 * **max_iteration** - *[optional]* maximum iterations for estimating score vectors ```default = 10```
-* **return_obj** - *[optional]* additionally return DataGP object ```default = False```
 
 
 ## Sample Output

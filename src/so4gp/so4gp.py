@@ -662,6 +662,10 @@ class GI:
 
         rank_sum:
 
+    >>> import so4gp as sgp
+    >>> gradual_item = sgp.GI(1, '+')
+    >>> print(gradual_item.to_string())
+
     """
 
     def __init__(self, attr_col, symbol):
@@ -681,8 +685,12 @@ class GI:
 
             rank_sum:
 
+        >>> import so4gp as sgp
+        >>> gradual_item = sgp.GI(1, '+')
+        >>> print(gradual_item.to_string())
+
         :param attr_col: column index
-        :param symbol: variation symbol (either + or -)
+        :param symbol: variation symbol (either '+' or '-')
         """
         self.attribute_col = attr_col
         """:type attribute_col: int"""
@@ -788,7 +796,7 @@ class GI:
     def inv_arr(g_item):
         """Description
 
-        Computes the inverse of a GI formated as an array or tuple
+        Computes the inverse of a GI formatted as an array or tuple
 
         :param g_item: gradual item (array/tuple)
         :return: inverted gradual item
@@ -815,6 +823,13 @@ class GP:
 
         support: computed support value as a float
 
+    >>> import so4gp as sgp
+    >>> gradual_pattern = sgp.GP()
+    >>> gradual_pattern.add_gradual_item(sgp.GI(0, '+'))
+    >>> gradual_pattern.add_gradual_item(sgp.GI(1, '-'))
+    >>> gradual_pattern.set_support(0.5)
+    >>> print(gradual_pattern.to_string())
+
     """
 
     def __init__(self):
@@ -829,6 +844,12 @@ class GP:
                 gradual_items: list if GIs
 
                 support: computed support value as a float
+        >>> import so4gp as sgp
+        >>> gradual_pattern = sgp.GP()
+        >>> gradual_pattern.add_gradual_item(sgp.GI(0, '+'))
+        >>> gradual_pattern.add_gradual_item(sgp.GI(1, '-'))
+        >>> gradual_pattern.set_support(0.5)
+        >>> print(gradual_pattern.to_string())
 
             """
         self.gradual_items = list()
@@ -1045,6 +1066,13 @@ class ExtGP(GP):
 
         is_duplicate: checks a GP is already extracted
 
+    >>> import so4gp as sgp
+    >>> gradual_pattern = sgp.ExtGP()
+    >>> gradual_pattern.add_gradual_item(sgp.GI(0, '+'))
+    >>> gradual_pattern.add_gradual_item(sgp.GI(1, '-'))
+    >>> gradual_pattern.set_support(0.5)
+    >>> print(gradual_pattern.to_string())
+
     """
 
     def __init__(self):
@@ -1055,6 +1083,13 @@ class ExtGP(GP):
 
         It adds the following attribute:
             freq_count: frequency count of a particular GP object.
+
+        >>> import so4gp as sgp
+        >>> gradual_pattern = sgp.ExtGP()
+        >>> gradual_pattern.add_gradual_item(sgp.GI(0, '+'))
+        >>> gradual_pattern.add_gradual_item(sgp.GI(1, '-'))
+        >>> gradual_pattern.set_support(0.5)
+        >>> print(gradual_pattern.to_string())
 
         """
         super(ExtGP, self).__init__()
@@ -1370,6 +1405,11 @@ class AntGRAANK(DataGP):
 
         attribute_keys: an array with attribute keys
 
+    >>> import so4gp as sgp
+    >>> mine_obj = AntGRAANK(data_source='DATASET.csv', min_sup=0.5, max_iter=1, e_factor=0.5)
+    >>> result_json = mine_obj.discover()
+    >>> print(result_json)
+
     """
 
     def __init__(self, *args, max_iter=MAX_ITERATIONS, e_factor=EVAPORATION_FACTOR):
@@ -1399,9 +1439,15 @@ class AntGRAANK(DataGP):
 
         attribute_keys: an array with attribute keys
 
+    >>> import so4gp as sgp
+    >>> mine_obj = AntGRAANK(data_source='DATASET.csv', min_sup=0.5, max_iter=1, e_factor=0.5)
+    >>> result_json = mine_obj.discover()
+    >>> print(result_json)
+
         :param args: [required] data-source, [optional] minimum-support
         :param max_iter: maximum_iteration, default is 1
         :param e_factor: evaporation factor, default is 0.5
+
         """
         super(AntGRAANK, self).__init__(*args)
         self.evaporation_factor = e_factor
@@ -1618,6 +1664,11 @@ class ClusterGP(DataGP):
 
         estimate_support:  estimates the frequency support of a GP based on its score vector
 
+    >>> import so4gp as sgp
+    >>> mine_obj = ClusterGP(data_source='DATASET.csv', min_sup=0.5, max_iter=10, e_prob=0.5)
+    >>> result_json = mine_obj.discover()
+    >>> print(result_json)
+
     """
 
     def __init__(self, *args, e_prob=ERASURE_PROBABILITY, max_iter=SCORE_VECTOR_ITERATIONS, no_prob=False):
@@ -1633,6 +1684,11 @@ class ClusterGP(DataGP):
             columns to be used by the algorithm, the rest are ignored.
 
             mat_iter: maximum iteration value for score vector estimation
+
+        >>> import so4gp as sgp
+        >>> mine_obj = ClusterGP(data_source='DATASET.csv', min_sup=0.5, max_iter=10, e_prob=0.5)
+        >>> result_json = mine_obj.discover()
+        >>> print(result_json)
 
         :param args: [required] data-source, [optional] minimum-support
         :param e_prob: [optional] erasure probability, the default is 0.5
@@ -1787,7 +1843,7 @@ class ClusterGP(DataGP):
 
         return np.array(lst_gis), np.array(w_mat), np.array(cum_wins), np.array(s_mat), pair_ij
 
-    def infer_gps(self, clusters):
+    def _infer_gps(self, clusters):
         """Description
 
         A function that infers GPs from clusters of gradual items.
@@ -1923,7 +1979,7 @@ class ClusterGP(DataGP):
         end = time.time()  # TO BE REMOVED
 
         # 3. Infer GPs
-        str_gps, estimated_gps = self.infer_gps(y_predicted)
+        str_gps, estimated_gps = self._infer_gps(y_predicted)
 
         # 4. Output - DO NOT ADD TO PyPi Package
         out = structure()
@@ -1972,6 +2028,11 @@ class GeneticGRAANK(DataGP):
 
         sigma: a value in the range 0-1 that determines the mutation rate
 
+    >>> import so4gp as sgp
+    >>> mine_obj = GeneticGRAANK(data_source='DATASET.csv', min_sup=0.5, max_iter=1, n_pop=10)
+    >>> result_json = mine_obj.discover()
+    >>> print(result_json)
+
     """
 
     def __init__(self, *args, max_iter=MAX_ITERATIONS, n_pop=N_POPULATION, pc=PC, gamma=GAMMA, mu=MU, sigma=SIGMA):
@@ -2002,6 +2063,10 @@ class GeneticGRAANK(DataGP):
 
             sigma: a value in the range 0-1 that determines the mutation rate
 
+        >>> import so4gp as sgp
+        >>> mine_obj = GeneticGRAANK(data_source='DATASET.csv', min_sup=0.5, max_iter=1, n_pop=10)
+        >>> result_json = mine_obj.discover()
+        >>> print(result_json)
 
         :param args: [required] data-source, [optional] minimum-support
         :param max_iter: maximum_iteration, default is 1
@@ -2235,6 +2300,11 @@ class GRAANK(DataGP):
 
     This class extends class DataGP which is responsible for generating the GP bitmaps.
 
+    >>> import so4gp as sgp
+    >>> mine_obj = GRAANK(data_source='DATASET.csv', min_sup=0.5, eq=False)
+    >>> result_json = mine_obj.discover()
+    >>> print(result_json)
+
     """
 
     def _gen_apriori_candidates(self, gi_bins):
@@ -2366,6 +2436,11 @@ class HillClimbingGRAANK(DataGP):
 
         step_size: integer value that steps the algorithm takes per iteration
 
+    >>> import so4gp as sgp
+    >>> mine_obj = HillClimbingGRAANK(data_source='DATASET.csv', min_sup=0.5, max_iter=1, step_size=0.5)
+    >>> result_json = mine_obj.discover()
+    >>> print(result_json)
+
     """
 
     def __init__(self, *args, max_iter=MAX_ITERATIONS, step_size=STEP_SIZE):
@@ -2387,6 +2462,11 @@ class HillClimbingGRAANK(DataGP):
             max_iteration: integer value determines the number of iterations for the algorithm
 
             step_size: integer value that steps the algorithm takes per iteration
+
+        >>> import so4gp as sgp
+        >>> mine_obj = HillClimbingGRAANK(data_source='DATASET.csv', min_sup=0.5, max_iter=1, step_size=0.5)
+        >>> result_json = mine_obj.discover()
+        >>> print(result_json)
 
         :param args: [required] data-source, [optional] minimum-support
         :param max_iter: maximum_iteration, default is 1
@@ -2516,6 +2596,11 @@ class ParticleGRAANK(DataGP):
 
         coeff_g: a value in the range 0-1, global coefficient
 
+    >>> import so4gp as sgp
+    >>> mine_obj = ParticleGRAANK(data_source='DATASET.csv', min_sup=0.5, max_iter=1, n_particle=10)
+    >>> result_json = mine_obj.discover()
+    >>> print(result_json)
+
 
     """
 
@@ -2545,6 +2630,11 @@ class ParticleGRAANK(DataGP):
             coeff_p: a value in the range 0-1, personal coefficient
 
             coeff_g: a value in the range 0-1, global coefficient
+
+        >>> import so4gp as sgp
+        >>> mine_obj = ParticleGRAANK(data_source='DATASET.csv', min_sup=0.5, max_iter=1, n_particle=10)
+        >>> result_json = mine_obj.discover()
+        >>> print(result_json)
 
         :param args: [required] data-source, [optional] minimum-support
         :param max_iter: maximum_iteration, default is 1
@@ -2698,6 +2788,11 @@ class RandomGRAANK(DataGP):
 
         max_iteration: integer value determines the number of iterations for the algorithm
 
+    >>> import so4gp as sgp
+    >>> mine_obj = RandomGRAANK(data_source='DATASET.csv', min_sup=0.5, max_iter=1)
+    >>> result_json = mine_obj.discover()
+    >>> print(result_json)
+
     """
 
     def __init__(self, *args, max_iter=MAX_ITERATIONS):
@@ -2717,6 +2812,11 @@ class RandomGRAANK(DataGP):
         This class extends class DataGP, and it provides the following additional attributes:
 
             max_iteration: integer value determines the number of iterations for the algorithm
+
+        >>> import so4gp as sgp
+        >>> mine_obj = RandomGRAANK(data_source='DATASET.csv', min_sup=0.5, max_iter=1)
+        >>> result_json = mine_obj.discover()
+        >>> print(result_json)
 
         :param args: [required] data-source, [optional] minimum-support
         :param max_iter: maximum_iteration, default is 1

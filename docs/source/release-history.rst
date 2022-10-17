@@ -3,6 +3,17 @@ RELEASE HISTORY
 ***************
 
 
+0.3.5 (2022-10-17)
+---------------------------
+**Bug fixes**
+
+* made method infer_gps private (_infer_gps)
+
+**Updates**
+
+* Updated docs to include Python code sample
+
+
 0.3.4 (2022-10-14)
 ---------------------------
 **Bug fixes**

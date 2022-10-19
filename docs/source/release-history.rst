@@ -3,6 +3,15 @@ RELEASE HISTORY
 ***************
 
 
+0.3.6 (2022-10-19)
+---------------------------
+**Updates**
+
+* Added Doctests with a dummy dataframe source
+
+* Added test results
+
+
 0.3.5 (2022-10-17)
 ---------------------------
 **Bug fixes**

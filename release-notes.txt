@@ -1,6 +1,12 @@
 RELEASE NOTES 
 
 
+0.3.6
+---------------------------
+Updates
+- Added Doctests with a dummy dataframe source
+- Added test results
+
 0.3.5
 ---------------------------
 Bug fixes

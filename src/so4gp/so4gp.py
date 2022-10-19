@@ -326,7 +326,7 @@ class DataGP:
                 pass
             except TypeError:
                 pass
-            print("Data fetched from DataFrame")
+            # print("Data fetched from DataFrame")
             return DataGP.clean_data(data_src)
         else:
             # b. CSV file
@@ -547,6 +547,29 @@ def analyze_gps(file, min_sup, est_gps, approach='bfs'):
     For each estimated GP, computes its true support using GRAANK approach and returns the statistics (% error,
     and standard deviation).
 
+    >>> import so4gp as sgp
+    >>> import pandas
+    >>> dummy_data = [[30, 3, 1, 10, 2, 4], [35, 2, 2, 8, 2, 4], [40, 4, 2, 7, 2, 4], [50, 1, 1, 6, 2, 4], \
+    [52, 7, 1, 2, 2, 4]]
+    >>> columns = ['Age', 'Salary', 'Cars', 'Expenses', 'Invalid1', 'Invalid2']
+    >>> dummy_df = pandas.DataFrame(dummy_data, columns=columns)
+    >>>
+    >>> estimated_gps = list()
+    >>> temp_gp = sgp.ExtGP()
+    >>> temp_gp.add_items_from_list(['0+', '1-'])
+    >>> temp_gp.set_support(0.5)
+    >>> estimated_gps.append(temp_gp)
+    >>> temp_gp = sgp.ExtGP()
+    >>> temp_gp.add_items_from_list(['1+', '3-', '0+'])
+    >>> temp_gp.set_support(0.48)
+    >>> estimated_gps.append(temp_gp)
+    >>> res = sgp.analyze_gps(dummy_df, min_sup=0.4, est_gps=estimated_gps, approach='bfs')
+    >>> print(res)
+    Gradual Pattern       Estimated Support    True Support  Percentage Error      Standard Deviation
+    ------------------  -------------------  --------------  ------------------  --------------------
+    ['0+', '1-']                       0.5              0.4  25.0%                              0.071
+    ['1+', '3-', '0+']                 0.48             0.6  -20.0%                             0.085
+
     :param file: data set file
     :param min_sup: minimum support (set by user)
     :param est_gps: estimated GPs
@@ -665,6 +688,7 @@ class GI:
     >>> import so4gp as sgp
     >>> gradual_item = sgp.GI(1, '+')
     >>> print(gradual_item.to_string())
+    1+
 
     """
 
@@ -688,6 +712,7 @@ class GI:
         >>> import so4gp as sgp
         >>> gradual_item = sgp.GI(1, '+')
         >>> print(gradual_item.to_string())
+        1+
 
         :param attr_col: column index
         :param symbol: variation symbol (either '+' or '-')
@@ -828,7 +853,8 @@ class GP:
     >>> gradual_pattern.add_gradual_item(sgp.GI(0, '+'))
     >>> gradual_pattern.add_gradual_item(sgp.GI(1, '-'))
     >>> gradual_pattern.set_support(0.5)
-    >>> print(gradual_pattern.to_string())
+    >>> print(str(gradual_pattern.to_string()) + ' : ' + str(gradual_pattern.support))
+    ['0+', '1-'] : 0.5
 
     """
 
@@ -849,7 +875,8 @@ class GP:
         >>> gradual_pattern.add_gradual_item(sgp.GI(0, '+'))
         >>> gradual_pattern.add_gradual_item(sgp.GI(1, '-'))
         >>> gradual_pattern.set_support(0.5)
-        >>> print(gradual_pattern.to_string())
+        >>> print(str(gradual_pattern.to_string()) + ' : ' + str(gradual_pattern.support))
+        ['0+', '1-'] : 0.5
 
             """
         self.gradual_items = list()
@@ -1071,7 +1098,8 @@ class ExtGP(GP):
     >>> gradual_pattern.add_gradual_item(sgp.GI(0, '+'))
     >>> gradual_pattern.add_gradual_item(sgp.GI(1, '-'))
     >>> gradual_pattern.set_support(0.5)
-    >>> print(gradual_pattern.to_string())
+    >>> print(str(gradual_pattern.to_string()) + ' : ' + str(gradual_pattern.support))
+    ['0+', '1-'] : 0.5
 
     """
 
@@ -1089,7 +1117,8 @@ class ExtGP(GP):
         >>> gradual_pattern.add_gradual_item(sgp.GI(0, '+'))
         >>> gradual_pattern.add_gradual_item(sgp.GI(1, '-'))
         >>> gradual_pattern.set_support(0.5)
-        >>> print(gradual_pattern.to_string())
+        >>> print(str(gradual_pattern.to_string()) + ' : ' + str(gradual_pattern.support))
+        ['0+', '1-'] : 0.5
 
         """
         super(ExtGP, self).__init__()
@@ -1406,9 +1435,15 @@ class AntGRAANK(DataGP):
         attribute_keys: an array with attribute keys
 
     >>> import so4gp as sgp
-    >>> mine_obj = AntGRAANK(data_source='DATASET.csv', min_sup=0.5, max_iter=1, e_factor=0.5)
+    >>> import pandas
+    >>> dummy_data = [[30, 3, 1, 10, 2, 4], [35, 2, 2, 8, 2, 4], [40, 4, 2, 7, 2, 4], [50, 1, 1, 6, 2, 4], \
+    [52, 7, 1, 2, 2, 4]]
+    >>> columns = ['Age', 'Salary', 'Cars', 'Expenses', 'Invalid1', 'Invalid2']
+    >>> dummy_df = pandas.DataFrame(dummy_data, columns=columns)
+    >>> mine_obj = sgp.AntGRAANK(dummy_df, 0.5, max_iter=3, e_factor=0.5)
     >>> result_json = mine_obj.discover()
-    >>> print(result_json)
+    >>> print(result_json) # doctest: +SKIP
+    {"Algorithm": "ACO-GRAANK", "Best Patterns": [[["Expenses-", "Age+"], 1.0]], "Invalid Count": 1, "Iterations": 3}
 
     """
 
@@ -1439,10 +1474,16 @@ class AntGRAANK(DataGP):
 
         attribute_keys: an array with attribute keys
 
-    >>> import so4gp as sgp
-    >>> mine_obj = AntGRAANK(data_source='DATASET.csv', min_sup=0.5, max_iter=1, e_factor=0.5)
-    >>> result_json = mine_obj.discover()
-    >>> print(result_json)
+        >>> import so4gp as sgp
+        >>> import pandas
+        >>> dummy_data = [[30, 3, 1, 10, 2, 4], [35, 2, 2, 8, 2, 4], [40, 4, 2, 7, 2, 4], [50, 1, 1, 6, 2, 4], \
+        [52, 7, 1, 2, 2, 4]]
+        >>> columns = ['Age', 'Salary', 'Cars', 'Expenses', 'Invalid1', 'Invalid2']
+        >>> dummy_df = pandas.DataFrame(dummy_data, columns=columns)
+        >>> mine_obj = sgp.AntGRAANK(dummy_df, 0.5, max_iter=3, e_factor=0.5)
+        >>> result_json = mine_obj.discover()
+        >>> print(result_json) # doctest: +SKIP
+        {"Algorithm": "ACO-GRAANK", "Best Patterns": [[["Expenses-", "Age+"], 1.0]], "Invalid Count": 1, "Iterations": 3}
 
         :param args: [required] data-source, [optional] minimum-support
         :param max_iter: maximum_iteration, default is 1
@@ -1665,9 +1706,15 @@ class ClusterGP(DataGP):
         estimate_support:  estimates the frequency support of a GP based on its score vector
 
     >>> import so4gp as sgp
-    >>> mine_obj = ClusterGP(data_source='DATASET.csv', min_sup=0.5, max_iter=10, e_prob=0.5)
+    >>> import pandas
+    >>> dummy_data = [[30, 3, 1, 10, 2, 4], [35, 2, 2, 8, 2, 4], [40, 4, 2, 7, 2, 4], [50, 1, 1, 6, 2, 4], \
+    [52, 7, 1, 2, 2, 4]]
+    >>> columns = ['Age', 'Salary', 'Cars', 'Expenses', 'Invalid1', 'Invalid2']
+    >>> dummy_df = pandas.DataFrame(dummy_data, columns=columns)
+    >>> mine_obj = sgp.ClusterGP(dummy_df, 0.5, max_iter=3, e_prob=0.5)
     >>> result_json = mine_obj.discover()
-    >>> print(result_json)
+    >>> print(result_json) # doctest: +SKIP
+    {"Algorithm": "Clu-GRAANK", "Patterns": [[["Age-", "Expenses+"], 0.8]], "Invalid Count": 0}
 
     """
 
@@ -1686,9 +1733,14 @@ class ClusterGP(DataGP):
             mat_iter: maximum iteration value for score vector estimation
 
         >>> import so4gp as sgp
-        >>> mine_obj = ClusterGP(data_source='DATASET.csv', min_sup=0.5, max_iter=10, e_prob=0.5)
+        >>> import pandas
+        >>> dummy_data = [[30, 3, 1, 10, 2, 4], [35, 2, 2, 8, 2, 4], [40, 4, 2, 7, 2, 4], [50, 1, 1, 6, 2, 4], \
+        [52, 7, 1, 2, 2, 4]]
+        >>> columns = ['Age', 'Salary', 'Cars', 'Expenses', 'Invalid1', 'Invalid2']
+        >>> dummy_df = pandas.DataFrame(dummy_data, columns=columns)
+        >>> mine_obj = sgp.ClusterGP(dummy_df, 0.5, max_iter=3, e_prob=0.5)
         >>> result_json = mine_obj.discover()
-        >>> print(result_json)
+        >>> print(result_json) # doctest: +SKIP
 
         :param args: [required] data-source, [optional] minimum-support
         :param e_prob: [optional] erasure probability, the default is 0.5
@@ -2029,9 +2081,16 @@ class GeneticGRAANK(DataGP):
         sigma: a value in the range 0-1 that determines the mutation rate
 
     >>> import so4gp as sgp
-    >>> mine_obj = GeneticGRAANK(data_source='DATASET.csv', min_sup=0.5, max_iter=1, n_pop=10)
+    >>> import pandas
+    >>> dummy_data = [[30, 3, 1, 10, 2, 4], [35, 2, 2, 8, 2, 4], [40, 4, 2, 7, 2, 4], [50, 1, 1, 6, 2, 4], \
+    [52, 7, 1, 2, 2, 4]]
+    >>> columns = ['Age', 'Salary', 'Cars', 'Expenses', 'Invalid1', 'Invalid2']
+    >>> dummy_df = pandas.DataFrame(dummy_data, columns=columns)
+    >>> mine_obj = sgp.GeneticGRAANK(dummy_df, 0.5, max_iter=1, n_pop=10)
     >>> result_json = mine_obj.discover()
-    >>> print(result_json)
+    >>> print(result_json) # doctest: +SKIP
+    {"Algorithm": "GA-GRAANK", "Best Patterns": [[["Age+", "Salary+", "Expenses-"], 0.6]], "Invalid Count": 12,
+    "Iterations": 2}
 
     """
 
@@ -2064,9 +2123,17 @@ class GeneticGRAANK(DataGP):
             sigma: a value in the range 0-1 that determines the mutation rate
 
         >>> import so4gp as sgp
-        >>> mine_obj = GeneticGRAANK(data_source='DATASET.csv', min_sup=0.5, max_iter=1, n_pop=10)
+        >>> import pandas
+        >>> dummy_data = [[30, 3, 1, 10, 2, 4], [35, 2, 2, 8, 2, 4], [40, 4, 2, 7, 2, 4], [50, 1, 1, 6, 2, 4], \
+        [52, 7, 1, 2, 2, 4]]
+        >>> columns = ['Age', 'Salary', 'Cars', 'Expenses', 'Invalid1', 'Invalid2']
+        >>> dummy_df = pandas.DataFrame(dummy_data, columns=columns)
+        >>> mine_obj = sgp.GeneticGRAANK(dummy_df, 0.5, max_iter=1, n_pop=10)
         >>> result_json = mine_obj.discover()
-        >>> print(result_json)
+        >>> print(result_json) # doctest: +SKIP
+        {"Algorithm": "GA-GRAANK", "Best Patterns": [[["Age+", "Salary+", "Expenses-"], 0.6]], "Invalid Count": 12,
+        "Iterations": 2}
+
 
         :param args: [required] data-source, [optional] minimum-support
         :param max_iter: maximum_iteration, default is 1
@@ -2301,9 +2368,17 @@ class GRAANK(DataGP):
     This class extends class DataGP which is responsible for generating the GP bitmaps.
 
     >>> import so4gp as sgp
-    >>> mine_obj = GRAANK(data_source='DATASET.csv', min_sup=0.5, eq=False)
+    >>> import pandas
+    >>> dummy_data = [[30, 3, 1, 10, 2, 4], [35, 2, 2, 8, 2, 4], [40, 4, 2, 7, 2, 4], [50, 1, 1, 6, 2, 4], \
+    [52, 7, 1, 2, 2, 4]]
+    >>> columns = ['Age', 'Salary', 'Cars', 'Expenses', 'Invalid1', 'Invalid2']
+    >>> dummy_df = pandas.DataFrame(dummy_data, columns=columns)
+    >>> mine_obj = sgp.GRAANK(data_source=dummy_df, min_sup=0.5, eq=False)
     >>> result_json = mine_obj.discover()
-    >>> print(result_json)
+    >>> print(result_json) # doctest: +SKIP
+    {"Algorithm": "GRAANK", "Patterns": [[["Age+", "Salary+"], 0.6], [["Expenses-", "Age+"], 1.0], [["Age-", "Salary-"],
+     0.6], [["Age-", "Expenses+"], 1.0], [["Expenses-", "Salary+"], 0.6], [["Salary-", "Expenses+"], 0.6],
+     [["Expenses-", "Age+", "Salary+"], 0.6], [["Age-", "Salary-", "Expenses+"], 0.6]], "Invalid Count": 22}
 
     """
 
@@ -2437,9 +2512,15 @@ class HillClimbingGRAANK(DataGP):
         step_size: integer value that steps the algorithm takes per iteration
 
     >>> import so4gp as sgp
-    >>> mine_obj = HillClimbingGRAANK(data_source='DATASET.csv', min_sup=0.5, max_iter=1, step_size=0.5)
+    >>> import pandas
+    >>> dummy_data = [[30, 3, 1, 10, 2, 4], [35, 2, 2, 8, 2, 4], [40, 4, 2, 7, 2, 4], [50, 1, 1, 6, 2, 4], \
+    [52, 7, 1, 2, 2, 4]]
+    >>> columns = ['Age', 'Salary', 'Cars', 'Expenses', 'Invalid1', 'Invalid2']
+    >>> dummy_df = pandas.DataFrame(dummy_data, columns=columns)
+    >>> mine_obj = sgp.HillClimbingGRAANK(dummy_df, 0.5, max_iter=3, step_size=0.5)
     >>> result_json = mine_obj.discover()
-    >>> print(result_json)
+    >>> print(result_json) # doctest: +SKIP
+    {"Algorithm": "LS-GRAANK", "Best Patterns": [[["Age+", "Expenses-"], 1.0]], "Invalid Count": 2, "Iterations": 2}
 
     """
 
@@ -2464,9 +2545,15 @@ class HillClimbingGRAANK(DataGP):
             step_size: integer value that steps the algorithm takes per iteration
 
         >>> import so4gp as sgp
-        >>> mine_obj = HillClimbingGRAANK(data_source='DATASET.csv', min_sup=0.5, max_iter=1, step_size=0.5)
+        >>> import pandas
+        >>> dummy_data = [[30, 3, 1, 10, 2, 4], [35, 2, 2, 8, 2, 4], [40, 4, 2, 7, 2, 4], [50, 1, 1, 6, 2, 4], \
+        [52, 7, 1, 2, 2, 4]]
+        >>> columns = ['Age', 'Salary', 'Cars', 'Expenses', 'Invalid1', 'Invalid2']
+        >>> dummy_df = pandas.DataFrame(dummy_data, columns=columns)
+        >>> mine_obj = sgp.HillClimbingGRAANK(dummy_df, 0.5, max_iter=3, step_size=0.5)
         >>> result_json = mine_obj.discover()
-        >>> print(result_json)
+        >>> print(result_json) # doctest: +SKIP
+        {"Algorithm": "LS-GRAANK", "Best Patterns": [[["Age+", "Expenses-"], 1.0]], "Invalid Count": 2, "Iterations": 2}
 
         :param args: [required] data-source, [optional] minimum-support
         :param max_iter: maximum_iteration, default is 1
@@ -2597,9 +2684,15 @@ class ParticleGRAANK(DataGP):
         coeff_g: a value in the range 0-1, global coefficient
 
     >>> import so4gp as sgp
-    >>> mine_obj = ParticleGRAANK(data_source='DATASET.csv', min_sup=0.5, max_iter=1, n_particle=10)
+    >>> import pandas
+    >>> dummy_data = [[30, 3, 1, 10, 2, 4], [35, 2, 2, 8, 2, 4], [40, 4, 2, 7, 2, 4], [50, 1, 1, 6, 2, 4], \
+    [52, 7, 1, 2, 2, 4]]
+    >>> columns = ['Age', 'Salary', 'Cars', 'Expenses', 'Invalid1', 'Invalid2']
+    >>> dummy_df = pandas.DataFrame(dummy_data, columns=columns)
+    >>> mine_obj = sgp.ParticleGRAANK(dummy_df, 0.5, max_iter=3, n_particle=10)
     >>> result_json = mine_obj.discover()
-    >>> print(result_json)
+    >>> print(result_json) # doctest: +SKIP
+    {"Algorithm": "PSO-GRAANK", "Best Patterns": [], "Invalid Count": 12, "Iterations": 2}
 
 
     """
@@ -2632,9 +2725,15 @@ class ParticleGRAANK(DataGP):
             coeff_g: a value in the range 0-1, global coefficient
 
         >>> import so4gp as sgp
-        >>> mine_obj = ParticleGRAANK(data_source='DATASET.csv', min_sup=0.5, max_iter=1, n_particle=10)
+        >>> import pandas
+        >>> dummy_data = [[30, 3, 1, 10, 2, 4], [35, 2, 2, 8, 2, 4], [40, 4, 2, 7, 2, 4], [50, 1, 1, 6, 2, 4], \
+        [52, 7, 1, 2, 2, 4]]
+        >>> columns = ['Age', 'Salary', 'Cars', 'Expenses', 'Invalid1', 'Invalid2']
+        >>> dummy_df = pandas.DataFrame(dummy_data, columns=columns)
+        >>> mine_obj = sgp.ParticleGRAANK(dummy_df, 0.5, max_iter=3, n_particle=10)
         >>> result_json = mine_obj.discover()
-        >>> print(result_json)
+        >>> print(result_json) # doctest: +SKIP
+        {"Algorithm": "PSO-GRAANK", "Best Patterns": [], "Invalid Count": 12, "Iterations": 2}
 
         :param args: [required] data-source, [optional] minimum-support
         :param max_iter: maximum_iteration, default is 1
@@ -2789,9 +2888,16 @@ class RandomGRAANK(DataGP):
         max_iteration: integer value determines the number of iterations for the algorithm
 
     >>> import so4gp as sgp
-    >>> mine_obj = RandomGRAANK(data_source='DATASET.csv', min_sup=0.5, max_iter=1)
+    >>> import pandas
+    >>> dummy_data = [[30, 3, 1, 10, 2, 4], [35, 2, 2, 8, 2, 4], [40, 4, 2, 7, 2, 4], [50, 1, 1, 6, 2, 4], \
+    [52, 7, 1, 2, 2, 4]]
+    >>> columns = ['Age', 'Salary', 'Cars', 'Expenses', 'Invalid1', 'Invalid2']
+    >>> dummy_df = pandas.DataFrame(dummy_data, columns=columns)
+    >>> mine_obj = sgp.RandomGRAANK(dummy_df, 0.5, max_iter=3)
     >>> result_json = mine_obj.discover()
-    >>> print(result_json)
+    >>> print(result_json) # doctest: +SKIP
+    {"Algorithm": "RS-GRAANK", "Best Patterns": [[["Age+", "Salary+", "Expenses-"], 0.6]], "Invalid Count": 1,
+    "Iterations": 3}
 
     """
 
@@ -2814,9 +2920,16 @@ class RandomGRAANK(DataGP):
             max_iteration: integer value determines the number of iterations for the algorithm
 
         >>> import so4gp as sgp
-        >>> mine_obj = RandomGRAANK(data_source='DATASET.csv', min_sup=0.5, max_iter=1)
+        >>> import pandas
+        >>> dummy_data = [[30, 3, 1, 10, 2, 4], [35, 2, 2, 8, 2, 4], [40, 4, 2, 7, 2, 4], [50, 1, 1, 6, 2, 4], \
+        [52, 7, 1, 2, 2, 4]]
+        >>> columns = ['Age', 'Salary', 'Cars', 'Expenses', 'Invalid1', 'Invalid2']
+        >>> dummy_df = pandas.DataFrame(dummy_data, columns=columns)
+        >>> mine_obj = sgp.RandomGRAANK(dummy_df, 0.5, max_iter=3)
         >>> result_json = mine_obj.discover()
-        >>> print(result_json)
+        >>> print(result_json) # doctest: +SKIP
+        {"Algorithm": "RS-GRAANK", "Best Patterns": [[["Age+", "Salary+", "Expenses-"], 0.6]], "Invalid Count": 1,
+        "Iterations": 3}
 
         :param args: [required] data-source, [optional] minimum-support
         :param max_iter: maximum_iteration, default is 1

@@ -5,11 +5,17 @@ RELEASE HISTORY
 
 0.3.6 (2022-10-19)
 ---------------------------
+**Bug fixes**
+
+* fixed fit_bitmap method to show non-transposed bitmaps
+
 **Updates**
 
 * Added Doctests with a dummy dataframe source
 
 * Added test results
+
+* Added method fit_tids in class DataGP
 
 
 0.3.5 (2022-10-17)

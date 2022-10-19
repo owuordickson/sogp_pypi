@@ -177,7 +177,7 @@ class DataGP:
 
         :param data_source: [required] a data source, it can either be a 'file in csv format' or a 'Pandas DataFrame'
 
-        :type data_source: str
+        :type data_source: (str, pd.DataFrame)
 
         :param min_sup: [optional] minimum support threshold, the default is 0.5
 
@@ -189,8 +189,8 @@ class DataGP:
         self.equal = eq
         """:type eq: bool"""
         self.titles, self.data = DataGP.read(data_source)
-        """:type titles: ndarray"""
-        """:type data: ndarray"""
+        """:type titles: list"""
+        """:type data: np.ndarray"""
         self.row_count, self.col_count = self.data.shape
         self.time_cols = self._get_time_cols()
         self.attr_cols = self._get_attr_cols()
@@ -258,6 +258,7 @@ class DataGP:
         computed support values are greater or equal to the minimum support threshold value.
 
         :param attr_data: stepped attribute objects
+        :type attr_data: np.ndarray
         :return: void
         """
         # (check) implement parallel multiprocessing
@@ -304,6 +305,9 @@ class DataGP:
         separates its columns headers (titles) from the objects.
 
         :param data_src:
+        
+        :type data_src: (str, pd.DataFrame)
+        
         :return: title, column objects
         """
         # 1. Retrieve data set from source
@@ -367,6 +371,7 @@ class DataGP:
         Tests if a str represents a date-time variable.
 
         :param date_str: str value
+        :type date_str: str
         :return: bool (True if it is date-time variable, False otherwise)
         """
         # add all the possible formats
@@ -391,6 +396,7 @@ class DataGP:
 
         Cleans a data-frame (i.e., missing values, outliers) before extraction of GPs
         :param df: data-frame
+        :type df: pd.DataFrame
         :return: list (column titles), numpy (cleaned data)
         """
         # 1. Remove objects with Null values
@@ -422,14 +428,15 @@ class DataGP:
 
         keys = np.arange(df.shape[1])
         values = np.array(df.columns, dtype='S')
-        titles = np.rec.fromarrays((keys, values), names=('key', 'value'))
+        titles = list(np.rec.fromarrays((keys, values), names=('key', 'value')))
         # print("Data cleaned")
+        # print(type(titles))
         return titles, df.values
 
 
 class DfsDataGP:
 
-    def __init__(self, file_path, min_sup=0):
+    def __init__(self, file_path, min_sup=0.0):
         self.thd_supp = min_sup
         self.titles, self.data = DataGP.read(file_path)
         self.row_count, self.col_count = self.data.shape
@@ -541,7 +548,7 @@ class DfsDataGP:
 
 # -------- OTHER METHODS -----------
 
-def analyze_gps(file, min_sup, est_gps, approach='bfs'):
+def analyze_gps(data_src, min_sup, est_gps, approach='bfs'):
     """Description
 
     For each estimated GP, computes its true support using GRAANK approach and returns the statistics (% error,
@@ -549,10 +556,9 @@ def analyze_gps(file, min_sup, est_gps, approach='bfs'):
 
     >>> import so4gp as sgp
     >>> import pandas
-    >>> dummy_data = [[30, 3, 1, 10, 2, 4], [35, 2, 2, 8, 2, 4], [40, 4, 2, 7, 2, 4], [50, 1, 1, 6, 2, 4], \
-    [52, 7, 1, 2, 2, 4]]
-    >>> columns = ['Age', 'Salary', 'Cars', 'Expenses', 'Invalid1', 'Invalid2']
-    >>> dummy_df = pandas.DataFrame(dummy_data, columns=columns)
+    >>> dummy_data = [[30, 3, 1, 10], [35, 2, 2, 8], [40, 4, 2, 7], [50, 1, 1, 6], [52, 7, 1, 2]]
+    >>> columns = ['Age', 'Salary', 'Cars', 'Expenses']
+    >>> dummy_df = pandas.DataFrame(dummy_data, columns=['Age', 'Salary', 'Cars', 'Expenses'])
     >>>
     >>> estimated_gps = list()
     >>> temp_gp = sgp.ExtGP()
@@ -570,17 +576,25 @@ def analyze_gps(file, min_sup, est_gps, approach='bfs'):
     ['0+', '1-']                       0.5              0.4  25.0%                              0.071
     ['1+', '3-', '0+']                 0.48             0.6  -20.0%                             0.085
 
-    :param file: data set file
+    :param data_src: data set file
+    :type data_src: (str, pd.DataFrame)
+
     :param min_sup: minimum support (set by user)
+    :type min_sup: float
+
     :param est_gps: estimated GPs
+    :type est_gps: list
+
     :param approach: 'bfs' (default) or 'dfs'
+    :type approach: str
+
     :return: tabulated results
     """
     if approach == 'dfs':
-        d_set = DfsDataGP(file, min_sup)
+        d_set = DfsDataGP(data_src, min_sup)
         d_set.init_transaction_ids()
     else:
-        d_set = DataGP(file, min_sup)
+        d_set = DataGP(data_src, min_sup)
         d_set.fit_bitmap()
     headers = ["Gradual Pattern", "Estimated Support", "True Support", "Percentage Error", "Standard Deviation"]
     data = []
@@ -715,7 +729,11 @@ class GI:
         1+
 
         :param attr_col: column index
+        :type attr_col: int
+
         :param symbol: variation symbol (either '+' or '-')
+        :type symbol: str
+
         """
         self.attribute_col = attr_col
         """:type attribute_col: int"""
@@ -807,6 +825,8 @@ class GI:
 
         Converts a stringified GI into normal GI.
         :param gi_str: stringified GI
+        :type gi_str: str
+
         :return: GI
         """
         txt = gi_str.split('_')
@@ -824,6 +844,8 @@ class GI:
         Computes the inverse of a GI formatted as an array or tuple
 
         :param g_item: gradual item (array/tuple)
+        :type g_item: (tuple, list)
+
         :return: inverted gradual item
         """
         if g_item[1] == '+':
@@ -888,6 +910,8 @@ class GP:
 
         Sets the computed support value of the gradual pattern (GP)
         :param support: support value
+        :type support: float
+
         :return: void
         """
         self.support = round(support, 3)
@@ -897,6 +921,8 @@ class GP:
 
         Adds a gradual item (GI) into the gradual pattern (GP)
         :param item: gradual item
+        :type item: so4gp.GI
+
         :return: void
         """
         if item.symbol == '-' or item.symbol == '+':
@@ -908,8 +934,14 @@ class GP:
         """Description
 
         Adds gradual items from a list of str or a list of sets.
+        For example:
+        >>> import so4gp
+        >>> new_gp = so4gp.GP()
+        >>> new_gp.add_items_from_list(['0+', '2-', '3-'])
 
         :param lst_items: str or set
+        :type lst_items: list
+
         :return: none
         """
         for str_gi in lst_items:
@@ -972,6 +1004,8 @@ class GP:
 
         Returns the index position of a gradual item in the gradual pattern
         :param gi: gradual item
+        :type gi: so4gp.GI
+
         :return: index of gradual item
         """
         for i in range(len(self.gradual_items)):
@@ -996,6 +1030,8 @@ class GP:
 
         Checks if a gradual item (GI) is a member of a gradual pattern (GP)
         :param gi: gradual item
+        :type gi: so4gp.GI
+
         :return: True if it is a member, otherwise False
         """
         if gi is None:
@@ -1009,6 +1045,8 @@ class GP:
 
         Strictly checks if a gradual item (GI) is a member of a gradual pattern (GP)
         :param gi: gradual item
+        :type gi: so4gp.GI
+
         :return: True if it is a member, otherwise False
         """
         if gi is None:
@@ -1023,6 +1061,8 @@ class GP:
 
         Checks is any gradual item (GI) in the gradual pattern (GP) is composed of the column
         :param gi: gradual item
+        :type gi: so4gp.GI
+
         :return: True if column exists, False otherwise
         """
         if gi is None:
@@ -1054,11 +1094,15 @@ class GP:
             gi_dict.update({gi.as_string(): 0})
         return gi_dict
 
+    # noinspection PyUnresolvedReferences
     def print(self, columns):
         """Description
 
-        Returns patterns with actual column names
+        A method that returns patterns with actual column names
+
         :param columns: Columns names
+        :type columns: list[str]
+
         :return: GP with actual column names
         """
         pattern = list()
@@ -1132,6 +1176,8 @@ class ExtGP(GP):
         less than the minimum support threshold set by the user.
 
         :param d_set: Data_GP object
+        :type d_set: so4gp.DataGP # noinspection PyTypeChecker
+
         :return: a valid GP or an empty GP
         """
         # pattern = [('2', '+'), ('4', '+')]
@@ -1219,7 +1265,11 @@ class ExtGP(GP):
         Anti-monotonicity check. Checks if a GP is a subset or superset of an already existing GP
 
         :param gp_list: list of existing GPs
+        :type gp_list: list[so4gp.ExtGP]
+
         :param subset: check if it is a subset
+        :type subset: bool
+
         :return: True if superset/subset, False otherwise
         """
         result = False
@@ -1245,7 +1295,11 @@ class ExtGP(GP):
         Checks if a pattern is in the list of winner GPs or loser GPs
 
         :param valid_gps: list of GPs
+        :type valid_gps: list[so4gp.ExtGP]
+
         :param invalid_gps: list of GPs
+        :type invalid_gps: list[so4gp.ExtGP]
+
         :return: True if pattern is either list, False otherwise
         """
         if invalid_gps is None:
@@ -1436,10 +1490,9 @@ class AntGRAANK(DataGP):
 
     >>> import so4gp as sgp
     >>> import pandas
-    >>> dummy_data = [[30, 3, 1, 10, 2, 4], [35, 2, 2, 8, 2, 4], [40, 4, 2, 7, 2, 4], [50, 1, 1, 6, 2, 4], \
-    [52, 7, 1, 2, 2, 4]]
-    >>> columns = ['Age', 'Salary', 'Cars', 'Expenses', 'Invalid1', 'Invalid2']
-    >>> dummy_df = pandas.DataFrame(dummy_data, columns=columns)
+    >>> dummy_data = [[30, 3, 1, 10], [35, 2, 2, 8], [40, 4, 2, 7], [50, 1, 1, 6], [52, 7, 1, 2]]
+    >>> dummy_df = pandas.DataFrame(dummy_data, columns=['Age', 'Salary', 'Cars', 'Expenses'])
+    >>>
     >>> mine_obj = sgp.AntGRAANK(dummy_df, 0.5, max_iter=3, e_factor=0.5)
     >>> result_json = mine_obj.discover()
     >>> print(result_json) # doctest: +SKIP
@@ -1476,14 +1529,13 @@ class AntGRAANK(DataGP):
 
         >>> import so4gp as sgp
         >>> import pandas
-        >>> dummy_data = [[30, 3, 1, 10, 2, 4], [35, 2, 2, 8, 2, 4], [40, 4, 2, 7, 2, 4], [50, 1, 1, 6, 2, 4], \
-        [52, 7, 1, 2, 2, 4]]
-        >>> columns = ['Age', 'Salary', 'Cars', 'Expenses', 'Invalid1', 'Invalid2']
-        >>> dummy_df = pandas.DataFrame(dummy_data, columns=columns)
+        >>> dummy_data = [[30, 3, 1, 10], [35, 2, 2, 8], [40, 4, 2, 7], [50, 1, 1, 6], [52, 7, 1, 2]]
+        >>> dummy_df = pandas.DataFrame(dummy_data, columns=['Age', 'Salary', 'Cars', 'Expenses'])
+        >>>
         >>> mine_obj = sgp.AntGRAANK(dummy_df, 0.5, max_iter=3, e_factor=0.5)
         >>> result_json = mine_obj.discover()
         >>> print(result_json) # doctest: +SKIP
-        {"Algorithm": "ACO-GRAANK", "Best Patterns": [[["Expenses-", "Age+"], 1.0]], "Invalid Count": 1, "Iterations": 3}
+        {"Algorithm": "ACO-GRAANK", "Best Patterns": [[["Expenses-", "Age+"], 1.0]], "Invalid Count": 1, "Iterations":3}
 
         :param args: [required] data-source, [optional] minimum-support
         :param max_iter: maximum_iteration, default is 1
@@ -1707,10 +1759,9 @@ class ClusterGP(DataGP):
 
     >>> import so4gp as sgp
     >>> import pandas
-    >>> dummy_data = [[30, 3, 1, 10, 2, 4], [35, 2, 2, 8, 2, 4], [40, 4, 2, 7, 2, 4], [50, 1, 1, 6, 2, 4], \
-    [52, 7, 1, 2, 2, 4]]
-    >>> columns = ['Age', 'Salary', 'Cars', 'Expenses', 'Invalid1', 'Invalid2']
-    >>> dummy_df = pandas.DataFrame(dummy_data, columns=columns)
+    >>> dummy_data = [[30, 3, 1, 10], [35, 2, 2, 8], [40, 4, 2, 7], [50, 1, 1, 6], [52, 7, 1, 2]]
+    >>> dummy_df = pandas.DataFrame(dummy_data, columns=['Age', 'Salary', 'Cars', 'Expenses'])
+    >>>
     >>> mine_obj = sgp.ClusterGP(dummy_df, 0.5, max_iter=3, e_prob=0.5)
     >>> result_json = mine_obj.discover()
     >>> print(result_json) # doctest: +SKIP
@@ -1734,10 +1785,9 @@ class ClusterGP(DataGP):
 
         >>> import so4gp as sgp
         >>> import pandas
-        >>> dummy_data = [[30, 3, 1, 10, 2, 4], [35, 2, 2, 8, 2, 4], [40, 4, 2, 7, 2, 4], [50, 1, 1, 6, 2, 4], \
-        [52, 7, 1, 2, 2, 4]]
-        >>> columns = ['Age', 'Salary', 'Cars', 'Expenses', 'Invalid1', 'Invalid2']
-        >>> dummy_df = pandas.DataFrame(dummy_data, columns=columns)
+        >>> dummy_data = [[30, 3, 1, 10], [35, 2, 2, 8], [40, 4, 2, 7], [50, 1, 1, 6], [52, 7, 1, 2]]
+        >>> dummy_df = pandas.DataFrame(dummy_data, columns=['Age', 'Salary', 'Cars', 'Expenses'])
+        >>>
         >>> mine_obj = sgp.ClusterGP(dummy_df, 0.5, max_iter=3, e_prob=0.5)
         >>> result_json = mine_obj.discover()
         >>> print(result_json) # doctest: +SKIP
@@ -1753,19 +1803,19 @@ class ClusterGP(DataGP):
         """:type max_iteration: int"""
         if not no_prob:
             self.gradual_items, self.cum_wins, self.net_win_mat, self.ij = self._construct_matrices(e_prob)
-            """:type gradual_items: ndarray"""
-            """:type cum_wins: ndarray"""
-            """:type net_win_mat: ndarray"""
-            """:type ij: ndarray"""
+            """:type gradual_items: np.ndarray"""
+            """:type cum_wins: np.ndarray"""
+            """:type net_win_mat: np.ndarray"""
+            """:type ij: np.ndarray"""
             self.win_mat = np.array([])
-            """:type win_mat: ndarray"""
+            """:type win_mat: np.ndarray"""
         else:
             self.gradual_items, self.win_mat, self.cum_wins, self.net_win_mat, self.ij = self._construct_all_matrices()
-            """:type gradual_items: ndarray"""
-            """:type win_mat: ndarray"""
-            """:type cum_wins: ndarray"""
-            """:type net_win_mat: ndarray"""
-            """:type ij: ndarray"""
+            """:type gradual_items: np.ndarray"""
+            """:type win_mat: np.ndarray"""
+            """:type cum_wins: np.ndarray"""
+            """:type net_win_mat: np.ndarray"""
+            """:type ij: np.ndarray"""
 
     def _construct_matrices(self, e):
         """Description
@@ -1773,6 +1823,8 @@ class ClusterGP(DataGP):
         Generates all the gradual items and, constructs: (1) net-win matrix, (2) cumulative wins, (3) pairwise objects.
 
         :param e: [required] erasure probability
+        :type e: float
+
         :return: list of gradual items, net-win matrix, cumulative win matrix, selected pairwise (ij) objects
         """
 
@@ -1901,6 +1953,8 @@ class ClusterGP(DataGP):
         A function that infers GPs from clusters of gradual items.
 
         :param clusters: [required] groups of gradual items clustered through K-MEANS algorithm
+        :type clusters: np.ndarray
+
         :return: list of (str) patterns, list of GP objects
         """
 
@@ -1942,6 +1996,8 @@ class ClusterGP(DataGP):
         A function that estimates the score vector based on the cumulative wins.
 
         :param c_wins: [required] cumulative wins
+        :type c_wins: np.ndarray
+
         :return: score vector (ndarray)
         """
 
@@ -2005,6 +2061,8 @@ class ClusterGP(DataGP):
         the user.
 
         :param testing: [optional] returns different format if algorithm is used in a test environment
+        :type testing: bool
+
         :return: JSON object
         """
 
@@ -2082,11 +2140,10 @@ class GeneticGRAANK(DataGP):
 
     >>> import so4gp as sgp
     >>> import pandas
-    >>> dummy_data = [[30, 3, 1, 10, 2, 4], [35, 2, 2, 8, 2, 4], [40, 4, 2, 7, 2, 4], [50, 1, 1, 6, 2, 4], \
-    [52, 7, 1, 2, 2, 4]]
-    >>> columns = ['Age', 'Salary', 'Cars', 'Expenses', 'Invalid1', 'Invalid2']
-    >>> dummy_df = pandas.DataFrame(dummy_data, columns=columns)
-    >>> mine_obj = sgp.GeneticGRAANK(dummy_df, 0.5, max_iter=1, n_pop=10)
+    >>> dummy_data = [[30, 3, 1, 10], [35, 2, 2, 8], [40, 4, 2, 7], [50, 1, 1, 6], [52, 7, 1, 2]]
+    >>> dummy_df = pandas.DataFrame(dummy_data, columns=['Age', 'Salary', 'Cars', 'Expenses'])
+    >>>
+    >>> mine_obj = sgp.GeneticGRAANK(dummy_df, 0.5, max_iter=3, n_pop=10)
     >>> result_json = mine_obj.discover()
     >>> print(result_json) # doctest: +SKIP
     {"Algorithm": "GA-GRAANK", "Best Patterns": [[["Age+", "Salary+", "Expenses-"], 0.6]], "Invalid Count": 12,
@@ -2124,11 +2181,10 @@ class GeneticGRAANK(DataGP):
 
         >>> import so4gp as sgp
         >>> import pandas
-        >>> dummy_data = [[30, 3, 1, 10, 2, 4], [35, 2, 2, 8, 2, 4], [40, 4, 2, 7, 2, 4], [50, 1, 1, 6, 2, 4], \
-        [52, 7, 1, 2, 2, 4]]
-        >>> columns = ['Age', 'Salary', 'Cars', 'Expenses', 'Invalid1', 'Invalid2']
-        >>> dummy_df = pandas.DataFrame(dummy_data, columns=columns)
-        >>> mine_obj = sgp.GeneticGRAANK(dummy_df, 0.5, max_iter=1, n_pop=10)
+        >>> dummy_data = [[30, 3, 1, 10], [35, 2, 2, 8], [40, 4, 2, 7], [50, 1, 1, 6], [52, 7, 1, 2]]
+        >>> dummy_df = pandas.DataFrame(dummy_data, columns=['Age', 'Salary', 'Cars', 'Expenses'])
+        >>>
+        >>> mine_obj = sgp.GeneticGRAANK(dummy_df, 0.5, max_iter=3, n_pop=10)
         >>> result_json = mine_obj.discover()
         >>> print(result_json) # doctest: +SKIP
         {"Algorithm": "GA-GRAANK", "Best Patterns": [[["Age+", "Salary+", "Expenses-"], 0.6]], "Invalid Count": 12,
@@ -2137,11 +2193,22 @@ class GeneticGRAANK(DataGP):
 
         :param args: [required] data-source, [optional] minimum-support
         :param max_iter: maximum_iteration, default is 1
+        :type max_iter: int
+
         :param n_pop: initial individual population, default is 5
+        :type n_pop: int
+
         :param pc: children proportion, default is 0.5
+        :type pc: float
+
         :param gamma: cross-over gamma ratio, default is 1
+        :type gamma: float
+
         :param mu: mutation mu ratio, default is 0.9
+        :type mu: float
+
         :param sigma: mutation sigma ratio, default is 0.9
+        :type sigma: float
         """
         super(GeneticGRAANK, self).__init__(*args)
         self.max_iteration = max_iter
@@ -2355,32 +2422,32 @@ class GeneticGRAANK(DataGP):
 
 
 class GRAANK(DataGP):
+    # noinspection PyTypeChecker
     """Description
 
-    Extracts gradual patterns (GPs) from a numeric data source using the GRAANK approach (proposed in a published
-    research paper by Anne Laurent).
+        Extracts gradual patterns (GPs) from a numeric data source using the GRAANK approach (proposed in a published
+        research paper by Anne Laurent).
 
-         A GP is a set of gradual items (GI) and its quality is measured by its computed support value. For example
-         given a data set with 3 columns (age, salary, cars) and 10 objects. A GP may take the form: {age+, salary-}
-         with a support of 0.8. This implies that 8 out of 10 objects have the values of column age 'increasing' and
-         column 'salary' decreasing.
+             A GP is a set of gradual items (GI) and its quality is measured by its computed support value. For example
+             given a data set with 3 columns (age, salary, cars) and 10 objects. A GP may take the form: {age+, salary-}
+             with a support of 0.8. This implies that 8 out of 10 objects have the values of column age 'increasing' and
+             column 'salary' decreasing.
 
-    This class extends class DataGP which is responsible for generating the GP bitmaps.
+        This class extends class DataGP which is responsible for generating the GP bitmaps.
 
-    >>> import so4gp as sgp
-    >>> import pandas
-    >>> dummy_data = [[30, 3, 1, 10, 2, 4], [35, 2, 2, 8, 2, 4], [40, 4, 2, 7, 2, 4], [50, 1, 1, 6, 2, 4], \
-    [52, 7, 1, 2, 2, 4]]
-    >>> columns = ['Age', 'Salary', 'Cars', 'Expenses', 'Invalid1', 'Invalid2']
-    >>> dummy_df = pandas.DataFrame(dummy_data, columns=columns)
-    >>> mine_obj = sgp.GRAANK(data_source=dummy_df, min_sup=0.5, eq=False)
-    >>> result_json = mine_obj.discover()
-    >>> print(result_json) # doctest: +SKIP
-    {"Algorithm": "GRAANK", "Patterns": [[["Age+", "Salary+"], 0.6], [["Expenses-", "Age+"], 1.0], [["Age-", "Salary-"],
-     0.6], [["Age-", "Expenses+"], 1.0], [["Expenses-", "Salary+"], 0.6], [["Salary-", "Expenses+"], 0.6],
-     [["Expenses-", "Age+", "Salary+"], 0.6], [["Age-", "Salary-", "Expenses+"], 0.6]], "Invalid Count": 22}
+        >>> import so4gp as sgp
+        >>> import pandas
+        >>> dummy_data = [[30, 3, 1, 10], [35, 2, 2, 8], [40, 4, 2, 7], [50, 1, 1, 6], [52, 7, 1, 2]]
+        >>> dummy_df = pandas.DataFrame(dummy_data, columns=['Age', 'Salary', 'Cars', 'Expenses'])
+        >>>
+        >>> mine_obj = sgp.GRAANK(data_source=dummy_df, min_sup=0.5, eq=False)
+        >>> result_json = mine_obj.discover()
+        >>> print(result_json) # doctest: +SKIP
+        {"Algorithm": "GRAANK", "Patterns": [[[["Expenses-", "Age+"], 1.0], [["Age-", "Salary-"],
+         0.6], [["Age-", "Expenses+"], 1.0], [["Expenses-", "Salary+"], 0.6], [["Salary-", "Expenses+"], 0.6],
+         [["Expenses-", "Age+", "Salary+"], 0.6], [["Age-", "Salary-", "Expenses+"], 0.6]], "Invalid Count": 22}
 
-    """
+        """
 
     def _gen_apriori_candidates(self, gi_bins):
         """Description
@@ -2513,10 +2580,9 @@ class HillClimbingGRAANK(DataGP):
 
     >>> import so4gp as sgp
     >>> import pandas
-    >>> dummy_data = [[30, 3, 1, 10, 2, 4], [35, 2, 2, 8, 2, 4], [40, 4, 2, 7, 2, 4], [50, 1, 1, 6, 2, 4], \
-    [52, 7, 1, 2, 2, 4]]
-    >>> columns = ['Age', 'Salary', 'Cars', 'Expenses', 'Invalid1', 'Invalid2']
-    >>> dummy_df = pandas.DataFrame(dummy_data, columns=columns)
+    >>> dummy_data = [[30, 3, 1, 10], [35, 2, 2, 8], [40, 4, 2, 7], [50, 1, 1, 6], [52, 7, 1, 2]]
+    >>> dummy_df = pandas.DataFrame(dummy_data, columns=['Age', 'Salary', 'Cars', 'Expenses'])
+    >>>
     >>> mine_obj = sgp.HillClimbingGRAANK(dummy_df, 0.5, max_iter=3, step_size=0.5)
     >>> result_json = mine_obj.discover()
     >>> print(result_json) # doctest: +SKIP
@@ -2546,10 +2612,9 @@ class HillClimbingGRAANK(DataGP):
 
         >>> import so4gp as sgp
         >>> import pandas
-        >>> dummy_data = [[30, 3, 1, 10, 2, 4], [35, 2, 2, 8, 2, 4], [40, 4, 2, 7, 2, 4], [50, 1, 1, 6, 2, 4], \
-        [52, 7, 1, 2, 2, 4]]
-        >>> columns = ['Age', 'Salary', 'Cars', 'Expenses', 'Invalid1', 'Invalid2']
-        >>> dummy_df = pandas.DataFrame(dummy_data, columns=columns)
+        >>> dummy_data = [[30, 3, 1, 10], [35, 2, 2, 8], [40, 4, 2, 7], [50, 1, 1, 6], [52, 7, 1, 2]]
+        >>> dummy_df = pandas.DataFrame(dummy_data, columns=['Age', 'Salary', 'Cars', 'Expenses'])
+        >>>
         >>> mine_obj = sgp.HillClimbingGRAANK(dummy_df, 0.5, max_iter=3, step_size=0.5)
         >>> result_json = mine_obj.discover()
         >>> print(result_json) # doctest: +SKIP
@@ -2685,10 +2750,9 @@ class ParticleGRAANK(DataGP):
 
     >>> import so4gp as sgp
     >>> import pandas
-    >>> dummy_data = [[30, 3, 1, 10, 2, 4], [35, 2, 2, 8, 2, 4], [40, 4, 2, 7, 2, 4], [50, 1, 1, 6, 2, 4], \
-    [52, 7, 1, 2, 2, 4]]
-    >>> columns = ['Age', 'Salary', 'Cars', 'Expenses', 'Invalid1', 'Invalid2']
-    >>> dummy_df = pandas.DataFrame(dummy_data, columns=columns)
+    >>> dummy_data = [[30, 3, 1, 10], [35, 2, 2, 8], [40, 4, 2, 7], [50, 1, 1, 6], [52, 7, 1, 2]]
+    >>> dummy_df = pandas.DataFrame(dummy_data, columns=['Age', 'Salary', 'Cars', 'Expenses'])
+    >>>
     >>> mine_obj = sgp.ParticleGRAANK(dummy_df, 0.5, max_iter=3, n_particle=10)
     >>> result_json = mine_obj.discover()
     >>> print(result_json) # doctest: +SKIP
@@ -2726,10 +2790,9 @@ class ParticleGRAANK(DataGP):
 
         >>> import so4gp as sgp
         >>> import pandas
-        >>> dummy_data = [[30, 3, 1, 10, 2, 4], [35, 2, 2, 8, 2, 4], [40, 4, 2, 7, 2, 4], [50, 1, 1, 6, 2, 4], \
-        [52, 7, 1, 2, 2, 4]]
-        >>> columns = ['Age', 'Salary', 'Cars', 'Expenses', 'Invalid1', 'Invalid2']
-        >>> dummy_df = pandas.DataFrame(dummy_data, columns=columns)
+        >>> dummy_data = [[30, 3, 1, 10], [35, 2, 2, 8], [40, 4, 2, 7], [50, 1, 1, 6], [52, 7, 1, 2]]
+        >>> dummy_df = pandas.DataFrame(dummy_data, columns=['Age', 'Salary', 'Cars', 'Expenses'])
+        >>>
         >>> mine_obj = sgp.ParticleGRAANK(dummy_df, 0.5, max_iter=3, n_particle=10)
         >>> result_json = mine_obj.discover()
         >>> print(result_json) # doctest: +SKIP
@@ -2889,10 +2952,9 @@ class RandomGRAANK(DataGP):
 
     >>> import so4gp as sgp
     >>> import pandas
-    >>> dummy_data = [[30, 3, 1, 10, 2, 4], [35, 2, 2, 8, 2, 4], [40, 4, 2, 7, 2, 4], [50, 1, 1, 6, 2, 4], \
-    [52, 7, 1, 2, 2, 4]]
-    >>> columns = ['Age', 'Salary', 'Cars', 'Expenses', 'Invalid1', 'Invalid2']
-    >>> dummy_df = pandas.DataFrame(dummy_data, columns=columns)
+    >>> dummy_data = [[30, 3, 1, 10], [35, 2, 2, 8], [40, 4, 2, 7], [50, 1, 1, 6], [52, 7, 1, 2]]
+    >>> dummy_df = pandas.DataFrame(dummy_data, columns=['Age', 'Salary', 'Cars', 'Expenses'])
+    >>>
     >>> mine_obj = sgp.RandomGRAANK(dummy_df, 0.5, max_iter=3)
     >>> result_json = mine_obj.discover()
     >>> print(result_json) # doctest: +SKIP
@@ -2921,10 +2983,9 @@ class RandomGRAANK(DataGP):
 
         >>> import so4gp as sgp
         >>> import pandas
-        >>> dummy_data = [[30, 3, 1, 10, 2, 4], [35, 2, 2, 8, 2, 4], [40, 4, 2, 7, 2, 4], [50, 1, 1, 6, 2, 4], \
-        [52, 7, 1, 2, 2, 4]]
-        >>> columns = ['Age', 'Salary', 'Cars', 'Expenses', 'Invalid1', 'Invalid2']
-        >>> dummy_df = pandas.DataFrame(dummy_data, columns=columns)
+        >>> dummy_data = [[30, 3, 1, 10], [35, 2, 2, 8], [40, 4, 2, 7], [50, 1, 1, 6], [52, 7, 1, 2]]
+        >>> dummy_df = pandas.DataFrame(dummy_data, columns=['Age', 'Salary', 'Cars', 'Expenses'])
+        >>>
         >>> mine_obj = sgp.RandomGRAANK(dummy_df, 0.5, max_iter=3)
         >>> result_json = mine_obj.discover()
         >>> print(result_json) # doctest: +SKIP

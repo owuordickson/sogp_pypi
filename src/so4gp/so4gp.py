@@ -89,7 +89,6 @@ SCORE_VECTOR_ITERATIONS = 10  # maximum iteration for score vector estimation
 
 
 class DataGP:
-    # noinspection PyTypeChecker
     """Description of class DataGP
 
     A class for creating data-gp objects. A data-gp object is meant to store all the parameters required by GP
@@ -156,7 +155,6 @@ class DataGP:
     """
 
     def __init__(self, data_source, min_sup=MIN_SUPPORT, eq=False):
-        # noinspection PyTypeChecker
         """Description of class DataGP
 
 
@@ -201,8 +199,7 @@ class DataGP:
 
 
         :param data_source: [required] a data source, it can either be a 'file in csv format' or a 'Pandas DataFrame'
-
-        :type data_source: (str, pd.DataFrame)
+        :type data_source: pd.DataFrame | str
 
         :param min_sup: [optional] minimum support threshold, the default is 0.5
 
@@ -352,9 +349,8 @@ class DataGP:
         separates its columns headers (titles) from the objects.
 
         :param data_src:
-        
-        :type data_src: (str, pd.DataFrame)
-        
+        :type data_src: pd.DataFrame | str
+
         :return: title, column objects
         """
         # 1. Retrieve data set from source
@@ -512,7 +508,6 @@ def analyze_gps(data_src, min_sup, est_gps, approach='bfs'):
     ['1+', '3-', '0+']                 0.48             0.6  -20.0%                             0.085
 
     :param data_src: data set file
-    :type data_src: (str, pd.DataFrame)
 
     :param min_sup: minimum support (set by user)
     :type min_sup: float
@@ -1108,7 +1103,7 @@ class ExtGP(GP):
         """Description
 
         Validates a candidate gradual pattern (GP) based on support computation. A GP is invalid if its support value is
-        less than the minimum support threshold set by the user.
+        less than the minimum support threshold set by the user. It uses a breath-first approach to compute support.
 
         :param d_set: Data_GP object
         :type d_set: so4gp.DataGP # noinspection PyTypeChecker
@@ -1144,6 +1139,17 @@ class ExtGP(GP):
             return gen_pattern
 
     def validate_tree(self, d_set):
+        """Description
+
+        Validates a candidate gradual pattern (GP) based on support computation. A GP is invalid if its support value is
+        less than the minimum support threshold set by the user. It applies a depth-first (FP-Growth) approach
+        to compute support.
+
+        :param d_set: Data_GP object
+        :type d_set: so4gp.DataGP # noinspection PyTypeChecker
+
+        :return: a valid GP or an empty GP
+        """
         min_supp = d_set.thd_supp
         n = d_set.row_count
         gen_pattern = ExtGP()
@@ -1162,12 +1168,8 @@ class ExtGP(GP):
                     else:
                         temp = temp_tids.copy()
                         temp = temp.intersection(v)
-                        if len(temp) > 1:
-                            x = np.unique(np.array(list(temp))[:, 0], axis=0)
-                            supp = len(x) / n
-                        else:
-                            supp = len(temp) / n
-
+                        tids_len = len(temp)
+                        supp = float((tids_len * 0.5) * (tids_len - 1)) / float(n * (n - 1.0) / 2.0)
                         if supp >= min_supp:
                             temp_tids = temp.copy()
                             gen_pattern.add_gradual_item(gi)
@@ -1179,12 +1181,8 @@ class ExtGP(GP):
                     else:
                         temp = temp_tids.copy()
                         temp = temp.intersection(v)
-                        if len(temp) > 1:
-                            x = np.unique(np.array(list(temp))[:, 0], axis=0)
-                            supp = len(x) / n
-                        else:
-                            supp = len(temp) / n
-
+                        tids_len = len(temp)
+                        supp = float((tids_len * 0.5) * (tids_len - 1)) / float(n * (n - 1.0) / 2.0)
                         if supp >= min_supp:
                             temp_tids = temp.copy()
                             gen_pattern.add_gradual_item(gi)
@@ -2357,7 +2355,6 @@ class GeneticGRAANK(DataGP):
 
 
 class GRAANK(DataGP):
-    # noinspection PyTypeChecker
     """Description
 
         Extracts gradual patterns (GPs) from a numeric data source using the GRAANK approach (proposed in a published

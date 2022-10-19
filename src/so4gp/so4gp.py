@@ -1168,8 +1168,7 @@ class ExtGP(GP):
                     else:
                         temp = temp_tids.copy()
                         temp = temp.intersection(v)
-                        tids_len = len(temp)
-                        supp = float((tids_len * 0.5) * (tids_len - 1)) / float(n * (n - 1.0) / 2.0)
+                        supp = float(len(temp)) / float(n * (n - 1.0) / 2.0)
                         if supp >= min_supp:
                             temp_tids = temp.copy()
                             gen_pattern.add_gradual_item(gi)
@@ -1181,8 +1180,7 @@ class ExtGP(GP):
                     else:
                         temp = temp_tids.copy()
                         temp = temp.intersection(v)
-                        tids_len = len(temp)
-                        supp = float((tids_len * 0.5) * (tids_len - 1)) / float(n * (n - 1.0) / 2.0)
+                        supp = float(len(temp)) / float(n * (n - 1.0) / 2.0)
                         if supp >= min_supp:
                             temp_tids = temp.copy()
                             gen_pattern.add_gradual_item(gi)

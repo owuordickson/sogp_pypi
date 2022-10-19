@@ -1,6 +1,12 @@
 RELEASE NOTES 
 
 
+0.3.7
+---------------------------
+Bug fixes
+- removed class DfsDataGP
+
+
 0.3.6
 ---------------------------
 Bug fixes
@@ -11,6 +17,7 @@ Updates
 - Added test results
 - Added method fit_tids in class DataGP
 
+
 0.3.5
 ---------------------------
 Bug fixes
@@ -18,7 +25,6 @@ Bug fixes
 
 Updates
 - Updated docs to include Python code sample
-
 
 
 0.3.4

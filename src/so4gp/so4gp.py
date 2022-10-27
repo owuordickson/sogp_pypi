@@ -3,10 +3,10 @@
 @author: Dickson Owuor
 @credits: Thomas Runkler, Edmond Menya, and Anne Laurent
 @license: MIT
-@version: 0.3.4
+@version: 0.3.8
 @email: owuordickson@gmail.com
 @created: 21 July 2021
-@modified: 14 October 2022
+@modified: 27 October 2022
 
 SO4GP
 ------
@@ -1719,7 +1719,7 @@ class ClusterGP(DataGP):
         >>> dummy_data = [[30, 3, 1, 10], [35, 2, 2, 8], [40, 4, 2, 7], [50, 1, 1, 6], [52, 7, 1, 2]]
         >>> dummy_df = pandas.DataFrame(dummy_data, columns=['Age', 'Salary', 'Cars', 'Expenses'])
         >>>
-        >>> mine_obj = sgp.ClusterGP(dummy_df, 0.5, max_iter=3, e_prob=0.5)
+        >>> mine_obj = sgp.ClusterGP(dummy_df, 0.5, max_iter=3, e_prob=0.5, no_prob=True)
         >>> result_json = mine_obj.discover()
         >>> print(result_json) # doctest: +SKIP
 
@@ -1741,11 +1741,13 @@ class ClusterGP(DataGP):
             self.win_mat = np.array([])
             """:type win_mat: np.ndarray"""
         else:
-            self.gradual_items, self.win_mat, self.cum_wins, self.net_win_mat, self.ij = self._construct_all_matrices()
+            self.gradual_items, self.win_mat, self.cum_wins, self.net_win_mat, self.nodes_mat, self.ij = \
+                self._construct_all_matrices()
             """:type gradual_items: np.ndarray"""
             """:type win_mat: np.ndarray"""
             """:type cum_wins: np.ndarray"""
             """:type net_win_mat: np.ndarray"""
+            """:type nodes_mat: np.ndarray"""
             """:type ij: np.ndarray"""
 
     def _construct_matrices(self, e):
@@ -1842,6 +1844,7 @@ class ClusterGP(DataGP):
         s_mat = []  # S-Matrix (made up of S-Vectors)
         w_mat = []  # win matrix
         cum_wins = []  # Cumulative wins
+        nodes_mat = []  # FP nodes matrix
 
         # 3. Construct S matrix from data set
         for col in np.nditer(self.attr_cols):
@@ -1854,6 +1857,7 @@ class ClusterGP(DataGP):
 
             # S-vector
             s_vec = np.zeros((n,), dtype=np.int32)
+            nodes_vec = [[set(), set()]] * n
             for w in [1, -1]:
                 positions = np.flatnonzero(temp_cum_wins == w)
                 i, counts_i = np.unique(pair_ij[positions, 0], return_counts=True)
@@ -1861,9 +1865,35 @@ class ClusterGP(DataGP):
                 s_vec[i] += w * counts_i  # i wins/loses (1/-1)
                 s_vec[j] += -w * counts_j  # j loses/wins (1/-1)
 
+                if w == 1:
+                    for node_i in i:
+                        nodes_j = j[np.where(j > node_i)]
+                        tmp = nodes_vec[node_i][0].union(set(nodes_j))
+                        nodes_vec[node_i] = [tmp, nodes_vec[node_i][1]]
+
+                    for node_j in j:
+                        nodes_i = i[np.where(i < node_j)]
+                        tmp = nodes_vec[node_j][1].union(set(nodes_i))
+                        nodes_vec[node_j] = [nodes_vec[node_j][0], tmp]
+                elif w == -1:
+                    for node_i in i:
+                        nodes_j = j[np.where(j > node_i)]
+                        tmp = nodes_vec[node_i][1].union(set(nodes_j))
+                        nodes_vec[node_i] = [nodes_vec[node_i][0], tmp]
+
+                    for node_j in j:
+                        nodes_i = i[np.where(i < node_j)]
+                        tmp = nodes_vec[node_j][0].union(set(nodes_i))
+                        nodes_vec[node_j] = [tmp, nodes_vec[node_j][1]]
+
+            # print('positions: ' + str(positions) + '; i: ' + str(i) + '; j: ' + str(j) + '; counts: ' + str(counts_i))
+            #    print(nodes_vec)
+            # print("\n")
+
             # Normalize S-vector
             if np.count_nonzero(s_vec) > 0:
                 w_mat.append(np.copy(s_vec))
+                nodes_mat.append(nodes_vec)
 
                 s_vec[s_vec > 0] = 1  # Normalize net wins
                 s_vec[s_vec < 0] = -1  # Normalize net loses
@@ -1876,7 +1906,8 @@ class ClusterGP(DataGP):
                 cum_wins.append(-temp_cum_wins)
                 s_mat.append(-s_vec)
 
-        return np.array(lst_gis), np.array(w_mat), np.array(cum_wins), np.array(s_mat), pair_ij
+        # print(np.array(nodes_mat))
+        return np.array(lst_gis), np.array(w_mat), np.array(cum_wins), np.array(s_mat), np.array(nodes_mat), pair_ij
 
     def _infer_gps(self, clusters):
         """Description

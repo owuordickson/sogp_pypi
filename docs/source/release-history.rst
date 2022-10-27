@@ -3,6 +3,13 @@ RELEASE HISTORY
 ***************
 
 
+0.3.8 (2022-10-27)
+---------------------------
+**Updates**
+
+* retrieve nodes_matrix from CluDataGP
+
+
 0.3.7 (2022-10-19)
 ---------------------------
 **Bug fixes**

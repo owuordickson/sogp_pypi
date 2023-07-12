@@ -1259,6 +1259,9 @@ class NumericSS:
 
     """
 
+    def __init__(self):
+        pass
+
     @staticmethod
     def decode_gp(attr_keys, position):
         """Description
@@ -1741,13 +1744,12 @@ class ClusterGP(DataGP):
             self.win_mat = np.array([])
             """:type win_mat: np.ndarray"""
         else:
-            self.gradual_items, self.win_mat, self.cum_wins, self.net_win_mat, self.nodes_mat, self.ij = \
-                self._construct_all_matrices()
+            self.gradual_items, self.win_mat, self.cum_wins, self.net_win_mat, self.ij = self._construct_all_matrices()
             """:type gradual_items: np.ndarray"""
             """:type win_mat: np.ndarray"""
             """:type cum_wins: np.ndarray"""
             """:type net_win_mat: np.ndarray"""
-            """:type nodes_mat: np.ndarray"""
+            # """:type nodes_mat: np.ndarray"""
             """:type ij: np.ndarray"""
 
     def _construct_matrices(self, e):
@@ -1844,7 +1846,7 @@ class ClusterGP(DataGP):
         s_mat = []  # S-Matrix (made up of S-Vectors)
         w_mat = []  # win matrix
         cum_wins = []  # Cumulative wins
-        nodes_mat = []  # FP nodes matrix
+        # nodes_mat = []  # FP nodes matrix
 
         # 3. Construct S matrix from data set
         for col in np.nditer(self.attr_cols):
@@ -1857,7 +1859,7 @@ class ClusterGP(DataGP):
 
             # S-vector
             s_vec = np.zeros((n,), dtype=np.int32)
-            nodes_vec = [[set(), set()]] * n
+            # nodes_vec = [[set(), set()]] * n
             for w in [1, -1]:
                 positions = np.flatnonzero(temp_cum_wins == w)
                 i, counts_i = np.unique(pair_ij[positions, 0], return_counts=True)
@@ -1865,6 +1867,7 @@ class ClusterGP(DataGP):
                 s_vec[i] += w * counts_i  # i wins/loses (1/-1)
                 s_vec[j] += -w * counts_j  # j loses/wins (1/-1)
 
+                """
                 if w == 1:
                     for node_i in i:
                         nodes_j = j[np.where(j > node_i)]
@@ -1888,12 +1891,12 @@ class ClusterGP(DataGP):
 
             # print('positions: ' + str(positions) + '; i: ' + str(i) + '; j: ' + str(j) + '; counts: ' + str(counts_i))
             #    print(nodes_vec)
-            # print("\n")
+            # print("\n")"""
 
             # Normalize S-vector
             if np.count_nonzero(s_vec) > 0:
                 w_mat.append(np.copy(s_vec))
-                nodes_mat.append(nodes_vec)
+                # nodes_mat.append(nodes_vec)
 
                 s_vec[s_vec > 0] = 1  # Normalize net wins
                 s_vec[s_vec < 0] = -1  # Normalize net loses
@@ -1907,7 +1910,7 @@ class ClusterGP(DataGP):
                 s_mat.append(-s_vec)
 
         # print(np.array(nodes_mat))
-        return np.array(lst_gis), np.array(w_mat), np.array(cum_wins), np.array(s_mat), np.array(nodes_mat), pair_ij
+        return np.array(lst_gis), np.array(w_mat), np.array(cum_wins), np.array(s_mat), pair_ij
 
     def _infer_gps(self, clusters):
         """Description
@@ -1973,7 +1976,7 @@ class ClusterGP(DataGP):
         pair_count = arr_ij.shape[0]
 
         # Compute score vector
-        for k in range(self.max_iteration):
+        for _ in range(self.max_iteration):
             if np.count_nonzero(score_vector == 0) > 1:
                 break
             else:
@@ -2503,8 +2506,8 @@ class GRAANK(DataGP):
                         else:
                             z = z + 1
 
-                    gp = GP()
-                    """:type gp: GP"""
+                    gp = ExtGP()
+                    """:type gp: ExtGP"""
                     for obj in valid_bins[i][0]:
                         gi = GI(obj[0], obj[1].decode())
                         """:type gi: GI"""

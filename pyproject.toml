@@ -1,0 +1,55 @@
+[build-system]
+requires = ["setuptools >= 68.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "so4gp"
+dynamic = ["version"]
+dependencies = [
+  "numpy",
+  "pandas",
+  "scikit-fuzzy",
+  "python-dateutil~=2.8.2",
+  "ypstruct~=0.0.2"
+]
+requires-python = ">=3.11"
+authors = [
+  {name = "Dickson Owuor", email = "owuordickson@gmail.com"},
+  {name = "Anne Laurent", email = "laurent@lirmm.fr"}
+]
+maintainers = [
+  {name = "Dickson Owuor", email = "owuordickson@gmail.com"}
+]
+description = "Some Python optimization algorithms for mining gradual patterns."
+readme =  "README.md"
+license = {file = "LICENSE"}
+keywords = ["gradual patterns", "GRAANK", "ant-colony-optimization", "data-mining", "swarm-intelligence"]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Programming Language :: Python :: 3.11",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: OS Independent",
+  "Intended Audience :: Science/Research",
+  "Topic :: Scientific/Engineering :: Artificial Intelligence"
+]
+
+# docs = []
+
+[project.urls]
+Homepage = "https://github.com/owuordickson/sogp_pypi"
+Documentation = "http://sogp-pypi.readthedocs.io"
+Repository = "https://github.com/owuordickson/sogp_pypi.git"
+"Bug Tracker" = "https://github.com/owuordickson/sogp_pypi/issues"
+Changelog = "https://github.com/owuordickson/sogp_pypi/blob/main/CHANGELOG.md"
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.dynamic]
+version = {attr = "so4gp.__version__"}
+
+[tool.setuptools.packages.find]
+where = ["src"]  # list of folders that contain the packages (["."] by default)
+include = ["*"]  # package names should match these glob patterns (["*"] by default)
+exclude = ["tests*"]  # exclude packages matching these glob patterns (empty by default)
+namespaces = false  # to disable scanning PEP 420 namespaces (true by default)

@@ -1,5 +1,5 @@
 import pandas
-import TemporalGP.so4gp as sgp
+import so4gp.so4gp as sgp
 
 if __name__ == "__main__":
 

@@ -325,7 +325,7 @@ class DataGP:
                             header = np.array(vals, dtype='S')
                         else:
                             header = np.array(raw_data[0], dtype='S')
-                            raw_data = np.delete(raw_data, 0, 0)
+                            del raw_data[0]
                     d_frame = pd.DataFrame(raw_data, columns=header)
                     return DataGP.clean_data(d_frame)
             except Exception as error:
@@ -395,7 +395,7 @@ class DataGP:
 
         keys = np.arange(df.shape[1])
         values = np.array(df.columns, dtype='S')
-        titles = list(np.rec.fromarrays((keys, values), names=('key', 'value')))
+        titles = list(np.rec.fromarrays([keys, values], dtype=np.dtype([('key', int), ('value', bytearray)])))
         # print("Data cleaned")
         # print(type(titles))
         return titles, df.values

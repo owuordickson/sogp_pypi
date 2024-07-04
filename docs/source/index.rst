@@ -25,7 +25,6 @@ A GP (Gradual Pattern) is a set of gradual items (GI) and its quality is measure
 
    installation
    usage
-   release-history
 
 
 **References**

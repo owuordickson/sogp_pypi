@@ -25,7 +25,7 @@ class GI:
         rank_sum:
 
     >>> import so4gp as sgp
-    >>> gradual_item = sgp.GI(1, '+')
+    >>> gradual_item = sgp.GI(1, "+")
     >>> print(gradual_item.to_string())
     1+
 
@@ -49,14 +49,14 @@ class GI:
             rank_sum:
 
         >>> import so4gp as sgp
-        >>> gradual_item = sgp.GI(1, '+')
+        >>> gradual_item = sgp.GI(1, "+")
         >>> print(gradual_item.to_string())
         1+
 
         :param attr_col: column index
         :type attr_col: int
 
-        :param symbol: variation symbol (either '+' or '-')
+        :param symbol: variation symbol either "+" or "-"
         :type symbol: str
 
         """
@@ -74,12 +74,12 @@ class GI:
         Inverts a GI to the opposite variation (i.e., from - to +; or, from + to -)
         :return: inverted GI (ndarray)
         """
-        if self.symbol == '+':
-            # temp = tuple([self.attribute_col, '-'])
-            temp = np.array((self.attribute_col, '-'), dtype='i, S1')
-        elif self.symbol == '-':
-            # temp = tuple([self.attribute_col, '+'])
-            temp = np.array((self.attribute_col, '+'), dtype='i, S1')
+        if self.symbol == "+":
+            # temp = tuple([self.attribute_col, "-"])
+            temp = np.array((self.attribute_col, "-"), dtype='i, S1')
+        elif self.symbol == "-":
+            # temp = tuple([self.attribute_col, "+"])
+            temp = np.array((self.attribute_col, "+"), dtype='i, S1')
         else:
             temp = np.array((self.attribute_col, 'x'), dtype='i, S1')
         return temp
@@ -90,10 +90,10 @@ class GI:
         Inverts a GI to the opposite variation (i.e., from - to +; or, from + to -)
         :return: inverted GI object
         """
-        if self.symbol == '+':
-            sym = '-'
+        if self.symbol == "+":
+            sym = "-"
         else:
-            sym = '+'
+            sym = "+"
         new_gi = GI(self.attribute_col, sym)
         return new_gi
 
@@ -103,9 +103,9 @@ class GI:
         Converts variation symbol into an integer (i.e., + to 1; and - to -1)
         :return: GI with an integer variation symbol
         """
-        if self.symbol == '+':
+        if self.symbol == "+":
             temp = [self.attribute_col, 1]
-        elif self.symbol == '-':
+        elif self.symbol == "-":
             temp = [self.attribute_col, -1]
         else:
             temp = [self.attribute_col, 0]
@@ -117,9 +117,9 @@ class GI:
         Stringifies a GI. It converts variation symbol into a string (i.e., + to _pos; and - to _neg)
         :return: GI with a string variation symbol
         """
-        if self.symbol == '+':
+        if self.symbol == "+":
             temp = str(self.attribute_col) + '_pos'
-        elif self.symbol == '-':
+        elif self.symbol == "-":
             temp = str(self.attribute_col) + '_neg'
         else:
             temp = str(self.attribute_col) + '_inv'
@@ -139,7 +139,7 @@ class GI:
         Checks if a GI's variation corresponds to decreasing
         :return: True is GI has a decreasing variation, False otherwise
         """
-        if self.symbol == '-':
+        if self.symbol == "-":
             return True
         else:
             return False
@@ -157,9 +157,9 @@ class GI:
         txt = gi_str.split('_')
         attr_col = int(txt[0])
         if txt[1] == 'neg':
-            symbol = '-'
+            symbol = "-"
         else:
-            symbol = '+'
+            symbol = "+"
         return GI(attr_col, symbol)
 
     @staticmethod
@@ -173,10 +173,10 @@ class GI:
 
         :return: inverted gradual item
         """
-        if g_item[1] == '+':
-            temp = tuple([g_item[0], '-'])
+        if g_item[1] == "+":
+            temp = tuple([g_item[0], "-"])
         else:
-            temp = tuple([g_item[0], '+'])
+            temp = tuple([g_item[0], "+"])
         return temp
 
 
@@ -197,11 +197,10 @@ class GP:
 
     >>> import so4gp as sgp
     >>> gradual_pattern = sgp.GP()
-    >>> gradual_pattern.add_gradual_item(sgp.GI(0, '+'))
-    >>> gradual_pattern.add_gradual_item(sgp.GI(1, '-'))
+    >>> gradual_pattern.add_gradual_item(sgp.GI(0, "+"))
+    >>> gradual_pattern.add_gradual_item(sgp.GI(1, "-"))
     >>> gradual_pattern.set_support(0.5)
-    >>> print(str(gradual_pattern.to_string()) + ' : ' + str(gradual_pattern.support))
-    ['0+', '1-'] : 0.5
+    >>> print(f"{gradual_pattern.to_string()} : {gradual_pattern.support}")
 
     """
 
@@ -219,11 +218,10 @@ class GP:
                 support: computed support value as a float
         >>> import so4gp as sgp
         >>> gradual_pattern = sgp.GP()
-        >>> gradual_pattern.add_gradual_item(sgp.GI(0, '+'))
-        >>> gradual_pattern.add_gradual_item(sgp.GI(1, '-'))
+        >>> gradual_pattern.add_gradual_item(sgp.GI(0, "+"))
+        >>> gradual_pattern.add_gradual_item(sgp.GI(1, "-"))
         >>> gradual_pattern.set_support(0.5)
-        >>> print(str(gradual_pattern.to_string()) + ' : ' + str(gradual_pattern.support))
-        ['0+', '1-'] : 0.5
+        >>> print(f"{gradual_pattern.to_string()} : {gradual_pattern.support}")
 
             """
         self.gradual_items = list()
@@ -250,7 +248,7 @@ class GP:
 
         :return: void
         """
-        if item.symbol == '-' or item.symbol == '+':
+        if item.symbol == "-" or item.symbol == "+":
             self.gradual_items.append(item)
         else:
             pass
@@ -329,7 +327,7 @@ class GP:
 
         Returns the index position of a gradual item in the gradual pattern
         :param gi: gradual item
-        :type gi: so4gp.GI
+        :type gi: GI
 
         :return: index of gradual item
         """
@@ -355,7 +353,7 @@ class GP:
 
         Checks if a gradual item (GI) is a member of a gradual pattern (GP)
         :param gi: gradual item
-        :type gi: so4gp.GI
+        :type gi: GI
 
         :return: True if it is a member, otherwise False
         """
@@ -370,7 +368,7 @@ class GP:
 
         Strictly checks if a gradual item (GI) is a member of a gradual pattern (GP)
         :param gi: gradual item
-        :type gi: so4gp.GI
+        :type gi: GI
 
         :return: True if it is a member, otherwise False
         """
@@ -386,7 +384,7 @@ class GP:
 
         Checks is any gradual item (GI) in the gradual pattern (GP) is composed of the column
         :param gi: gradual item
-        :type gi: so4gp.GI
+        :type gi: GI
 
         :return: True if column exists, False otherwise
         """
@@ -464,11 +462,10 @@ class ExtGP(GP):
 
     >>> import so4gp as sgp
     >>> gradual_pattern = sgp.ExtGP()
-    >>> gradual_pattern.add_gradual_item(sgp.GI(0, '+'))
-    >>> gradual_pattern.add_gradual_item(sgp.GI(1, '-'))
+    >>> gradual_pattern.add_gradual_item(sgp.GI(0, "+"))
+    >>> gradual_pattern.add_gradual_item(sgp.GI(1, "-"))
     >>> gradual_pattern.set_support(0.5)
-    >>> print(str(gradual_pattern.to_string()) + ' : ' + str(gradual_pattern.support))
-    ['0+', '1-'] : 0.5
+    >>> print(f"{gradual_pattern.to_string()} : {gradual_pattern.support}")
 
     """
 
@@ -483,11 +480,10 @@ class ExtGP(GP):
 
         >>> import so4gp as sgp
         >>> gradual_pattern = sgp.ExtGP()
-        >>> gradual_pattern.add_gradual_item(sgp.GI(0, '+'))
-        >>> gradual_pattern.add_gradual_item(sgp.GI(1, '-'))
+        >>> gradual_pattern.add_gradual_item(sgp.GI(0, "+"))
+        >>> gradual_pattern.add_gradual_item(sgp.GI(1, "-"))
         >>> gradual_pattern.set_support(0.5)
-        >>> print(str(gradual_pattern.to_string()) + ' : ' + str(gradual_pattern.support))
-        ['0+', '1-'] : 0.5
+        >>> print(f"{gradual_pattern.to_string()} : {gradual_pattern.support}")
 
         """
         super(ExtGP, self).__init__()
@@ -505,7 +501,7 @@ class ExtGP(GP):
 
         :return: a valid GP or an empty GP
         """
-        # pattern = [('2', '+'), ('4', '+')]
+        # pattern = [('2', "+"), ('4', "+")]
         min_supp = d_set.thd_supp
         n = d_set.attr_size
         gen_pattern = ExtGP()

@@ -3,3 +3,5 @@ python3 -m pip install --upgrade pip setuptools wheel twine build
 py -m build
 
 py -m twine upload dist/*
+
+twine upload --repository so4gp

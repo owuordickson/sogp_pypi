@@ -3,7 +3,6 @@
 @author: Dickson Owuor
 @credits: Thomas Runkler, Edmond Menya, and Anne Laurent
 @license: MIT
-@version: 0.3.8
 @email: owuordickson@gmail.com
 @created: 21 July 2021
 @modified: 27 October 2022
@@ -35,17 +34,18 @@ SO4GP
 """
 
 
-import time
 import gc
 import math
 import json
+import time
 import random
 import numpy as np
 from ypstruct import structure
 from sklearn.cluster import KMeans
 
 from .__configs__ import *
-from . import DataGP, GI, ExtGP, NumericSS
+from .data_gp import DataGP
+from .gradual_patterns import GI, ExtGP, NumericSS
 
 
 # --------- ALGORITHMS ---------------------
@@ -86,8 +86,6 @@ class AntGRAANK(DataGP):
     >>> mine_obj = sgp.AntGRAANK(dummy_df, 0.5, max_iter=3, e_factor=0.5)
     >>> result_json = mine_obj.discover()
     >>> print(result_json) # doctest: +SKIP
-    {"Algorithm": "ACO-GRAANK", "Best Patterns": [[["Expenses-", "Age+"], 1.0]], "Invalid Count": 1, "Iterations": 3}
-
     """
 
     def __init__(self, *args, max_iter=MAX_ITERATIONS, e_factor=EVAPORATION_FACTOR):
@@ -355,8 +353,6 @@ class ClusterGP(DataGP):
     >>> mine_obj = sgp.ClusterGP(dummy_df, 0.5, max_iter=3, e_prob=0.5)
     >>> result_json = mine_obj.discover()
     >>> print(result_json) # doctest: +SKIP
-    {"Algorithm": "Clu-GRAANK", "Patterns": [[["Age-", "Expenses+"], 0.8]], "Invalid Count": 0}
-
     """
 
     def __init__(self, *args, e_prob=ERASURE_PROBABILITY, max_iter=SCORE_VECTOR_ITERATIONS, no_prob=False):
@@ -444,7 +440,7 @@ class ClusterGP(DataGP):
         cum_wins = []  # Cumulative wins
 
         # 3. Construct S matrix from data set
-        for col in np.nditer(self.attr_cols):
+        for col in self.attr_cols:
             # Feature data objects
             col_data = np.array(attr_data[col], dtype=float)  # Feature data objects
 
@@ -505,7 +501,7 @@ class ClusterGP(DataGP):
         # nodes_mat = []  # FP nodes matrix
 
         # 3. Construct S matrix from data set
-        for col in np.nditer(self.attr_cols):
+        for col in self.attr_cols:
             # Feature data objects
             col_data = np.array(attr_data[col], dtype=float)  # Feature data objects
 
@@ -664,7 +660,7 @@ class ClusterGP(DataGP):
 
         # Estimate support - use different score-vectors to construct pairs
         n = self.row_count
-        bin_mat = np.ones((n, n), dtype=np.bool)
+        bin_mat = np.ones((n, n), dtype=bool)
         for vec in score_vectors:
             temp_bin = vec < vec[:, np.newaxis]
             bin_mat = np.multiply(bin_mat, temp_bin)
@@ -767,9 +763,6 @@ class GeneticGRAANK(DataGP):
     >>> mine_obj = sgp.GeneticGRAANK(dummy_df, 0.5, max_iter=3, n_pop=10)
     >>> result_json = mine_obj.discover()
     >>> print(result_json) # doctest: +SKIP
-    {"Algorithm": "GA-GRAANK", "Best Patterns": [[["Age+", "Salary+", "Expenses-"], 0.6]], "Invalid Count": 12,
-    "Iterations": 2}
-
     """
 
     def __init__(self, *args, max_iter=MAX_ITERATIONS, n_pop=N_POPULATION, pc=PC, gamma=GAMMA, mu=MU, sigma=SIGMA):
@@ -1063,9 +1056,6 @@ class GRAANK(DataGP):
         >>> mine_obj = sgp.GRAANK(data_source=dummy_df, min_sup=0.5, eq=False)
         >>> result_json = mine_obj.discover()
         >>> print(result_json) # doctest: +SKIP
-        {"Algorithm": "GRAANK", "Patterns": [[[["Expenses-", "Age+"], 1.0], [["Age-", "Salary-"],
-         0.6], [["Age-", "Expenses+"], 1.0], [["Expenses-", "Salary+"], 0.6], [["Salary-", "Expenses+"], 0.6],
-         [["Expenses-", "Age+", "Salary+"], 0.6], [["Age-", "Salary-", "Expenses+"], 0.6]], "Invalid Count": 22}
 
         """
 
@@ -1206,7 +1196,6 @@ class HillClimbingGRAANK(DataGP):
     >>> mine_obj = sgp.HillClimbingGRAANK(dummy_df, 0.5, max_iter=3, step_size=0.5)
     >>> result_json = mine_obj.discover()
     >>> print(result_json) # doctest: +SKIP
-    {"Algorithm": "LS-GRAANK", "Best Patterns": [[["Age+", "Expenses-"], 1.0]], "Invalid Count": 2, "Iterations": 2}
 
     """
 
@@ -1578,8 +1567,6 @@ class RandomGRAANK(DataGP):
     >>> mine_obj = sgp.RandomGRAANK(dummy_df, 0.5, max_iter=3)
     >>> result_json = mine_obj.discover()
     >>> print(result_json) # doctest: +SKIP
-    {"Algorithm": "RS-GRAANK", "Best Patterns": [[["Age+", "Salary+", "Expenses-"], 0.6]], "Invalid Count": 1,
-    "Iterations": 3}
 
     """
 

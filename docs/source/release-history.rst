@@ -2,6 +2,19 @@
 RELEASE HISTORY
 ***************
 
+
+0.4.1 (2024-07-04)
+---------------------------
+**Bug fixes**
+
+* cleared execution warnings
+
+**Updates**
+
+* Python library update
+
+
+
 0.4.0 (2024-07-04)
 ---------------------------
 **Updates**

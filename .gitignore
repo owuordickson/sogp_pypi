@@ -1,5 +1,7 @@
 .idea/
 test.py
 *.csv
+*.egg-info/
+.pypirc
 
-dist/*
+dist/

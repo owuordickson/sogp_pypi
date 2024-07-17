@@ -1059,10 +1059,10 @@ class GRAANK(DataGP):
 
         """
 
-    def _gen_apriori_candidates(self, gi_bins):
+    def _gen_apriori_candidates(self, gi_bins, ref_col=None):
         """Description
 
-        Generates Apriori GP candidates
+        Generates Apriori GP candidates (w.r.t reference-column if available)
         :param gi_bins: GI together with bitmaps
         :return:
         """
@@ -1091,8 +1091,15 @@ class GRAANK(DataGP):
                     gi_o = set(gi_bins[0][0])
                 gp_cand = gi_i | gi_j
                 inv_gp_cand = {GI.inv_arr(x) for x in gp_cand}
-                if (len(gp_cand) == len(gi_o) + 1) and (not (all_candidates != [] and gp_cand in all_candidates)) \
-                        and (not (all_candidates != [] and inv_gp_cand in all_candidates)):
+                if ref_col is None:
+                    ref_check = True
+                else:
+                    has_ref_col = np.array([(y[0] == ref_col) for y in gp_cand], dtype=bool)
+                    ref_check = np.any(has_ref_col)
+                if (ref_check and
+                        (len(gp_cand) == len(gi_o) + 1) and
+                        (not (all_candidates != [] and gp_cand in all_candidates)) and
+                        (not (all_candidates != [] and inv_gp_cand in all_candidates))):
                     test = 1
                     for k in gp_cand:
                         try:

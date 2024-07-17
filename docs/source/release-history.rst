@@ -3,6 +3,15 @@ RELEASE HISTORY
 ***************
 
 
+0.4.2 (2024-07-17)
+---------------------------
+
+**Updates**
+
+* Generate GP candidates w.r.t reference-colum
+
+
+
 0.4.1 (2024-07-04)
 ---------------------------
 **Bug fixes**

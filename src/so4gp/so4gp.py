@@ -1146,12 +1146,7 @@ class GRAANK(DataGP):
                     invalid_count += 1
                 else:
                     # Remove subsets
-                    z = 0
-                    while z < (len(self.gradual_patterns) - 1):
-                        if set(self.gradual_patterns[z].get_pattern()).issubset(set(gi_arr)):
-                            del self.gradual_patterns[z]
-                        else:
-                            z = z + 1
+                    self.gradual_patterns = ExtGP.remove_subsets(self.gradual_patterns, set(gi_arr))
 
                     gp = ExtGP()
                     """:type gp: ExtGP"""

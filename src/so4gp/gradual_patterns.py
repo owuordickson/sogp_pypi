@@ -637,6 +637,30 @@ class ExtGP(GP):
                 return True
         return False
 
+    @staticmethod
+    def remove_subsets(gp_list, gi_arr):
+        """
+        Description
+
+        Remove subset GPs from the list.
+
+        :param gp_list: list of existing GPs
+        :type gp_list: list[so4gp.ExtGP]
+
+        :param gi_arr: gradual items in an array
+        :type gi_arr: set
+
+        :return: list of GPs
+        """
+        mod_gp_list = []
+        for gp in gp_list:
+            result1 = set(gp.get_pattern()).issubset(gi_arr)
+            result2 = set(gp.inv_pattern()).issubset(gi_arr)
+            if not (result1 or result2):
+                mod_gp_list.append(gp)
+
+        return mod_gp_list
+
 
 class NumericSS:
     """Description of class NumericSS (Numeric Search Space)

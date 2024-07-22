@@ -3,6 +3,15 @@ RELEASE HISTORY
 ***************
 
 
+0.4.4 (2024-07-22)
+---------------------------
+
+**Updates**
+
+* Added function for removing subsets from GP list
+
+
+
 0.4.3 (2024-07-22)
 ---------------------------
 **Bug fixes**

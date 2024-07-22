@@ -1074,10 +1074,6 @@ class GRAANK(DataGP):
         all_candidates = []
         if len(gi_bins) < 2:
             return []
-        try:
-            set_gi = [{x[0]} for x in gi_bins]
-        except TypeError:
-            set_gi = [set(x[0]) for x in gi_bins]
 
         for i in range(len(gi_bins) - 1):
             for j in range(i + 1, len(gi_bins)):
@@ -1101,16 +1097,13 @@ class GRAANK(DataGP):
                         (not (all_candidates != [] and gp_cand in all_candidates)) and
                         (not (all_candidates != [] and inv_gp_cand in all_candidates))):
                     test = 1
+                    repeated_attr = -1
                     for k in gp_cand:
-                        try:
-                            k_set = {k}
-                        except TypeError:
-                            k_set = set(k)
-                        gp_cand_2 = gp_cand - k_set
-                        inv_gp_cand_2 = {GI.inv_arr(x) for x in gp_cand_2}
-                        if gp_cand_2 not in set_gi and inv_gp_cand_2 not in set_gi:
+                        if k[0] == repeated_attr:
                             test = 0
                             break
+                        else:
+                            repeated_attr = k[0]
                     if test == 1:
                         m = gi_bins[i][1] * gi_bins[j][1]
                         t = float(np.sum(m)) / float(n * (n - 1.0) / 2.0)
@@ -1145,7 +1138,7 @@ class GRAANK(DataGP):
             invalid_count += inv_count
             i = 0
             while i < len(valid_bins) and valid_bins != []:
-                gi_tuple = valid_bins[i][0]
+                gi_arr = valid_bins[i][0]
                 bin_data = valid_bins[i][1]
                 sup = float(np.sum(np.array(bin_data))) / float(n * (n - 1.0) / 2.0)
                 if sup < self.thd_supp:
@@ -1154,14 +1147,14 @@ class GRAANK(DataGP):
                 else:
                     z = 0
                     while z < (len(self.gradual_patterns) - 1):
-                        if set(self.gradual_patterns[z].get_pattern()).issubset(set(gi_tuple)):
+                        if set(self.gradual_patterns[z].get_pattern()).issubset(set(gi_arr)):
                             del self.gradual_patterns[z]
                         else:
                             z = z + 1
 
                     gp = ExtGP()
                     """:type gp: ExtGP"""
-                    for obj in valid_bins[i][0]:
+                    for obj in gi_arr:
                         gi = GI(obj[0], obj[1].decode())
                         """:type gi: GI"""
                         gp.add_gradual_item(gi)

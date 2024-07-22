@@ -3,6 +3,18 @@ RELEASE HISTORY
 ***************
 
 
+0.4.3 (2024-07-22)
+---------------------------
+**Bug fixes**
+
+* Test GP candidates to ensure no repeated attributes
+
+**Updates**
+
+* Renamed reference-col to target-col
+
+
+
 0.4.2 (2024-07-17)
 ---------------------------
 

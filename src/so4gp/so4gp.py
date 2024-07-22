@@ -1145,6 +1145,7 @@ class GRAANK(DataGP):
                     del valid_bins[i]
                     invalid_count += 1
                 else:
+                    # Remove subsets
                     z = 0
                     while z < (len(self.gradual_patterns) - 1):
                         if set(self.gradual_patterns[z].get_pattern()).issubset(set(gi_arr)):

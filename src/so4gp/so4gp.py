@@ -1067,7 +1067,7 @@ class GRAANK(DataGP):
         :return:
         """
         sup = self.thd_supp
-        n = self.row_count
+        n = self.attr_size
 
         invalid_count = 0
         res = []

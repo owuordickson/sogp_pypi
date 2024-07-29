@@ -3,6 +3,19 @@ RELEASE HISTORY
 ***************
 
 
+0.4.5 (2024-07-29)
+---------------------------
+
+**Bug fixes**
+
+* apriori candidates correct row count
+
+**Updates**
+
+* requirements to pyproject.toml
+
+
+
 0.4.4 (2024-07-22)
 ---------------------------
 

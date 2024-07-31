@@ -4,7 +4,7 @@ from .gradual_patterns import ExtGP
 from .gradual_patterns import GI
 from .gradual_patterns import GP
 from .gradual_patterns import NumericSS
-from .gradual_patterns import TimeLag
+from .gradual_patterns import TimeDelay
 
 from .so4gp import ClusterGP
 from .so4gp import GRAANK

@@ -750,17 +750,18 @@ class NumericSS:
         x.position = np.minimum(x.position, var_max)
 
 
-class TimeLag:
+class TimeDelay:
 
     def __init__(self, tstamp=0, supp=0):
         self.timestamp = tstamp
         self.support = round(supp, 3)
         self.sign = self.get_sign()
         if tstamp == 0:
-            self.time_lag = np.array([])
+            self.formatted_time = {}
             self.valid = False
         else:
-            self.time_lag = np.array(self.format_time())
+            time_arr = self.format_time()
+            self.formatted_time = {'value': time_arr[0], 'duration': time_arr[1]}
             self.valid = True
 
     def get_sign(self):
@@ -799,8 +800,8 @@ class TimeLag:
             return [round(years, 0), "years"]
 
     def to_string(self):
-        if len(self.time_lag) > 0:
-            txt = ("~ " + self.sign + str(self.time_lag[0]) + " " + str(self.time_lag[1])
+        if not self.formatted_time:
+            txt = ("~ " + self.sign + str(self.formatted_time['value']) + " " + str(self.formatted_time['duration'])
                    + " : " + str(self.support))
         else:
             txt = "No time lag found!"

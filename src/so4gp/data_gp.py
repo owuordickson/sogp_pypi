@@ -1,4 +1,14 @@
+# -*- coding: utf-8 -*-
+"""
+@author: Dickson Owuor
+@credits: Thomas Runkler, Edmond Menya, and Anne Laurent
+@license: MIT
+@email: owuordickson@gmail.com
+@created: 21 July 2021
+@modified: 27 October 2022
 
+A collection of classes for pre-processing data for mining gradual patterns.
+"""
 
 import gc
 import csv

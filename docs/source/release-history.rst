@@ -3,6 +3,25 @@ RELEASE HISTORY
 ***************
 
 
+0.4.9 (2024-10-26)
+---------------------------
+
+**Updates**
+
+* Added documentation to TimeDelay class
+
+* Added TGP class
+
+
+
+0.4.8 (2024-10-26)
+---------------------------
+
+**Bug fixes**
+
+* problems with dateutil library
+
+
 0.4.7 (2024-10-26)
 ---------------------------
 

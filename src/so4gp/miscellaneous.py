@@ -1,4 +1,14 @@
+# -*- coding: utf-8 -*-
+"""
+@author: Dickson Owuor
+@credits: Thomas Runkler, Edmond Menya, and Anne Laurent
+@license: MIT
+@email: owuordickson@gmail.com
+@created: 21 July 2021
+@modified: 27 October 2022
 
+A collection of miscellaneous classes and methods.
+"""
 
 import os
 import statistics
@@ -7,9 +17,6 @@ import multiprocessing as mp
 from tabulate import tabulate
 
 from .data_gp import DataGP
-
-
-# -------- OTHER METHODS -----------
 
 
 def analyze_gps(data_src, min_sup, est_gps, approach='bfs'):

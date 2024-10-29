@@ -1,5 +1,8 @@
 import pandas
 import so4gp.so4gp as sgp
+
+from src.so4gp import DataGP
+
 # import so4gp as sgp
 
 if __name__ == "__main__":
@@ -11,3 +14,5 @@ if __name__ == "__main__":
     # mine_obj = sgp.AntGRAANK(dummy_df, 0.5, max_iter=3, e_factor=0.5)
     result_json = mine_obj.discover()
     print(result_json)
+
+    print(DataGP.test_time("09-01-2005"))

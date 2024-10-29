@@ -45,10 +45,95 @@ from sklearn.cluster import KMeans
 
 from .__configs__ import *
 from .data_gp import DataGP
-from .gradual_patterns import GI, ExtGP, NumericSS
+from .gradual_patterns import GI, ExtGP
 
 
-# --------- ALGORITHMS ---------------------
+class NumericSS:
+    """Description of class NumericSS (Numeric Search Space)
+
+    A class that implements functions that allow swarm algorithms to explore a numeric search space.
+
+    The class NumericSS has the following functions:
+        decode_gp: decodes a GP from a numeric position
+        cost_function: computes the fitness of a GP
+        apply_bound: applies minimum and maximum values
+
+    """
+
+    def __init__(self):
+        pass
+
+    @staticmethod
+    def decode_gp(attr_keys, position):
+        """Description
+
+        Decodes a numeric value (position) into a GP
+
+        :param attr_keys: list of attribute keys
+        :param position: a value in the numeric search space
+        :return: GP that is decoded from the position value
+        """
+
+        temp_gp = ExtGP()
+        ":type temp_gp: ExtGP"
+        if position is None:
+            return temp_gp
+
+        bin_str = bin(int(position))[2:]
+        bin_arr = np.array(list(bin_str), dtype=int)
+
+        for i in range(bin_arr.size):
+            bin_val = bin_arr[i]
+            if bin_val == 1:
+                gi = GI.parse_gi(attr_keys[i])
+                if not temp_gp.contains_attr(gi):
+                    temp_gp.add_gradual_item(gi)
+        return temp_gp
+
+    @staticmethod
+    def cost_function(position, attr_keys, d_set):
+        """Description
+
+        Computes the fitness of a GP
+
+        :param position: a value in the numeric search space
+        :param attr_keys: list of attribute keys
+        :param d_set: a DataGP object
+        :return: a floating point value that represents the fitness of the position
+        """
+
+        pattern = NumericSS.decode_gp(attr_keys, position)
+        temp_bin = np.array([])
+        for gi in pattern.gradual_items:
+            arg = np.argwhere(np.isin(d_set.valid_bins[:, 0], gi.gradual_item))
+            if len(arg) > 0:
+                i = arg[0][0]
+                valid_bin = d_set.valid_bins[i]
+                if temp_bin.size <= 0:
+                    temp_bin = valid_bin[1].copy()
+                else:
+                    temp_bin = np.multiply(temp_bin, valid_bin[1])
+        bin_sum = np.sum(temp_bin)
+        if bin_sum > 0:
+            cost = (1 / bin_sum)
+        else:
+            cost = 1
+        return cost
+
+    @staticmethod
+    def apply_bound(x, var_min, var_max):
+        """Description
+
+        Modifies x (a numeric value) if it exceeds the lower/upper bound of the numeric search space.
+
+        :param x: a value in the numeric search space
+        :param var_min: lower-bound value
+        :param var_max: upper-bound value
+        :return: nothing
+        """
+
+        x.position = np.maximum(x.position, var_min)
+        x.position = np.minimum(x.position, var_max)
 
 
 class AntGRAANK(DataGP):
@@ -1088,11 +1173,11 @@ class GRAANK(DataGP):
                 gp_cand = gi_i | gi_j
                 inv_gp_cand = {GI.inv_arr(x) for x in gp_cand}
                 if target_col is None:
-                    ref_check = True
+                    use_target_col = True
                 else:
-                    has_ref_col = np.array([(y[0] == target_col) for y in gp_cand], dtype=bool)
-                    ref_check = np.any(has_ref_col)
-                if (ref_check and
+                    has_tgt_col = np.array([(y[0] == target_col) for y in gp_cand], dtype=bool)
+                    use_target_col = np.any(has_tgt_col)
+                if (use_target_col and
                         (len(gp_cand) == len(gi_o) + 1) and
                         (not (all_candidates != [] and gp_cand in all_candidates)) and
                         (not (all_candidates != [] and inv_gp_cand in all_candidates))):

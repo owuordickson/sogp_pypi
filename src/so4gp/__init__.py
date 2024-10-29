@@ -3,9 +3,10 @@ from .data_gp import DataGP
 from .gradual_patterns import ExtGP
 from .gradual_patterns import GI
 from .gradual_patterns import GP
-from .gradual_patterns import NumericSS
+from .gradual_patterns import TGP
 from .gradual_patterns import TimeDelay
 
+from .so4gp import NumericSS
 from .so4gp import ClusterGP
 from .so4gp import GRAANK
 from .so4gp import AntGRAANK
@@ -20,7 +21,7 @@ from .miscellaneous import get_slurm_cores
 from .miscellaneous import write_file
 
 # Project Details
-__version__ = "0.4.7"
+__version__ = "0.4.9"
 __title__ = f"so4gp (v{__version__})"
 __author__ = "Dickson Owuor"
 __credits__ = "Montpellier University"

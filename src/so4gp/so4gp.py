@@ -2014,7 +2014,9 @@ class TGrad(GRAANK):
     def get_fuzzy_time_lag(self, bin_data: np.ndarray, time_diffs: dict, gi_arr: set = None):
         """
 
-        A method that uses fuzzy-logic to select the most accurate time-delay value.
+        A method that uses fuzzy membership function to select the most accurate time-delay value. We implement two
+        methods: (1) uses classical slide and re-calculate dynamic programming to find best time-delay value and,
+        (2) uses metaheuristic hill-climbing to find the best time-delay value.
 
         :param bin_data: gradual item pairwise matrix.
         :param time_diffs: time-delay values.
@@ -2025,17 +2027,41 @@ class TGrad(GRAANK):
         # 1. Get Indices
         indices = np.argwhere(bin_data == 1)
 
-        # 2. Get TimeDelays
-        pat_indices_flat = np.unique(indices.flatten())
-        time_lags = list()
-        for row, stamp_diff in time_diffs.items():  # {row: time-lag-stamp}
-            if int(row) in pat_indices_flat:
-                time_lags.append(stamp_diff)
-        time_lags = np.array(time_lags)
+        # 2. Get TimeDelay Array
+        selected_rows = np.unique(indices.flatten())
+        selected_cols = []
+        for obj in gi_arr:
+            # Ignore target-col and, remove time-cols and target-col from count
+            col = int(obj[0])
+            if (col != self.target_col) and (col < self.target_col):
+                selected_cols.append(col - (len(self.time_cols)))
+            elif (col != self.target_col) and (col > self.target_col):
+                selected_cols.append(col - (len(self.time_cols) + 1))
+        selected_cols = np.array(selected_cols, dtype=int)
+        t_lag_arr = time_diffs[np.ix_(selected_cols, selected_rows)]
 
-        # 3. Approximate TimeDelay using Fuzzy Membership
-        time_lag = TGrad.__approximate_fuzzy_time_lag__(time_lags)
-        return time_lag
+        # 3. Approximate TimeDelay value
+        best_time_lag = TimeDelay(-1, 0)
+        if isinstance(self, TGradAMI):
+            # 3b. Learn the best MF through slide-descent/sliding
+            a, b, c = self.tri_mf_data
+            fuzzy_set = []
+            for t_lags in t_lag_arr:
+                init_bias = abs(b - np.median(t_lags))
+                slide_val, loss = TGradAMI.select_mf_hill_climbing(a, b, c, t_lags, initial_bias=init_bias)
+                tstamp = int(b - slide_val)
+                sup = float(1 - loss)
+                fuzzy_set.append([tstamp, float(loss)])
+                if sup >= best_time_lag.support and tstamp > best_time_lag.timestamp:
+                    best_time_lag = TimeDelay(tstamp, sup)
+        else:
+            # 3a. Approximate TimeDelay using Fuzzy Membership
+            for t_lags in t_lag_arr:
+                time_lag = TGrad.approx_time_slide_calculate(t_lags)
+                if time_lag.support >= best_time_lag.support:
+                    best_time_lag = time_lag
+
+        return best_time_lag
 
     @staticmethod
     def get_timestamp(time_str: str):
@@ -2076,7 +2102,7 @@ class TGrad(GRAANK):
             return 0
 
     @staticmethod
-    def __approximate_fuzzy_time_lag__(time_lags: np.ndarray):
+    def approx_time_slide_calculate(time_lags: np.ndarray):
         """
 
         A method that selects the most appropriate time-delay value from a list of possible values.

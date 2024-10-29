@@ -3,6 +3,15 @@ RELEASE HISTORY
 ***************
 
 
+0.5.1 (2024-10-29)
+---------------------------
+
+**Bug fix**
+
+* Bug fix on get_fuzzy_time_lag - wrong parameter type
+
+
+
 0.5.0 (2024-10-29)
 ---------------------------
 

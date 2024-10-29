@@ -1932,7 +1932,7 @@ class TGrad(GRAANK):
         A method that computes the difference between 2 timestamps separated by a specific transformation step.
 
         :param step: data transformation step.
-        :return: set of time delay values
+        :return: dict of time delay values
         """
         size = self.row_count
         time_diffs = {}  # {row: time-lag}
@@ -1959,7 +1959,7 @@ class TGrad(GRAANK):
                 time_diffs[int(i)] = float(abs(time_diff))
         return True, time_diffs
 
-    def discover(self, t_diffs: dict = None, attr_data: np.ndarray = None):
+    def discover(self, t_diffs: np.ndarray | dict = None, attr_data: np.ndarray = None):
         """
 
         Uses apriori algorithm to find GP candidates based on the target-attribute. The candidates are validated if
@@ -2011,7 +2011,7 @@ class TGrad(GRAANK):
                     i += 1
         return gradual_patterns
 
-    def get_fuzzy_time_lag(self, bin_data: np.ndarray, time_diffs: dict, gi_arr: set = None):
+    def get_fuzzy_time_lag(self, bin_data: np.ndarray, time_diffs: np.ndarray | dict, gi_arr: set = None):
         """
 
         A method that uses fuzzy membership function to select the most accurate time-delay value. We implement two
@@ -2029,16 +2029,23 @@ class TGrad(GRAANK):
 
         # 2. Get TimeDelay Array
         selected_rows = np.unique(indices.flatten())
-        selected_cols = []
-        for obj in gi_arr:
-            # Ignore target-col and, remove time-cols and target-col from count
-            col = int(obj[0])
-            if (col != self.target_col) and (col < self.target_col):
-                selected_cols.append(col - (len(self.time_cols)))
-            elif (col != self.target_col) and (col > self.target_col):
-                selected_cols.append(col - (len(self.time_cols) + 1))
-        selected_cols = np.array(selected_cols, dtype=int)
-        t_lag_arr = time_diffs[np.ix_(selected_cols, selected_rows)]
+        if isinstance(self, TGradAMI):
+            selected_cols = []
+            for obj in gi_arr:
+                # Ignore target-col and, remove time-cols and target-col from count
+                col = int(obj[0])
+                if (col != self.target_col) and (col < self.target_col):
+                    selected_cols.append(col - (len(self.time_cols)))
+                elif (col != self.target_col) and (col > self.target_col):
+                    selected_cols.append(col - (len(self.time_cols) + 1))
+            selected_cols = np.array(selected_cols, dtype=int)
+            t_lag_arr = time_diffs[np.ix_(selected_cols, selected_rows)]
+        else:
+            time_lags = []
+            for row, stamp_diff in time_diffs.items():  # {row: time-lag-stamp}
+                if int(row) in selected_rows:
+                    time_lags.append(stamp_diff)
+            t_lag_arr = np.array(time_lags)
 
         # 3. Approximate TimeDelay value
         best_time_lag = TimeDelay(-1, 0)
@@ -2056,10 +2063,7 @@ class TGrad(GRAANK):
                     best_time_lag = TimeDelay(tstamp, sup)
         else:
             # 3a. Approximate TimeDelay using Fuzzy Membership
-            for t_lags in t_lag_arr:
-                time_lag = TGrad.approx_time_slide_calculate(t_lags)
-                if time_lag.support >= best_time_lag.support:
-                    best_time_lag = time_lag
+            best_time_lag = TGrad.approx_time_slide_calculate(t_lag_arr)
 
         return best_time_lag
 

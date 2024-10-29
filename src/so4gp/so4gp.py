@@ -40,100 +40,14 @@ import json
 import time
 import random
 import numpy as np
+import skfuzzy as fuzzy
+import multiprocessing as mp
 from ypstruct import structure
 from sklearn.cluster import KMeans
 
 from .__configs__ import *
 from .data_gp import DataGP
-from .gradual_patterns import GI, ExtGP
-
-
-class NumericSS:
-    """Description of class NumericSS (Numeric Search Space)
-
-    A class that implements functions that allow swarm algorithms to explore a numeric search space.
-
-    The class NumericSS has the following functions:
-        decode_gp: decodes a GP from a numeric position
-        cost_function: computes the fitness of a GP
-        apply_bound: applies minimum and maximum values
-
-    """
-
-    def __init__(self):
-        pass
-
-    @staticmethod
-    def decode_gp(attr_keys, position):
-        """Description
-
-        Decodes a numeric value (position) into a GP
-
-        :param attr_keys: list of attribute keys
-        :param position: a value in the numeric search space
-        :return: GP that is decoded from the position value
-        """
-
-        temp_gp = ExtGP()
-        ":type temp_gp: ExtGP"
-        if position is None:
-            return temp_gp
-
-        bin_str = bin(int(position))[2:]
-        bin_arr = np.array(list(bin_str), dtype=int)
-
-        for i in range(bin_arr.size):
-            bin_val = bin_arr[i]
-            if bin_val == 1:
-                gi = GI.parse_gi(attr_keys[i])
-                if not temp_gp.contains_attr(gi):
-                    temp_gp.add_gradual_item(gi)
-        return temp_gp
-
-    @staticmethod
-    def cost_function(position, attr_keys, d_set):
-        """Description
-
-        Computes the fitness of a GP
-
-        :param position: a value in the numeric search space
-        :param attr_keys: list of attribute keys
-        :param d_set: a DataGP object
-        :return: a floating point value that represents the fitness of the position
-        """
-
-        pattern = NumericSS.decode_gp(attr_keys, position)
-        temp_bin = np.array([])
-        for gi in pattern.gradual_items:
-            arg = np.argwhere(np.isin(d_set.valid_bins[:, 0], gi.gradual_item))
-            if len(arg) > 0:
-                i = arg[0][0]
-                valid_bin = d_set.valid_bins[i]
-                if temp_bin.size <= 0:
-                    temp_bin = valid_bin[1].copy()
-                else:
-                    temp_bin = np.multiply(temp_bin, valid_bin[1])
-        bin_sum = np.sum(temp_bin)
-        if bin_sum > 0:
-            cost = (1 / bin_sum)
-        else:
-            cost = 1
-        return cost
-
-    @staticmethod
-    def apply_bound(x, var_min, var_max):
-        """Description
-
-        Modifies x (a numeric value) if it exceeds the lower/upper bound of the numeric search space.
-
-        :param x: a value in the numeric search space
-        :param var_min: lower-bound value
-        :param var_max: upper-bound value
-        :return: nothing
-        """
-
-        x.position = np.maximum(x.position, var_min)
-        x.position = np.minimum(x.position, var_max)
+from .gradual_patterns import GI, ExtGP, TGP, TimeDelay
 
 
 class AntGRAANK(DataGP):
@@ -217,9 +131,13 @@ class AntGRAANK(DataGP):
         """
         super(AntGRAANK, self).__init__(*args)
         self.evaporation_factor = e_factor
+        """:type evaporation_factor: float"""
         self.max_iteration = max_iter
+        """type: max_iteration: int"""
         self.distance_matrix = None
+        """:type distance_matrix: numpy.ndarray | None"""
         self.attribute_keys = None
+        """:type attribute_keys: list | None"""
 
     def _fit(self):
         """Description
@@ -254,7 +172,8 @@ class AntGRAANK(DataGP):
 
         Generates GP candidates based on the pheromone levels.
 
-        :param p_matrix: pheromone matrix (ndarray)
+        :param p_matrix: pheromone matrix
+        :type p_matrix: np.ndarray
         :return: pheromone matrix (ndarray)
         """
         v_matrix = self.distance_matrix
@@ -289,7 +208,10 @@ class AntGRAANK(DataGP):
         Updates the pheromone level of the pheromone matrix
 
         :param pattern: pattern used to update values
+        :type pattern: so4gp.ExtGP
+
         :param p_matrix: an existing pheromone matrix
+        :type p_matrix: numpy.ndarray
         :return: updated pheromone matrix
         """
         idx = [self.attribute_keys.index(x.as_string()) for x in pattern.gradual_items]
@@ -472,22 +394,15 @@ class ClusterGP(DataGP):
         """:type erasure_probability: float"""
         self.max_iteration = max_iter
         """:type max_iteration: int"""
-        if not no_prob:
-            self.gradual_items, self.cum_wins, self.net_win_mat, self.ij = self._construct_matrices(e_prob)
-            """:type gradual_items: np.ndarray"""
-            """:type cum_wins: np.ndarray"""
-            """:type net_win_mat: np.ndarray"""
-            """:type ij: np.ndarray"""
-            self.win_mat = np.array([])
-            """:type win_mat: np.ndarray"""
-        else:
+        self.gradual_items, self.cum_wins, self.net_win_mat, self.ij = self._construct_matrices(e_prob)
+        """:type gradual_items: np.ndarray"""
+        """:type cum_wins: np.ndarray"""
+        """:type net_win_mat: np.ndarray"""
+        """:type ij: np.ndarray"""
+        self.win_mat = np.array([])
+        """:type win_mat: np.ndarray"""
+        if no_prob:
             self.gradual_items, self.win_mat, self.cum_wins, self.net_win_mat, self.ij = self._construct_all_matrices()
-            """:type gradual_items: np.ndarray"""
-            """:type win_mat: np.ndarray"""
-            """:type cum_wins: np.ndarray"""
-            """:type net_win_mat: np.ndarray"""
-            # """:type nodes_mat: np.ndarray"""
-            """:type ij: np.ndarray"""
 
     def _construct_matrices(self, e):
         """Description
@@ -740,6 +655,8 @@ class ClusterGP(DataGP):
         A function that estimates the frequency support of a GP based on its score vector.
 
         :param score_vectors: score vector (ndarray)
+        :type score_vectors: list
+
         :return: estimated support (float)
         """
 
@@ -911,13 +828,19 @@ class GeneticGRAANK(DataGP):
         """
         super(GeneticGRAANK, self).__init__(*args)
         self.max_iteration = max_iter
+        """type: max_iteration: int"""
         self.n_pop = n_pop
+        """type: n_pop: int"""
         self.pc = pc
+        """type: pc: float"""
         self.gamma = gamma
+        """type: gamma: float"""
         self.mu = mu
+        """type: mu: float"""
         self.sigma = sigma
+        """type: sigma: float"""
 
-    def _crossover(self, p1, p2):
+    def _crossover(self, p1: structure, p2: structure):
         """Description
 
         Crosses over the genes of 2 parents (an individual with a specific position and cost) in order to generate 2
@@ -934,7 +857,7 @@ class GeneticGRAANK(DataGP):
         c2.position = alpha * p2.position + (1 - alpha) * p1.position
         return c1, c2
 
-    def _mutate(self, x):
+    def _mutate(self, x: structure):
         """Description
 
         Mutates an individual's position in order to create a new and different individual.
@@ -1144,7 +1067,7 @@ class GRAANK(DataGP):
 
         """
 
-    def _gen_apriori_candidates(self, gi_bins, target_col=None):
+    def _gen_apriori_candidates(self, gi_bins: list, target_col: int =None):
         """Description
 
         Generates Apriori GP candidates (w.r.t target-column/reference-column if available)
@@ -1316,7 +1239,9 @@ class HillClimbingGRAANK(DataGP):
         """
         super(HillClimbingGRAANK, self).__init__(*args)
         self.step_size = step_size
+        """type: step_size: int"""
         self.max_iteration = max_iter
+        """type: max_iteration: int"""
 
     def discover(self):
         """Description
@@ -1412,6 +1337,94 @@ class HillClimbingGRAANK(DataGP):
         return out
 
 
+class NumericSS:
+    """Description of class NumericSS (Numeric Search Space)
+
+    A class that implements functions that allow swarm algorithms to explore a numeric search space.
+
+    The class NumericSS has the following functions:
+        decode_gp: decodes a GP from a numeric position
+        cost_function: computes the fitness of a GP
+        apply_bound: applies minimum and maximum values
+
+    """
+
+    def __init__(self):
+        pass
+
+    @staticmethod
+    def decode_gp(attr_keys: list, position: float):
+        """Description
+
+        Decodes a numeric value (position) into a GP
+
+        :param attr_keys: list of attribute keys
+        :param position: a value in the numeric search space
+        :return: GP that is decoded from the position value
+        """
+
+        temp_gp = ExtGP()
+        ":type temp_gp: ExtGP"
+        if position is None:
+            return temp_gp
+
+        bin_str = bin(int(position))[2:]
+        bin_arr = np.array(list(bin_str), dtype=int)
+
+        for i in range(bin_arr.size):
+            bin_val = bin_arr[i]
+            if bin_val == 1:
+                gi = GI.parse_gi(attr_keys[i])
+                if not temp_gp.contains_attr(gi):
+                    temp_gp.add_gradual_item(gi)
+        return temp_gp
+
+    @staticmethod
+    def cost_function(position: float, attr_keys: list, d_set: DataGP):
+        """Description
+
+        Computes the fitness of a GP
+
+        :param position: a value in the numeric search space
+        :param attr_keys: list of attribute keys
+        :param d_set: a DataGP object
+        :return: a floating point value that represents the fitness of the position
+        """
+
+        pattern = NumericSS.decode_gp(attr_keys, position)
+        temp_bin = np.array([])
+        for gi in pattern.gradual_items:
+            arg = np.argwhere(np.isin(d_set.valid_bins[:, 0], gi.gradual_item))
+            if len(arg) > 0:
+                i = arg[0][0]
+                valid_bin = d_set.valid_bins[i]
+                if temp_bin.size <= 0:
+                    temp_bin = valid_bin[1].copy()
+                else:
+                    temp_bin = np.multiply(temp_bin, valid_bin[1])
+        bin_sum = np.sum(temp_bin)
+        if bin_sum > 0:
+            cost = (1 / bin_sum)
+        else:
+            cost = 1
+        return cost
+
+    @staticmethod
+    def apply_bound(x: structure, var_min: int, var_max: int):
+        """Description
+
+        Modifies x (a numeric value) if it exceeds the lower/upper bound of the numeric search space.
+
+        :param x: a value in the numeric search space
+        :param var_min: lower-bound value
+        :param var_max: upper-bound value
+        :return: nothing
+        """
+
+        x.position = np.maximum(x.position, var_min)
+        x.position = np.minimum(x.position, var_max)
+
+
 class ParticleGRAANK(DataGP):
     """Description
 
@@ -1497,10 +1510,15 @@ class ParticleGRAANK(DataGP):
         """
         super(ParticleGRAANK, self).__init__(*args)
         self.max_iteration = max_iter
+        """type: max_iteration: int"""
         self.n_particles = n_particle
+        """type: n_particles: int"""
         self.velocity = vel
+        """type: velocity: float"""
         self.coeff_p = coeff_p
+        """type: coeff_p: float"""
         self.coeff_g = coeff_g
+        """type: coeff_g: float"""
 
     def discover(self):
         """Description
@@ -1685,6 +1703,7 @@ class RandomGRAANK(DataGP):
         """
         super(RandomGRAANK, self).__init__(*args)
         self.max_iteration = max_iter
+        """type: max_iteration: int"""
 
     def discover(self):
         """Description
@@ -1773,3 +1792,329 @@ class RandomGRAANK(DataGP):
         """:type out: object"""
         self.gradual_patterns = best_patterns
         return out
+
+
+class TGrad(GRAANK):
+    """Description of class TGrad.
+
+    TGrad is an algorithm that is used to extract temporal gradual patterns from numeric datasets. An algorithm for
+    mining temporal gradual patterns using fuzzy membership functions. It uses technique published
+    in: https://ieeexplore.ieee.org/abstract/document/8858883.
+
+    """
+
+    def __init__(self, f_path: str, eq: bool, min_sup: float, target_col: int, min_rep: float, num_cores: int):
+        """
+        TGrad is an algorithm that is used to extract temporal gradual patterns from numeric datasets.
+
+        :param f_path: path to ddtaset file
+        :param eq: are equal object considered in GP matrix.
+        :param min_sup: minimum support value.
+        :param target_col: Target column.
+        :param min_rep: minimum representativity value.
+        :param num_cores: number of cores to use.
+
+        >>> import so4gp as sgp
+        >>> import pandas
+        >>> dummy_data = [["2021-03", 30, 3, 1, 10], ["2021-03", 35, 2, 2, 8], ["2021-03", 40, 4, 2, 7], ["2021-03", 50, 1, 1, 6], ["2021-03", 52, 7, 1, 2]]
+        >>> dummy_df = pandas.DataFrame(dummy_data, columns=['Date', 'Age', 'Salary', 'Cars', 'Expenses'])
+        >>>
+        >>> mine_obj = sgp.TGrad(dummy_df, min_sup=0.5, target_col=1, min_rep=0.5)
+        >>> result_json = mine_obj.discover_tgp(parallel=True)
+        >>> print(result_json)
+        """
+
+        super(TGrad, self).__init__(data_source=f_path, min_sup=min_sup, eq=eq)
+        self.target_col = target_col
+        """:type: target_col: int"""
+        self.min_rep = min_rep
+        """:type: min_rep: float"""
+        self.max_step = self.row_count - int(min_rep * self.row_count)
+        """:type: max_step: int"""
+        self.full_attr_data = self.data.copy().T
+        """:type: full_attr_data: numpy.ndarray"""
+        self.cores = num_cores
+        """:type: cores int"""
+        if len(self.time_cols) > 0:
+            print("Dataset Ok")
+            self.time_ok = True
+            """:type: time_ok: bool"""
+        else:
+            print("Dataset Error")
+            self.time_ok = False
+            """:type: time_ok: bool"""
+            raise Exception('No date-time datasets found')
+
+    def discover_tgp(self, parallel: bool = False):
+        """
+
+        Applies fuzzy-logic, data transformation and gradual pattern mining to mine for Fuzzy Temporal Gradual Patterns.
+
+        :param parallel: allow multi-processing.
+        :return: list
+        """
+
+        if parallel:
+            # implement parallel multi-processing
+            steps = range(self.max_step)
+            pool = mp.Pool(self.cores)
+            patterns = pool.map(self.transform_and_mine, steps)
+            pool.close()
+            pool.join()
+            return patterns
+        else:
+            patterns = list()
+            for step in range(self.max_step):
+                t_gps = self.transform_and_mine(step + 1)  # because for-loop is not inclusive from range: 0 - max_step
+                if t_gps:
+                    patterns.append(t_gps)
+            return patterns
+
+    def transform_and_mine(self, step: int, return_patterns: bool = True):
+        """
+        A method that: (1) transforms data according to a step value and, (2) mines the transformed data for FTGPs.
+
+        :param step: data transformation step.
+        :param return_patterns: allow method to mine TGPs.
+        :return: list of TGPs
+        """
+        # NB: Restructure dataset based on target/reference col
+        if self.time_ok:
+            # 1. Calculate time difference using step
+            ok, time_diffs = self.get_time_diffs(step)
+            if not ok:
+                msg = "Error: Time in row " + str(time_diffs[0]) \
+                      + " or row " + str(time_diffs[1]) + " is not valid."
+                raise Exception(msg)
+            else:
+                tgt_col = self.target_col
+                if tgt_col in self.time_cols:
+                    msg = "Target column is a 'date-time' attribute"
+                    raise Exception(msg)
+                elif (tgt_col < 0) or (tgt_col >= self.col_count):
+                    msg = "Target column does not exist\nselect column between: " \
+                          "0 and " + str(self.col_count - 1)
+                    raise Exception(msg)
+                else:
+                    # 2. Transform datasets
+                    delayed_attr_data = None
+                    n = self.row_count
+                    for col_index in range(self.col_count):
+                        # Transform the datasets using (row) n+step
+                        if (col_index == tgt_col) or (col_index in self.time_cols):
+                            # date-time column OR target column
+                            temp_row = self.full_attr_data[col_index][0: (n - step)]
+                        else:
+                            # other attributes
+                            temp_row = self.full_attr_data[col_index][step: n]
+
+                        delayed_attr_data = temp_row if (delayed_attr_data is None) \
+                            else np.vstack((delayed_attr_data, temp_row))
+                    # print(f"Time Diffs: {time_diffs}\n")
+                    # print(f"{self.full_attr_data}: {type(self.full_attr_data)}\n")
+                    # print(f"{delayed_attr_data}: {type(delayed_attr_data)}\n")
+
+                    if return_patterns:
+                        # 2. Execute t-graank for each transformation
+                        t_gps = self.discover(t_diffs=time_diffs, attr_data=delayed_attr_data)
+                        if len(t_gps) > 0:
+                            return t_gps
+                        return False
+                    else:
+                        return delayed_attr_data, time_diffs
+        else:
+            msg = "Fatal Error: Time format in column could not be processed"
+            raise Exception(msg)
+
+    def get_time_diffs(self, step: int):  # optimized
+        """
+
+        A method that computes the difference between 2 timestamps separated by a specific transformation step.
+
+        :param step: data transformation step.
+        :return: set of time delay values
+        """
+        size = self.row_count
+        time_diffs = {}  # {row: time-lag}
+        for i in range(size):
+            if i < (size - step):
+                stamp_1 = 0
+                stamp_2 = 0
+                for col in self.time_cols:  # sum timestamps from all time-columns
+                    temp_1 = str(self.data[i][int(col)])
+                    temp_2 = str(self.data[i + step][int(col)])
+                    temp_stamp_1 = TGrad.get_timestamp(temp_1)
+                    temp_stamp_2 = TGrad.get_timestamp(temp_2)
+                    if (not temp_stamp_1) or (not temp_stamp_2):
+                        # Unable to read time
+                        return False, [i + 1, i + step + 1]
+                    else:
+                        stamp_1 += temp_stamp_1
+                        stamp_2 += temp_stamp_2
+                time_diff = (stamp_2 - stamp_1)
+                # if time_diff < 0:
+                # Error time CANNOT go backwards
+                # print(f"Problem {i} and {i + step} - {self.time_cols}")
+                #    return False, [i + 1, i + step + 1]
+                time_diffs[int(i)] = float(abs(time_diff))
+        return True, time_diffs
+
+    def discover(self, t_diffs: dict = None, attr_data: np.ndarray = None):
+        """
+
+        Uses apriori algorithm to find GP candidates based on the target-attribute. The candidates are validated if
+        their computed support is greater than or equal to the minimum support threshold specified by the user.
+
+        :param t_diffs: time-delay values
+        :param attr_data: the transformed data.
+        :return: temporal-GPs as a list.
+        """
+
+        self.fit_bitmap(attr_data)
+
+        gradual_patterns = []
+        """:type gradual_patterns: list"""
+        n = self.attr_size
+        valid_bins = self.valid_bins
+
+        invalid_count = 0
+        while len(valid_bins) > 0:
+            valid_bins, inv_count = self._gen_apriori_candidates(valid_bins, self.target_col)
+            invalid_count += inv_count
+            i = 0
+            while i < len(valid_bins) and valid_bins != []:
+                gi_arr = valid_bins[i][0]
+                bin_data = valid_bins[i][1]
+                sup = float(np.sum(np.array(bin_data))) / float(n * (n - 1.0) / 2.0)
+                if sup < self.thd_supp:
+                    del valid_bins[i]
+                    invalid_count += 1
+                else:
+                    # Remove subsets
+                    gradual_patterns = TGP.remove_subsets(gradual_patterns, set(gi_arr))
+
+                    t_lag = self.get_fuzzy_time_lag(bin_data, t_diffs, gi_arr)
+                    if t_lag.valid:
+                        tgp = TGP()
+                        """:type gp: TGP"""
+                        for obj in gi_arr:
+                            gi = GI(obj[0], obj[1].decode())
+                            """:type gi: GI"""
+                            if gi.attribute_col == self.target_col:
+                                tgp.add_target_gradual_item(gi)
+                            else:
+                                tgp.add_temporal_gradual_item(gi, t_lag)
+                        tgp.set_support(sup)
+                        gradual_patterns.append(tgp)
+                    # else:
+                    #    print(f"{t_lag.timestamp} - {gi_arr}")
+                    i += 1
+        return gradual_patterns
+
+    def get_fuzzy_time_lag(self, bin_data: np.ndarray, time_diffs: dict, gi_arr: set = None):
+        """
+
+        A method that uses fuzzy-logic to select the most accurate time-delay value.
+
+        :param bin_data: gradual item pairwise matrix.
+        :param time_diffs: time-delay values.
+        :param gi_arr: gradual item object.
+        :return: TimeDelay object.
+        """
+
+        # 1. Get Indices
+        indices = np.argwhere(bin_data == 1)
+
+        # 2. Get TimeDelays
+        pat_indices_flat = np.unique(indices.flatten())
+        time_lags = list()
+        for row, stamp_diff in time_diffs.items():  # {row: time-lag-stamp}
+            if int(row) in pat_indices_flat:
+                time_lags.append(stamp_diff)
+        time_lags = np.array(time_lags)
+
+        # 3. Approximate TimeDelay using Fuzzy Membership
+        time_lag = TGrad.__approximate_fuzzy_time_lag__(time_lags)
+        return time_lag
+
+    @staticmethod
+    def get_timestamp(time_str: str):
+        """
+
+        A method that computes the corresponding timestamp from a DateTime string.
+
+        :param time_str: DateTime value as a string
+        :return: timestamp value
+        """
+        try:
+            ok, stamp = DataGP.test_time(time_str)
+            if ok:
+                return stamp
+            else:
+                return False
+        except ValueError:
+            return False
+
+    @staticmethod
+    def triangular_mf(x: float, a: float, b: float, c: float):
+        """
+
+        A method that implements the fuzzy triangular membership function and computes the membership degree of value w.r.t
+        the MF.
+
+        :param x: value to be tested.
+        :param a: left-side/minimum boundary of the triangular membership function.
+        :param b: center value of the triangular membership function.
+        :param c: maximum boundary value of the triangular membership function.
+        :return: membership degree of value x.
+        """
+        if a <= x <= b:
+            return (x - a) / (b - a)
+        elif b <= x <= c:
+            return (c - x) / (c - b)
+        else:
+            return 0
+
+    @staticmethod
+    def __approximate_fuzzy_time_lag__(time_lags: np.ndarray):
+        """
+
+        A method that selects the most appropriate time-delay value from a list of possible values.
+
+        :param time_lags: an array of all the possible time-delay values.
+        :return: the approximated TimeDelay object.
+        """
+
+        if len(time_lags) <= 0:
+            # if time_lags is blank return nothing
+            return TimeDelay()
+        else:
+            time_lags = np.absolute(np.array(time_lags))
+            min_a = np.min(time_lags)
+            max_c = np.max(time_lags)
+            count = time_lags.size + 3
+            tot_boundaries = np.linspace(min_a / 2, max_c + 1, num=count)
+
+            sup1 = 0
+            center = time_lags[0]
+            size = len(tot_boundaries)
+            for i in range(0, size, 2):
+                if (i + 3) <= size:
+                    boundaries = tot_boundaries[i:i + 3:1]
+                else:
+                    boundaries = tot_boundaries[size - 3:size:1]
+                memberships = fuzzy.membership.trimf(time_lags, boundaries)
+
+                # Compute Support
+                sup_count = np.count_nonzero(memberships > 0)
+                total = memberships.size
+                sup = sup_count / total
+                # sup = calculate_support(memberships)
+
+                if sup > sup1:
+                    sup1 = sup
+                    center = boundaries[1]
+                if sup >= 0.5:
+                    print(boundaries[1])
+                    return TimeDelay(int(boundaries[1]), sup)
+            return TimeDelay(center, sup1)

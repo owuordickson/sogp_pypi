@@ -698,7 +698,7 @@ class TGP(ExtGP):
 
         >>> import so4gp as sgp
         >>> t_gp = sgp.TGP()
-        >>> t_gp.target_gradual_item(sgp.GI(1, "+"))
+        >>> t_gp.add_target_gradual_item(sgp.GI(1, "+"))
         >>> t_gp.temporal_gradual_items(sgp.GI(2, "-"), sgp.TimeDelay(7200, 0.8))
         >>> t_gp.to_string()
         """
@@ -806,7 +806,7 @@ class TimeDelay:
         self.sign = self._get_sign()
         """type: sign: str"""
         self.formatted_time = {}
-        """type: formatted_time: set"""
+        """type: formatted_time: dict"""
         if tstamp != 0:
             time_arr = self._format_time()
             self.formatted_time = {'value': time_arr[0], 'duration': time_arr[1]}

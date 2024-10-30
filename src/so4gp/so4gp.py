@@ -1074,7 +1074,7 @@ class GRAANK(DataGP):
         :param gi_bins: GI together with bitmaps
         :return:
         """
-        sup = self.thd_supp
+        min_sup = self.thd_supp
         n = self.attr_size
 
         invalid_count = 0
@@ -1114,9 +1114,9 @@ class GRAANK(DataGP):
                             repeated_attr = k[0]
                     if test == 1:
                         m = gi_bins[i][1] * gi_bins[j][1]
-                        t = float(np.sum(m)) / float(n * (n - 1.0) / 2.0)
-                        if t > sup:
-                            res.append([gp_cand, m])
+                        sup = float(np.sum(m)) / float(n * (n - 1.0) / 2.0)
+                        if sup > min_sup:
+                            res.append([gp_cand, m, sup])
                         else:
                             invalid_count += 1
                     all_candidates.append(gp_cand)
@@ -1137,35 +1137,27 @@ class GRAANK(DataGP):
         self.gradual_patterns = []
         """:type patterns: GP list"""
         str_winner_gps = []
-        n = self.attr_size
         valid_bins = self.valid_bins
 
         invalid_count = 0
         while len(valid_bins) > 0:
             valid_bins, inv_count = self._gen_apriori_candidates(valid_bins)
             invalid_count += inv_count
-            i = 0
-            while i < len(valid_bins) and valid_bins != []:
-                gi_arr = valid_bins[i][0]
-                bin_data = valid_bins[i][1]
-                sup = float(np.sum(np.array(bin_data))) / float(n * (n - 1.0) / 2.0)
-                if sup < self.thd_supp:
-                    del valid_bins[i]
-                    invalid_count += 1
-                else:
-                    # Remove subsets
-                    self.gradual_patterns = ExtGP.remove_subsets(self.gradual_patterns, set(gi_arr))
+            for v_bin in valid_bins:
+                gi_arr = v_bin[0]
+                # bin_data = v_bin[1]
+                sup = v_bin[2]
+                self.gradual_patterns = ExtGP.remove_subsets(self.gradual_patterns, set(gi_arr))
 
-                    gp = ExtGP()
-                    """:type gp: ExtGP"""
-                    for obj in gi_arr:
-                        gi = GI(obj[0], obj[1].decode())
-                        """:type gi: GI"""
-                        gp.add_gradual_item(gi)
-                    gp.set_support(sup)
-                    self.gradual_patterns.append(gp)
-                    str_winner_gps.append(gp.print(self.titles))
-                    i += 1
+                gp = ExtGP()
+                """:type gp: ExtGP"""
+                for obj in gi_arr:
+                    gi = GI(obj[0], obj[1].decode())
+                    """:type gi: GI"""
+                    gp.add_gradual_item(gi)
+                gp.set_support(sup)
+                self.gradual_patterns.append(gp)
+                str_winner_gps.append(gp.print(self.titles))
         # Output
         out = json.dumps({"Algorithm": "GRAANK", "Patterns": str_winner_gps, "Invalid Count": invalid_count})
         """:type out: object"""
@@ -1974,41 +1966,31 @@ class TGrad(GRAANK):
 
         gradual_patterns = []
         """:type gradual_patterns: list"""
-        n = self.attr_size
         valid_bins = self.valid_bins
 
         invalid_count = 0
         while len(valid_bins) > 0:
             valid_bins, inv_count = self._gen_apriori_candidates(valid_bins, self.target_col)
             invalid_count += inv_count
-            i = 0
-            while i < len(valid_bins) and valid_bins != []:
-                gi_arr = valid_bins[i][0]
-                bin_data = valid_bins[i][1]
-                sup = float(np.sum(np.array(bin_data))) / float(n * (n - 1.0) / 2.0)
-                if sup < self.thd_supp:
-                    del valid_bins[i]
-                    invalid_count += 1
-                else:
-                    # Remove subsets
-                    gradual_patterns = TGP.remove_subsets(gradual_patterns, set(gi_arr))
+            for v_bin in valid_bins:
+                gi_arr = v_bin[0]
+                bin_data = v_bin[1]
+                sup = v_bin[2]
+                gradual_patterns = TGP.remove_subsets(gradual_patterns, set(gi_arr))
+                t_lag = self.get_fuzzy_time_lag(bin_data, t_diffs, gi_arr)
 
-                    t_lag = self.get_fuzzy_time_lag(bin_data, t_diffs, gi_arr)
-                    if t_lag.valid:
-                        tgp = TGP()
-                        """:type gp: TGP"""
-                        for obj in gi_arr:
-                            gi = GI(obj[0], obj[1].decode())
-                            """:type gi: GI"""
-                            if gi.attribute_col == self.target_col:
-                                tgp.add_target_gradual_item(gi)
-                            else:
-                                tgp.add_temporal_gradual_item(gi, t_lag)
-                        tgp.set_support(sup)
-                        gradual_patterns.append(tgp)
-                    # else:
-                    #    print(f"{t_lag.timestamp} - {gi_arr}")
-                    i += 1
+                if t_lag.valid:
+                    tgp = TGP()
+                    """:type gp: TGP"""
+                    for obj in gi_arr:
+                        gi = GI(obj[0], obj[1].decode())
+                        """:type gi: GI"""
+                        if gi.attribute_col == self.target_col:
+                            tgp.add_target_gradual_item(gi)
+                        else:
+                            tgp.add_temporal_gradual_item(gi, t_lag)
+                    tgp.set_support(sup)
+                    gradual_patterns.append(tgp)
         return gradual_patterns
 
     def get_fuzzy_time_lag(self, bin_data: np.ndarray, time_diffs: np.ndarray | dict, gi_arr: set = None):
@@ -2145,6 +2127,6 @@ class TGrad(GRAANK):
                     sup1 = sup
                     center = boundaries[1]
                 if sup >= 0.5:
-                    print(boundaries[1])
+                    # print(boundaries[1])
                     return TimeDelay(int(boundaries[1]), sup)
             return TimeDelay(center, sup1)

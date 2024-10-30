@@ -15,4 +15,4 @@ if __name__ == "__main__":
     result_json = mine_obj.discover()
     print(result_json)
 
-    print(DataGP.test_time("09-01-2005"))
+    # print(DataGP.test_time("09-01-2005"))

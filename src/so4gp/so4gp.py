@@ -1993,7 +1993,7 @@ class TGrad(GRAANK):
                     gradual_patterns.append(tgp)
         return gradual_patterns
 
-    def get_fuzzy_time_lag(self, bin_data: np.ndarray, time_diffs: np.ndarray | dict, gi_arr: set = None):
+    def get_fuzzy_time_lag(self, bin_data: np.ndarray, time_diffs: np.ndarray | dict, gi_arr: set = None, use_clustering_method: bool = False):
         """
 
         A method that uses fuzzy membership function to select the most accurate time-delay value. We implement two
@@ -2003,6 +2003,7 @@ class TGrad(GRAANK):
         :param bin_data: gradual item pairwise matrix.
         :param time_diffs: time-delay values.
         :param gi_arr: gradual item object.
+        :param use_clustering_method: find and approximate best time-delay value using KMeans and Hill-climbing approach.
         :return: TimeDelay object.
         """
 
@@ -2028,10 +2029,12 @@ class TGrad(GRAANK):
                 if int(row) in selected_rows:
                     time_lags.append(stamp_diff)
             t_lag_arr = np.array(time_lags)
+            best_time_lag = TGrad.approx_time_slide_calculate(t_lag_arr)
+            return best_time_lag
 
         # 3. Approximate TimeDelay value
         best_time_lag = TimeDelay(-1, 0)
-        if isinstance(self, TGradAMI):
+        if use_clustering_method:
             # 3b. Learn the best MF through slide-descent/sliding
             a, b, c = self.tri_mf_data
             fuzzy_set = []

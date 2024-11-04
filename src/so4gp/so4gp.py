@@ -1166,25 +1166,18 @@ class GRAANK(DataGP):
         return out
 
     @staticmethod
-    def decompose_to_gp_component(pairwise_objs: np.ndarray):
+    def decompose_to_gp_component(pairwise_mat: np.ndarray):
         """
         A method that decomposes the pairwise matrix of a gradual item/pattern into a warping path. This path is the
         decomposed component of that gradual item/pattern.
 
-        :param pairwise_objs:
-        :return: dict of GP components
+        :param pairwise_mat:
+        :return: ndarray of warping path.
         """
-        gp_components = {}
-        """:type: dict"""
 
-        for pairwise_obj in pairwise_objs:
-            pairwise_mat = pairwise_obj[1]
-            attr_col = pairwise_obj[0][0]
-            attr_name = pairwise_obj[0][1].decode()
-            gi = GI(attr_col, attr_name)
-            edge_lst = [(i, j) for i, row in enumerate(pairwise_mat) for j, val in enumerate(row) if val]
-            gp_components[gi.to_string()] = edge_lst
-        return gp_components
+        edge_lst = [(i, j) for i, row in enumerate(pairwise_mat) for j, val in enumerate(row) if val]
+        """:type edge_lst: list"""
+        return edge_lst
 
 
 class HillClimbingGRAANK(DataGP):
@@ -1974,7 +1967,7 @@ class TGrad(GRAANK):
                 time_diffs[int(i)] = float(abs(time_diff))
         return True, time_diffs
 
-    def discover(self, t_diffs: np.ndarray | dict = None, attr_data: np.ndarray = None):
+    def discover(self, t_diffs: np.ndarray | dict = None, attr_data: np.ndarray = None, clustering_method: bool = False):
         """
 
         Uses apriori algorithm to find GP candidates based on the target-attribute. The candidates are validated if
@@ -1982,6 +1975,7 @@ class TGrad(GRAANK):
 
         :param t_diffs: time-delay values
         :param attr_data: the transformed data.
+        :param clustering_method: find and approximate best time-delay value using KMeans and Hill-climbing approach.
         :return: temporal-GPs as a list.
         """
 
@@ -2000,7 +1994,7 @@ class TGrad(GRAANK):
                 bin_data = v_bin[1]
                 sup = v_bin[2]
                 gradual_patterns = TGP.remove_subsets(gradual_patterns, set(gi_arr))
-                t_lag = self.get_fuzzy_time_lag(bin_data, t_diffs, gi_arr)
+                t_lag = self.get_fuzzy_time_lag(bin_data, t_diffs, gi_arr, clustering_method)
 
                 if t_lag.valid:
                     tgp = TGP()

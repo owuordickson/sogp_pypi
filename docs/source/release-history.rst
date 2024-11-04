@@ -3,6 +3,16 @@ RELEASE HISTORY
 ***************
 
 
+0.5.3 (2024-11-04)
+---------------------------
+
+**Updates**
+
+* Added class TGradAMI and method for decomposing gradual components.
+
+
+
+
 0.5.2 (2024-10-30)
 ---------------------------
 

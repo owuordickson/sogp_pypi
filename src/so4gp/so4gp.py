@@ -2029,7 +2029,7 @@ class TGrad(GRAANK):
 
         # 2. Get TimeDelay Array
         selected_rows = np.unique(indices.flatten())
-        if isinstance(self, TGradAMI):
+        if gi_arr is not None:
             selected_cols = []
             for obj in gi_arr:
                 # Ignore target-col and, remove time-cols and target-col from count

@@ -1139,7 +1139,7 @@ class GRAANK(DataGP):
         self.fit_bitmap()
 
         self.gradual_patterns = []
-        """:type patterns: GP list"""
+        """:type gradual_patterns: list(so4gp.ExtGP)"""
         str_winner_gps = []
         valid_bins = self.valid_bins
 
@@ -1860,10 +1860,15 @@ class TGrad(GRAANK):
 
         Applies fuzzy-logic, data transformation and gradual pattern mining to mine for Fuzzy Temporal Gradual Patterns.
 
-        :param parallel: allow multi-processing.
-        :return: list
+        :param parallel: allow multiprocessing.
+        :return: list of FTGPs as JSON object
         """
 
+        self.gradual_patterns = []
+        """:type: gradual_patterns: list(so4gp.TGP)"""
+        str_gps = []
+
+        # 1. Mine FTGPs
         if parallel:
             # implement parallel multi-processing
             steps = range(self.max_step)
@@ -1871,14 +1876,23 @@ class TGrad(GRAANK):
             patterns = pool.map(self.transform_and_mine, steps)
             pool.close()
             pool.join()
-            return patterns
         else:
             patterns = list()
             for step in range(self.max_step):
                 t_gps = self.transform_and_mine(step + 1)  # because for-loop is not inclusive from range: 0 - max_step
                 if t_gps:
                     patterns.append(t_gps)
-            return patterns
+
+        # 2. Organize FTGPs into a single list
+        for lst_obj in patterns:
+            if lst_obj:
+                for tgp in lst_obj:
+                    self.gradual_patterns.append(tgp)
+                    str_gps.append(tgp.print(self.titles))
+        # Output
+        out = json.dumps({"Algorithm": "TGrad", "Patterns": str_gps})
+        """:type out: object"""
+        return out
 
     def transform_and_mine(self, step: int, return_patterns: bool = True):
         """
@@ -2003,7 +2017,7 @@ class TGrad(GRAANK):
                 bin_data = v_bin[1]
                 sup = v_bin[2]
                 gradual_patterns = TGP.remove_subsets(gradual_patterns, set(gi_arr))
-                t_lag = self.get_fuzzy_time_lag(bin_data, time_delay_data, gi_arr, tri_mf_data)
+                t_lag = self.get_fuzzy_time_lag(bin_data, time_delay_data, gi_arr=None, tri_mf_data=tri_mf_data)
 
                 if t_lag.valid:
                     tgp = TGP()
@@ -2224,37 +2238,50 @@ class TGradAMI(TGrad):
         :return: initial MI and MI for transformed datasets.
         """
 
-        # 1. Compute all the MI for every time-delay and store in list
+        # 1. Compute MI for original dataset w.r.t. target-col
+        y = np.array(self.full_attr_data[self.target_col], dtype=float).T
+        x_data = np.array(self.full_attr_data[self.feature_cols], dtype=float).T
+        init_mi_info = np.array(mutual_info_regression(x_data, y), dtype=float)
+
+        # 2. Compute all the MI for every time-delay and compute error
         mi_list = []
-        for step in range(self.max_step):
+        for step in range(1, self.max_step):
+            # Compute MI
             attr_data, _ = self.transform_and_mine(step, return_patterns=False)
             y = np.array(attr_data[self.target_col], dtype=float).T
             x_data = np.array(attr_data[self.feature_cols], dtype=float).T
-            mutual_info = mutual_info_regression(x_data, y)
-            mi_list.append(mutual_info)
-        mi_arr = np.array(mi_list, dtype=float)
+            mi_vals = np.array(mutual_info_regression(x_data, y), dtype=float)
 
-        # 2. Standardize MI array
-        mi_arr[mi_arr == 0] = -1
-        initial_mutual_info = float(mi_arr[0])  # step 0 is the MI without any time delay (or step)
-        """:type initial_mutual_info: float"""
-        mutual_info_arr = mi_arr[1:]
-        """:type mutual_info_arr: numpy.ndarray"""
+            # Compute MI error
+            squared_diff = np.square(np.subtract(mi_vals, init_mi_info))
+            mse_arr = np.sqrt(squared_diff)
+            is_mi_preserved = np.all(mse_arr <= self.error_margin)
+            if is_mi_preserved:
+                optimal_dict = {int(self.feature_cols[i]): step for i in range(len(self.feature_cols))}
+                """:type optimal_dict: dict"""
+                self.mi_error = round(np.min(mse_arr), 5)
+                self.min_rep = round(((self.row_count - step) / self.row_count), 5)
+                return optimal_dict, step
+            mi_list.append(mi_vals)
+        mi_info_arr = np.array(mi_list, dtype=float)
 
-        # 3. Identify steps (for every feature w.r.t. target) with minimum error from initial MI
-        squared_diff = np.square(np.subtract(mi_arr, initial_mi))
-        absolute_error = np.sqrt(squared_diff)
-        optimal_steps_arr = np.argmin(absolute_error, axis=0)
+        # 3. Standardize MI array
+        mi_info_arr[mi_info_arr == 0] = -1
+
+        # 4. Identify steps (for every feature w.r.t. target) with minimum error from initial MI
+        squared_diff = np.square(np.subtract(mi_info_arr, init_mi_info))
+        mse_arr = np.sqrt(squared_diff)
+        # mse_arr[mse_arr < self.error_margin] = -1
+        optimal_steps_arr = np.argmin(mse_arr, axis=0)
         max_step = int(np.max(optimal_steps_arr) + 1)
         """:type max_step: int"""
 
-        # 4. Integrate feature indices with the computed steps
+        # 5. Integrate feature indices with the computed steps
         optimal_dict = {int(self.feature_cols[i]): int(optimal_steps_arr[i] + 1) for i in range(len(self.feature_cols))}
-        """:type optimal_dict: dict"""
-        # print(f"Optimal Dict: {optimal_dict}\n")  # {col: steps}
+        """:type optimal_dict: dict"""  # {col: steps}
 
-        self.mi_error = absolute_error
-        self.min_rep = (self.row_count - max_step) / self.row_count
+        self.mi_error = round(np.min(mse_arr), 5)
+        self.min_rep = round(((self.row_count - max_step) / self.row_count), 5)
         return optimal_dict, max_step
 
     def gather_delayed_data(self, optimal_dict: dict, max_step: int):
@@ -2312,8 +2339,12 @@ class TGradAMI(TGrad):
         :param parallel: allow multiprocessing.
         :param use_clustering: use clustering algorithm to estimate the best time-delay value.
         :param eval_mode: run algorithm in evaluation mode.
-        :return: list of (FTGPs) or (FTGPs and evaluation data as a Python dict) when executed in evaluation mode.
+        :return: list of (FTGPs as JSON object) or (FTGPs and evaluation data as a Python dict) when executed in evaluation mode.
         """
+
+        self.gradual_patterns = []
+        """:type: gradual_patterns: list(so4gp.TGP)"""
+        str_gps = []
 
         # 1. Compute and find the lowest mutual information
         optimal_dict, max_step = self.find_best_mutual_info()
@@ -2323,35 +2354,44 @@ class TGradAMI(TGrad):
 
         # 3. Discover temporal-GPs from time-delayed data
         if eval_mode:
-            t_gps, gp_components = self.extract_gradual_components(time_delay_data=time_data, attr_data=delayed_data,
+            list_tgp, gp_components = self.extract_gradual_components(time_delay_data=time_data, attr_data=delayed_data,
                                                                    clustering_method=use_clustering)
             """:type t_gps: list"""
         else:
-            t_gps = self.discover(time_delay_data=time_data, attr_data=delayed_data, clustering_method=use_clustering)
+            list_tgp = self.discover(time_delay_data=time_data, attr_data=delayed_data, clustering_method=use_clustering)
             """:type t_gps: list"""
             gp_components = None
 
-        if len(t_gps) > 0:
-            if eval_mode:
-                title_row = []
-                time_title = []
-                # print(eval_data)
-                for txt in self.titles:
-                    col = int(txt[0])
-                    title_row.append(str(txt[1].decode()))
-                    if (col != self.target_col) and (col not in self.time_cols):
-                        time_title.append(str(txt[1].decode()))
-                eval_dict = {
-                    'TGPs': t_gps,
-                    'Time Data': np.vstack((np.array(title_row), delayed_data.T)),
-                    'Transformed Data': np.vstack((np.array(time_title), time_data.T)),
-                    'GP Components': gp_components
-                }
-                """:type eval_dict: dict"""
-                return eval_dict
-            else:
-                return t_gps
-        return False
+        # 4. Organize FTGPs into a single list
+        if list_tgp:
+            for tgp in list_tgp:
+                self.gradual_patterns.append(tgp)
+                str_gps.append(tgp.print(self.titles))
+
+        # 5. Check if algorithm is in evaluation mode
+        if eval_mode:
+            title_row = []
+            time_title = []
+            # print(eval_data)
+            for txt in self.titles:
+                col = int(txt[0])
+                title_row.append(str(txt[1].decode()))
+                if (col != self.target_col) and (col not in self.time_cols):
+                    time_title.append(str(txt[1].decode()))
+            eval_dict = {
+                'Algorithm': 'TGradAMI',
+                'Patterns': str_gps,
+                'Time Data': np.vstack((np.array(title_row), delayed_data.T)),
+                'Transformed Data': np.vstack((np.array(time_title), time_data.T)),
+                'GP Components': gp_components
+            }
+            # Output
+            return eval_dict
+        else:
+            # Output
+            out = json.dumps({"Algorithm": "TGradAMI", "Patterns": str_gps})
+            """:type out: object"""
+            return out
 
     def extract_gradual_components(self, time_delay_data: np.ndarray | dict = None, attr_data: np.ndarray = None,
                                    clustering_method: bool = False):

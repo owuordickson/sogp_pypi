@@ -148,14 +148,22 @@ class DataGP:
         """:type titles: list"""
         """:type data: np.ndarray"""
         self.row_count, self.col_count = self.data.shape
+        """:type row_count: int"""
+        """:type col_count: int"""
         self.time_cols = self._get_time_cols()
+        """:type time_cols: numpy.ndarray"""
         self.attr_cols = self._get_attr_cols()
+        """:type attr_cols: numpy.ndarray"""
         self.valid_bins = np.array([])
+        """:type valid_bins: numpy.ndarray"""
         self.valid_tids = defaultdict(set)
+        """:type valid_tids: collections.defaultdict"""
         self.no_bins = False
-        self.step_name = ''  # For T-GRAANK
-        self.attr_size = 0  # For T-GRAANK
+        """:type no_bins: bool"""
+        self.attr_size = 0
+        """:type attr_size: int"""
         self.gradual_patterns = None
+        """:type gradual_patterns: list | None"""
 
     def _get_attr_cols(self):
         """Description

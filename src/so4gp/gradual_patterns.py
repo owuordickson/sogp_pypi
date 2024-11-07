@@ -753,6 +753,37 @@ class TGP(ExtGP):
             pattern.append([f"({item.to_string()}) {str_time}"])
         return pattern
 
+    # noinspection PyUnresolvedReferences
+    def print(self, columns):
+        """Description
+
+        A method that returns fuzzy temporal gradual pattern (TGP) with actual column names
+
+        :param columns: Columns names
+        :type columns: list[str]
+
+        :return: TGP with actual column names
+        """
+
+        target_gi = self.target_gradual_item
+        col_title = columns[target_gi.attribute_col]
+        try:
+            col = str(col_title.value.decode())
+        except AttributeError:
+            col = str(col_title[1].decode())
+        pattern = [f"{col}{target_gi.symbol}"]
+
+        for item, t_lag in self.temporal_gradual_items:
+            str_time = f"{t_lag.sign}{t_lag.formatted_time['value']} {t_lag.formatted_time['duration']}"
+            col_title = columns[item.attribute_col]
+            try:
+                col = str(col_title.value.decode())
+            except AttributeError:
+                col = str(col_title[1].decode())
+            pat = f"({col}{item.symbol}) {str_time}"
+            pattern.append(pat)
+        return [pattern, self.support]
+
 
 class TimeDelay:
     """

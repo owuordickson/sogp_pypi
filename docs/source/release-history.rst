@@ -3,6 +3,16 @@ RELEASE HISTORY
 ***************
 
 
+0.5.6 (2024-11-05)
+---------------------------
+
+**Updates**
+
+* Optimization and added documentation for TGradAMI algorithm.
+
+
+
+
 0.5.5 (2024-11-05)
 ---------------------------
 

@@ -71,16 +71,6 @@ class AntGRAANK(DataGP):
         its computed support is greater or equal to the minimum support threshold. The valid GPs are used to update the
         pheromone levels and better candidates are generated.
 
-    This class extends class DataGP, and it provides the following additional attributes:
-
-        max_iteration: integer value determines the number of iterations for the algorithm
-
-        evaporation_factor: value between 0-1 which determines how fast pheromone levels evaporate
-
-        distance_matrix: an array that stores the cost between travelling between nodes
-
-        attribute_keys: an array with attribute keys
-
     >>> import so4gp as sgp
     >>> import pandas
     >>> dummy_data = [[30, 3, 1, 10], [35, 2, 2, 8], [40, 4, 2, 7], [50, 1, 1, 6], [52, 7, 1, 2]]
@@ -89,9 +79,10 @@ class AntGRAANK(DataGP):
     >>> mine_obj = sgp.AntGRAANK(dummy_df, 0.5, max_iter=3, e_factor=0.5)
     >>> result_json = mine_obj.discover()
     >>> print(result_json) # doctest: +SKIP
+    {"Algorithm": "ACO-GRAANK", "Best Patterns": [[["Expenses-", "Age+"], 1.0]], "Invalid Count": 1, "Iterations":3}
     """
 
-    def __init__(self, *args, max_iter=MAX_ITERATIONS, e_factor=EVAPORATION_FACTOR):
+    def __init__(self, *args, max_iter: int = MAX_ITERATIONS, e_factor: float = EVAPORATION_FACTOR, **kwargs):
         """Description
 
     Extract gradual patterns (GPs) from a numeric data source using the Ant Colony Optimization approach
@@ -108,32 +99,12 @@ class AntGRAANK(DataGP):
         its computed support is greater or equal to the minimum support threshold. The valid GPs are used to update the
         pheromone levels and better candidates are generated.
 
-    This class extends class DataGP, and it provides the following additional attributes:
-
-        max_iteration: integer value determines the number of iterations for the algorithm
-
-        evaporation_factor: value between 0-1 which determines how fast pheromone levels evaporate
-
-        distance_matrix: an array that stores the cost between travelling between nodes
-
-        attribute_keys: an array with attribute keys
-
-        >>> import so4gp as sgp
-        >>> import pandas
-        >>> dummy_data = [[30, 3, 1, 10], [35, 2, 2, 8], [40, 4, 2, 7], [50, 1, 1, 6], [52, 7, 1, 2]]
-        >>> dummy_df = pandas.DataFrame(dummy_data, columns=['Age', 'Salary', 'Cars', 'Expenses'])
-        >>>
-        >>> mine_obj = sgp.AntGRAANK(dummy_df, 0.5, max_iter=3, e_factor=0.5)
-        >>> result_json = mine_obj.discover()
-        >>> print(result_json) # doctest: +SKIP
-        {"Algorithm": "ACO-GRAANK", "Best Patterns": [[["Expenses-", "Age+"], 1.0]], "Invalid Count": 1, "Iterations":3}
-
-        :param args: [required] data-source, [optional] minimum-support
-        :param max_iter: maximum_iteration, default is 1
-        :param e_factor: evaporation factor, default is 0.5
+        :param args: [required] data source path of Pandas DataFrame, [optional] minimum-support, [optional] eq 
+        :param max_iter: [optional] maximum_iteration, default is 1
+        :param e_factor: [optional] evaporation factor, default is 0.5
 
         """
-        super(AntGRAANK, self).__init__(*args)
+        super(AntGRAANK, self).__init__(*args, **kwargs)
         self.evaporation_factor = e_factor
         """:type evaporation_factor: float"""
         self.max_iteration = max_iter
@@ -317,45 +288,6 @@ class ClusterGP(DataGP):
     patterns (GP). It takes a numeric file (in CSV format) as input and converts it into an object whose attributes are
     used by algorithms to extract GPs.
 
-    class DataGP provides the following attributes:
-        thd_supp: minimum support threshold
-
-        equal: eq value
-
-        titles: column names of data source
-
-        data: all the objects organized into their respective column
-
-        row_count: number of objects
-
-        col_count: number of all columns
-
-        time_cols: column indices of the columns with data-time objects
-
-        attr_cols: column indices of the columns with numeric values
-
-        valid_bins: valid bitmaps (in the form of ndarray) of all gradual items corresponding to the attr_cols, a bitmap
-        is valid if its computed support is equal or greater than the minimum support threshold
-
-        no_bins: True if all none of the attr_cols yields a valid bitmap
-
-        gradual_patterns: list of GP objects
-
-    This class adds the parameters required for clustering gradual items to the data-gp object. The class provides the
-    following additional attributes:
-        e_prob: erasure probability (a value between 0 - 1)
-
-        mat_iter: maximum iteration value for score vector estimation
-
-    CluDataGP adds the following functions:
-        construct_matrices: generates the net-win matrix
-
-        infer_gps: infers GPs from clusters of Gradual Items
-
-        estimate_score_vector: estimates the score vector based on the cumulative wins
-
-        estimate_support:  estimates the frequency support of a GP based on its score vector
-
     >>> import so4gp as sgp
     >>> import pandas
     >>> dummy_data = [[30, 3, 1, 10], [35, 2, 2, 8], [40, 4, 2, 7], [50, 1, 1, 6], [52, 7, 1, 2]]
@@ -366,34 +298,19 @@ class ClusterGP(DataGP):
     >>> print(result_json) # doctest: +SKIP
     """
 
-    def __init__(self, *args, e_prob=ERASURE_PROBABILITY, max_iter=SCORE_VECTOR_ITERATIONS, no_prob=False):
+    def __init__(self, *args, e_prob: float = ERASURE_PROBABILITY, max_iter: int = SCORE_VECTOR_ITERATIONS, 
+                 no_prob: bool = False, **kwargs):
         """Description of class CluDataGP (Clustering DataGP)
 
         A class for creating data-gp objects for the clustering approach. This class inherits the DataGP class which is
         used to create data-gp objects. This class adds the parameters required for clustering gradual items to the
         data-gp object.
 
-        The class provides the following additional attributes:
-
-            e_prob: erasure probability (a value between 0 - 1). Erasure probability determines the proportion of ij
-            columns to be used by the algorithm, the rest are ignored.
-
-            mat_iter: maximum iteration value for score vector estimation
-
-        >>> import so4gp as sgp
-        >>> import pandas
-        >>> dummy_data = [[30, 3, 1, 10], [35, 2, 2, 8], [40, 4, 2, 7], [50, 1, 1, 6], [52, 7, 1, 2]]
-        >>> dummy_df = pandas.DataFrame(dummy_data, columns=['Age', 'Salary', 'Cars', 'Expenses'])
-        >>>
-        >>> mine_obj = sgp.ClusterGP(dummy_df, 0.5, max_iter=3, e_prob=0.5, no_prob=True)
-        >>> result_json = mine_obj.discover()
-        >>> print(result_json) # doctest: +SKIP
-
-        :param args: [required] data-source, [optional] minimum-support
+        :param args: [required] data source path of Pandas DataFrame, [optional] minimum-support, [optional] eq 
         :param e_prob: [optional] erasure probability, the default is 0.5
         :param max_iter: [optional] maximum iteration for score vector estimation, the default is 10
         """
-        super(ClusterGP, self).__init__(*args)
+        super(ClusterGP, self).__init__(*args, **kwargs)
         self.erasure_probability = e_prob
         """:type erasure_probability: float"""
         self.max_iteration = max_iter
@@ -747,20 +664,6 @@ class GeneticGRAANK(DataGP):
          support value the lower the cost. The aim of the algorithm is search through a population of individuals (or
          candidates) and find those with the lowest cost as efficiently as possible.
 
-    This class extends class DataGP, and it provides the following additional attributes:
-
-        max_iteration: integer value determines the number of iterations for the algorithm
-
-        n_pop: integer value that determines the initial population size of individuals
-
-        pc: a value that determines the proportion of children
-
-        gamma: a value in the range 0-1 that determines the cross-over rate
-
-        mu: a value in the range 0-1 that determines the mutation rate
-
-        sigma: a value in the range 0-1 that determines the mutation rate
-
     >>> import so4gp as sgp
     >>> import pandas
     >>> dummy_data = [[30, 3, 1, 10], [35, 2, 2, 8], [40, 4, 2, 7], [50, 1, 1, 6], [52, 7, 1, 2]]
@@ -769,9 +672,11 @@ class GeneticGRAANK(DataGP):
     >>> mine_obj = sgp.GeneticGRAANK(dummy_df, 0.5, max_iter=3, n_pop=10)
     >>> result_json = mine_obj.discover()
     >>> print(result_json) # doctest: +SKIP
+    {"Algorithm": "GA-GRAANK", "Best Patterns": [[["Age+", "Salary+", "Expenses-"], 0.6]], "Invalid Count": 12,
+        "Iterations": 2}
     """
 
-    def __init__(self, *args, max_iter=MAX_ITERATIONS, n_pop=N_POPULATION, pc=PC, gamma=GAMMA, mu=MU, sigma=SIGMA):
+    def __init__(self, *args, max_iter=MAX_ITERATIONS, n_pop=N_POPULATION, pc=PC, gamma=GAMMA, mu=MU, sigma=SIGMA, **kwargs):
         """Description
 
         Extract gradual patterns (GPs) from a numeric data source using the Genetic Algorithm approach (proposed
@@ -785,52 +690,26 @@ class GeneticGRAANK(DataGP):
              higher the support value the lower the cost. The aim of the algorithm is search through a population of
              individuals (or candidates) and find those with the lowest cost as efficiently as possible.
 
-        This class extends class DataGP, and it provides the following additional attributes:
-
-            max_iteration: integer value determines the number of iterations for the algorithm
-
-            n_pop: integer value that determines the initial population size of individuals
-
-            pc: a value that determines the proportion of children
-
-            gamma: a value in the range 0-1 that determines the cross-over rate
-
-            mu: a value in the range 0-1 that determines the mutation rate
-
-            sigma: a value in the range 0-1 that determines the mutation rate
-
-        >>> import so4gp as sgp
-        >>> import pandas
-        >>> dummy_data = [[30, 3, 1, 10], [35, 2, 2, 8], [40, 4, 2, 7], [50, 1, 1, 6], [52, 7, 1, 2]]
-        >>> dummy_df = pandas.DataFrame(dummy_data, columns=['Age', 'Salary', 'Cars', 'Expenses'])
-        >>>
-        >>> mine_obj = sgp.GeneticGRAANK(dummy_df, 0.5, max_iter=3, n_pop=10)
-        >>> result_json = mine_obj.discover()
-        >>> print(result_json) # doctest: +SKIP
-        {"Algorithm": "GA-GRAANK", "Best Patterns": [[["Age+", "Salary+", "Expenses-"], 0.6]], "Invalid Count": 12,
-        "Iterations": 2}
-
-
-        :param args: [required] data-source, [optional] minimum-support
-        :param max_iter: maximum_iteration, default is 1
+        :param args: [required] data source path of Pandas DataFrame, [optional] minimum-support, [optional] eq 
+        :param max_iter: [optional] maximum_iteration, default is 1
         :type max_iter: int
 
-        :param n_pop: initial individual population, default is 5
+        :param n_pop: [optional] initial individual population, default is 5
         :type n_pop: int
 
-        :param pc: children proportion, default is 0.5
+        :param pc: [optional] children proportion, default is 0.5
         :type pc: float
 
-        :param gamma: cross-over gamma ratio, default is 1
+        :param gamma: [optional] cross-over gamma ratio, default is 1
         :type gamma: float
 
-        :param mu: mutation mu ratio, default is 0.9
+        :param mu: [optional] mutation mu ratio, default is 0.9
         :type mu: float
 
-        :param sigma: mutation sigma ratio, default is 0.9
+        :param sigma: [optional] mutation sigma ratio, default is 0.9
         :type sigma: float
         """
-        super(GeneticGRAANK, self).__init__(*args)
+        super(GeneticGRAANK, self).__init__(*args, **kwargs)
         self.max_iteration = max_iter
         """type: max_iteration: int"""
         self.n_pop = n_pop
@@ -1071,6 +950,23 @@ class GRAANK(DataGP):
 
         """
 
+    def __init__(self, *args, **kwargs):
+        """
+        Extracts gradual patterns (GPs) from a numeric dataset using the GRAANK algorithm. The algorithm relies on the
+        APRIORI approach to generate GP candidates. This work was proposed by Anne Laurent 
+        and published in: https://link.springer.com/chapter/10.1007/978-3-642-04957-6_33.
+
+             A GP is a set of gradual items (GI) and its quality is measured by its computed support value. For example
+             given a data set with 3 columns (age, salary, cars) and 10 objects. A GP may take the form: {age+, salary-}
+             with a support of 0.8. This implies that 8 out of 10 objects have the values of column age 'increasing' and
+             column 'salary' decreasing.
+
+        This class extends class DataGP which is responsible for generating the GP bitmaps.
+
+        :param args: [required] data source path of Pandas DataFrame, [optional] minimum-support, [optional] eq
+        """
+        super(GRAANK, self).__init__(*args, **kwargs)
+
     def _gen_apriori_candidates(self, gi_bins: list, target_col: int =None):
         """Description
 
@@ -1196,12 +1092,6 @@ class HillClimbingGRAANK(DataGP):
          value the lower the cost. The aim of the algorithm is search through group of positions and find those with
          the lowest cost as efficiently as possible.
 
-    This class extends class DataGP, and it provides the following additional attributes:
-
-        max_iteration: integer value determines the number of iterations for the algorithm
-
-        step_size: integer value that steps the algorithm takes per iteration
-
     >>> import so4gp as sgp
     >>> import pandas
     >>> dummy_data = [[30, 3, 1, 10], [35, 2, 2, 8], [40, 4, 2, 7], [50, 1, 1, 6], [52, 7, 1, 2]]
@@ -1210,10 +1100,11 @@ class HillClimbingGRAANK(DataGP):
     >>> mine_obj = sgp.HillClimbingGRAANK(dummy_df, 0.5, max_iter=3, step_size=0.5)
     >>> result_json = mine_obj.discover()
     >>> print(result_json) # doctest: +SKIP
+    {"Algorithm": "LS-GRAANK", "Best Patterns": [[["Age+", "Expenses-"], 1.0]], "Invalid Count": 2, "Iterations": 2}
 
     """
 
-    def __init__(self, *args, max_iter=MAX_ITERATIONS, step_size=STEP_SIZE):
+    def __init__(self, *args, max_iter: int = MAX_ITERATIONS, step_size: int = STEP_SIZE, **kwargs):
         """Description
 
         Extract gradual patterns (GPs) from a numeric data source using the Hill Climbing (Local Search) Algorithm
@@ -1227,27 +1118,11 @@ class HillClimbingGRAANK(DataGP):
              value the lower the cost. The aim of the algorithm is search through group of positions and find those with
              the lowest cost as efficiently as possible.
 
-        This class extends class DataGP, and it provides the following additional attributes:
-
-            max_iteration: integer value determines the number of iterations for the algorithm
-
-            step_size: integer value that steps the algorithm takes per iteration
-
-        >>> import so4gp as sgp
-        >>> import pandas
-        >>> dummy_data = [[30, 3, 1, 10], [35, 2, 2, 8], [40, 4, 2, 7], [50, 1, 1, 6], [52, 7, 1, 2]]
-        >>> dummy_df = pandas.DataFrame(dummy_data, columns=['Age', 'Salary', 'Cars', 'Expenses'])
-        >>>
-        >>> mine_obj = sgp.HillClimbingGRAANK(dummy_df, 0.5, max_iter=3, step_size=0.5)
-        >>> result_json = mine_obj.discover()
-        >>> print(result_json) # doctest: +SKIP
-        {"Algorithm": "LS-GRAANK", "Best Patterns": [[["Age+", "Expenses-"], 1.0]], "Invalid Count": 2, "Iterations": 2}
-
-        :param args: [required] data-source, [optional] minimum-support
-        :param max_iter: maximum_iteration, default is 1
-        :param step_size: step size, default is 0.5
+        :param args: [required] data source path of Pandas DataFrame, [optional] minimum-support, [optional] eq 
+        :param max_iter: [optional] maximum_iteration, default is 1
+        :param step_size: [optional] step size, default is 0.5
         """
-        super(HillClimbingGRAANK, self).__init__(*args)
+        super(HillClimbingGRAANK, self).__init__(*args, **kwargs)
         self.step_size = step_size
         """type: step_size: int"""
         self.max_iteration = max_iter
@@ -1449,18 +1324,6 @@ class ParticleGRAANK(DataGP):
          support value the higher the fitness. The aim of the algorithm is search through a population of particles
          (or candidates) and find those with the highest fitness as efficiently as possible.
 
-    This class extends class DataGP, and it provides the following additional attributes:
-
-        max_iteration: integer value determines the number of iterations for the algorithm
-
-        n_particle: integer value that determines the initial population size of particles
-
-        vel: a value that determines the velocity of particles
-
-        coeff_p: a value in the range 0-1, personal coefficient
-
-        coeff_g: a value in the range 0-1, global coefficient
-
     >>> import so4gp as sgp
     >>> import pandas
     >>> dummy_data = [[30, 3, 1, 10], [35, 2, 2, 8], [40, 4, 2, 7], [50, 1, 1, 6], [52, 7, 1, 2]]
@@ -1471,11 +1334,10 @@ class ParticleGRAANK(DataGP):
     >>> print(result_json) # doctest: +SKIP
     {"Algorithm": "PSO-GRAANK", "Best Patterns": [], "Invalid Count": 12, "Iterations": 2}
 
-
     """
 
-    def __init__(self, *args, max_iter=MAX_ITERATIONS, n_particle=N_PARTICLES, vel=VELOCITY, coeff_p=PERSONAL_COEFF,
-                 coeff_g=GLOBAL_COEFF):
+    def __init__(self, *args, max_iter: int = MAX_ITERATIONS, n_particle: int = N_PARTICLES, vel: float = VELOCITY, 
+                 coeff_p: float = PERSONAL_COEFF, coeff_g: float = GLOBAL_COEFF, **kwargs):
         """Description
 
         Extract gradual patterns (GPs) from a numeric data source using the Particle Swarm Optimization Algorithm
@@ -1489,36 +1351,14 @@ class ParticleGRAANK(DataGP):
             support value the higher the fitness. The aim of the algorithm is search through a population of particles
             (or candidates) and find those with the highest fitness as efficiently as possible.
 
-        This class extends class DataGP, and it provides the following additional attributes:
-
-            max_iteration: integer value determines the number of iterations for the algorithm
-
-            n_particle: integer value that determines the initial population size of particles
-
-            vel: a value that determines the velocity of particles
-
-            coeff_p: a value in the range 0-1, personal coefficient
-
-            coeff_g: a value in the range 0-1, global coefficient
-
-        >>> import so4gp as sgp
-        >>> import pandas
-        >>> dummy_data = [[30, 3, 1, 10], [35, 2, 2, 8], [40, 4, 2, 7], [50, 1, 1, 6], [52, 7, 1, 2]]
-        >>> dummy_df = pandas.DataFrame(dummy_data, columns=['Age', 'Salary', 'Cars', 'Expenses'])
-        >>>
-        >>> mine_obj = sgp.ParticleGRAANK(dummy_df, 0.5, max_iter=3, n_particle=10)
-        >>> result_json = mine_obj.discover()
-        >>> print(result_json) # doctest: +SKIP
-        {"Algorithm": "PSO-GRAANK", "Best Patterns": [], "Invalid Count": 12, "Iterations": 2}
-
-        :param args: [required] data-source, [optional] minimum-support
-        :param max_iter: maximum_iteration, default is 1
-        :param n_particle: initial particle population, default is 5
-        :param vel: velocity, default is 0.9
-        :param coeff_p: personal coefficient, default is 0.01
-        :param coeff_g: global coefficient, default is 0.9
+        :param args: [required] data source path of Pandas DataFrame, [optional] minimum-support, [optional] eq 
+        :param max_iter: [optional] maximum_iteration, default is 1
+        :param n_particle: [optional] initial particle population, default is 5
+        :param vel: [optional] velocity, default is 0.9
+        :param coeff_p: [optional] personal coefficient, default is 0.01
+        :param coeff_g: [optional] global coefficient, default is 0.9
         """
-        super(ParticleGRAANK, self).__init__(*args)
+        super(ParticleGRAANK, self).__init__(*args, **kwargs)
         self.max_iteration = max_iter
         """type: max_iteration: int"""
         self.n_particles = n_particle
@@ -1676,10 +1516,12 @@ class RandomGRAANK(DataGP):
     >>> mine_obj = sgp.RandomGRAANK(dummy_df, 0.5, max_iter=3)
     >>> result_json = mine_obj.discover()
     >>> print(result_json) # doctest: +SKIP
+    {"Algorithm": "RS-GRAANK", "Best Patterns": [[["Age+", "Salary+", "Expenses-"], 0.6]], "Invalid Count": 1,
+        "Iterations": 3}
 
     """
 
-    def __init__(self, *args, max_iter=MAX_ITERATIONS):
+    def __init__(self, *args, max_iter: int = MAX_ITERATIONS, **kwargs):
         """Description
 
         Extract gradual patterns (GPs) from a numeric data source using the Random Search Algorithm (LS-GRAANK)
@@ -1692,26 +1534,12 @@ class RandomGRAANK(DataGP):
             associated with it. The cost is derived from the computed support of that candidate, the higher the support
             value the lower the cost. The aim of the algorithm is search through group of positions and find those with
             the lowest cost as efficiently as possible.
+        
+        :param args: [required] data source path of Pandas DataFrame, [optional] minimum-support, [optional] eq 
+        :param max_iter: [optional] maximum_iteration, default is 1
 
-        This class extends class DataGP, and it provides the following additional attributes:
-
-            max_iteration: integer value determines the number of iterations for the algorithm
-
-        >>> import so4gp as sgp
-        >>> import pandas
-        >>> dummy_data = [[30, 3, 1, 10], [35, 2, 2, 8], [40, 4, 2, 7], [50, 1, 1, 6], [52, 7, 1, 2]]
-        >>> dummy_df = pandas.DataFrame(dummy_data, columns=['Age', 'Salary', 'Cars', 'Expenses'])
-        >>>
-        >>> mine_obj = sgp.RandomGRAANK(dummy_df, 0.5, max_iter=3)
-        >>> result_json = mine_obj.discover()
-        >>> print(result_json) # doctest: +SKIP
-        {"Algorithm": "RS-GRAANK", "Best Patterns": [[["Age+", "Salary+", "Expenses-"], 0.6]], "Invalid Count": 1,
-        "Iterations": 3}
-
-        :param args: [required] data-source, [optional] minimum-support
-        :param max_iter: maximum_iteration, default is 1
         """
-        super(RandomGRAANK, self).__init__(*args)
+        super(RandomGRAANK, self).__init__(*args, **kwargs)
         self.max_iteration = max_iter
         """type: max_iteration: int"""
 
@@ -1813,16 +1641,13 @@ class TGrad(GRAANK):
 
     """
 
-    def __init__(self, f_path: str, eq: bool, min_sup: float, target_col: int, min_rep: float, num_cores: int):
+    def __init__(self, *args, target_col: int, min_rep: float = 0.5, **kwargs):
         """
         TGrad is an algorithm that is used to extract temporal gradual patterns from numeric datasets.
 
-        :param f_path: path to dataset file
-        :param eq: are equal objects considered in GP matrix.
-        :param min_sup: minimum support value.
-        :param target_col: Target column.
-        :param min_rep: minimum representativity value.
-        :param num_cores: number of cores to use.
+        :param args: [required] data source path of Pandas DataFrame, [optional] minimum-support, [optional] eq
+        :param target_col: [required] Target column.
+        :param min_rep: [optional] minimum representativity value.
 
         >>> import so4gp as sgp
         >>> import pandas
@@ -1834,7 +1659,7 @@ class TGrad(GRAANK):
         >>> print(result_json)
         """
 
-        super(TGrad, self).__init__(data_source=f_path, min_sup=min_sup, eq=eq)
+        super(TGrad, self).__init__(*args, **kwargs)
         self.target_col = target_col
         """:type: target_col: int"""
         self.min_rep = min_rep
@@ -1843,8 +1668,6 @@ class TGrad(GRAANK):
         """:type: max_step: int"""
         self.full_attr_data = self.data.copy().T
         """:type: full_attr_data: numpy.ndarray"""
-        self.cores = num_cores
-        """:type: cores int"""
         if len(self.time_cols) > 0:
             print("Dataset Ok")
             self.time_ok = True
@@ -1855,12 +1678,13 @@ class TGrad(GRAANK):
             """:type: time_ok: bool"""
             raise Exception('No date-time datasets found')
 
-    def discover_tgp(self, parallel: bool = False):
+    def discover_tgp(self, parallel: bool = False, num_cores: int = 1):
         """
 
         Applies fuzzy-logic, data transformation and gradual pattern mining to mine for Fuzzy Temporal Gradual Patterns.
 
         :param parallel: allow multiprocessing.
+        :param num_cores: number of CPU cores for algorithm to use.
         :return: list of FTGPs as JSON object
         """
 
@@ -1872,7 +1696,7 @@ class TGrad(GRAANK):
         if parallel:
             # implement parallel multi-processing
             steps = range(self.max_step)
-            pool = mp.Pool(self.cores)
+            pool = mp.Pool(num_cores)
             patterns = pool.map(self.transform_and_mine, steps)
             pool.close()
             pool.join()
@@ -2193,8 +2017,7 @@ class TGradAMI(TGrad):
     This algorithm extends the work published in: https://ieeexplore.ieee.org/abstract/document/8858883.
     """
 
-    def __init__(self, f_path: str, eq: bool, min_sup: float, target_col: int, min_rep: float, min_error: float,
-                 num_cores: int):
+    def __init__(self, *args, min_error: float = 0.0001, **kwargs):
         """
         TGradAMI is an algorithm that improves the classical TGrad algorithm for extracting more accurate temporal
         gradual patterns. It computes Mutual Information (MI) with respect to target-column with original dataset to
@@ -2202,13 +2025,9 @@ class TGradAMI(TGrad):
         transformed dataset has same almost identical MI to the original dataset, then it selects that as the best
         time-delay. Instead of min-representativity value, the algorithm relies on the error-margin between MIs.
 
-        :param f_path: path to dataset file
-        :param eq: are equal objects considered in GP matrix.
-        :param min_sup: minimum support value.
-        :param target_col: Target column.
-        :param min_rep: minimum representativity value.
-        :param min_error: minimum Mutual Information error margin.
-        :param num_cores: number of cores to use.
+        :param args: [required] data source path of Pandas DataFrame, [optional] minimum-support, [optional] eq
+        :param kwargs: [required] target-column or attribute or feature, [optional] minimum representativity
+        :param min_error: [optional] minimum Mutual Information error margin.
 
         >>> import so4gp as sgp
         >>> import pandas
@@ -2216,11 +2035,11 @@ class TGradAMI(TGrad):
         >>> dummy_df = pandas.DataFrame(dummy_data, columns=['Date', 'Age', 'Salary', 'Cars', 'Expenses'])
         >>>
         >>> mine_obj = sgp.TGradAMI(dummy_df, min_sup=0.5, target_col=1, min_rep=0.5, min_error=0.1)
-        >>> result_json = mine_obj.discover_tgp(parallel=True, use_clustering=True, eval_mode=False)
+        >>> result_json = mine_obj.discover_tgp(use_clustering=True, eval_mode=False)
         >>> print(result_json)
         """
 
-        super(TGradAMI, self).__init__(f_path, eq, min_sup, target_col=target_col, min_rep=min_rep, num_cores=num_cores)
+        super(TGradAMI, self).__init__(*args, **kwargs)
         self.error_margin = min_error
         """:type error_margin: float"""
         self.feature_cols = np.setdiff1d(self.attr_cols, self.target_col)
@@ -2333,13 +2152,12 @@ class TGradAMI(TGrad):
         """:type time_data: numpy.ndarray"""
         return delayed_data, time_data
 
-    def discover_tgp(self, parallel: bool = False, use_clustering: bool = False, eval_mode: bool = False):
+    def discover_tgp(self, use_clustering: bool = False, eval_mode: bool = False):
         """
         A method that applies mutual information concept, clustering and hill-climbing algorithm to find the best data
         transformation that maintains MI, and estimate the best time-delay value of the mined Fuzzy Temporal Gradual
         Patterns (FTGPs).
 
-        :param parallel: allow multiprocessing.
         :param use_clustering: use clustering algorithm to estimate the best time-delay value.
         :param eval_mode: run algorithm in evaluation mode.
         :return: list of (FTGPs as JSON object) or (FTGPs and evaluation data as a Python dict) when executed in evaluation mode.

@@ -34,48 +34,6 @@ class DataGP:
     of 0.8. This implies that 8 out of 10 objects have the values of column age 'increasing' and column 'salary'
     decreasing.
 
-    The class provides the following attributes:
-        thd_supp: minimum support threshold
-
-        equal: eq value
-
-        titles: column names of data source
-
-        data: all the objects organized into their respective column
-
-        row_count: number of objects
-
-        col_count: number of all columns
-
-        time_cols: column indices of the columns with data-time objects
-
-        attr_cols: column indices of the columns with numeric values
-
-        valid_bins: valid bitmaps (in the form of ndarray) of all gradual items corresponding to the attr_cols,
-        a bitmap is valid if its computed support is equal or greater than the minimum support threshold
-
-        no_bins: True if all none of the attr_cols yields a valid bitmap
-
-        gradual_patterns: list of GP objects
-
-
-    The class provides the following functions:
-        get_attr_cols: retrieves all the columns with data that is numeric and not date-tme
-
-        get_time_cols: retrieves the columns with date-time values
-
-        get_gi_bitmap: computes and returns the bitmap matrix corresponding to a GI
-
-        fit_bitmap: generates all the bitmap matrices of valid GIs
-
-        fit_tids: generates all the transaction ids of valid GIs
-
-        read (static): reads contents of a CSV file or data-frame
-
-        test_time (static): tests if a str represents a date-time variable
-
-        clean_data (static): cleans data (missing values, outliers) before extraction of GPs.
-
     >>> import so4gp as sgp
     >>> import pandas
     >>> dummy_data = [[30, 3, 1, 10], [35, 2, 2, 8], [40, 4, 2, 7], [50, 1, 1, 6], [52, 7, 1, 2]]
@@ -84,7 +42,6 @@ class DataGP:
     >>>
     >>> data_gp = sgp.DataGP(data_source=dummy_df, min_sup=0.5)
     >>> data_gp.fit_bitmap()
-
 
     """
 
@@ -96,48 +53,14 @@ class DataGP:
         algorithms to extract gradual patterns (GP). It takes a numeric file (in CSV format) as input and converts it
         into an object whose attributes are used by algorithms to extract GPs.
 
-        It provides the following attributes:
-            thd_supp: minimum support threshold
-
-            equal: eq value
-
-            titles: column names of data source
-
-            data: all the objects organized into their respective column
-
-            row_count: number of objects
-
-            col_count: number of all columns
-
-            time_cols: column indices of the columns with data-time objects
-
-            attr_cols: column indices of the columns with numeric values
-
-            valid_bins: valid bitmaps (in the form of ndarray) of all gradual items corresponding to the attr_cols,
-            a bitmap is valid if its computed support is equal or greater than the minimum support threshold
-
-            net_wins: a net-wins matrix constructed from valid gradual item bitmaps
-
-            no_bins: True if all none of the attr_cols yields a valid bitmap
-
-            gradual_patterns: list of GP objects
-
-        >>> import so4gp as sgp
-        >>> import pandas
-        >>> dummy_data = [[30, 3, 1, 10], [35, 2, 2, 8], [40, 4, 2, 7], [50, 1, 1, 6], [52, 7, 1, 2]]
-        >>> columns = ['Age', 'Salary', 'Cars', 'Expenses']
-        >>> dummy_df = pandas.DataFrame(dummy_data, columns=['Age', 'Salary', 'Cars', 'Expenses'])
-        >>>
-        >>> data_gp = sgp.DataGP(data_source=dummy_df, min_sup=0.5)
-        >>> data_gp.fit_bitmap()
-
-
         :param data_source: [required] a data source, it can either be a 'file in csv format' or a 'Pandas DataFrame'
         :type data_source: pd.DataFrame | str
 
         :param min_sup: [optional] minimum support threshold, the default is 0.5
+        :type min_sup: float
 
-        :param eq: encode equal values as gradual, the default is False
+        :param eq: [optional] encode equal values as gradual, the default is False
+        :type eq: bool
 
         """
         self.thd_supp = min_sup

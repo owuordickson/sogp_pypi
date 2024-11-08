@@ -13,10 +13,12 @@ A collection of miscellaneous classes and methods.
 import os
 import statistics
 import numpy as np
+import pandas as pd
 import multiprocessing as mp
 from tabulate import tabulate
 
 from .data_gp import DataGP
+from .so4gp import TGradAMI
 
 
 def analyze_gps(data_src, min_sup, est_gps, approach='bfs'):
@@ -90,6 +92,46 @@ def analyze_gps(data_src, min_sup, est_gps, approach='bfs'):
         else:
             data.append([est_gp.to_string(), round(est_sup, 3), -1, np.inf, np.inf])
     return tabulate(data, headers=headers)
+
+
+def gradual_correlation():
+    """"""
+    pass
+
+
+def gradual_decompose(data: pd.DataFrame, target: int):
+    """
+    A method that decomposes a multivariate timeseries data into its gradual components.  Attributes that have
+    strong correlation will produce a decomposition graph with dense zigzag patterns. Those with weak correlation will
+    produce a decomposition graph with sparse zigzag patterns.
+
+    :param data: the multivariate timeseries data as Pandas DataFrame.
+    :param target: the target column or feature or attribute.
+
+    >>> import pandas
+    >>> import so4gp as sgp
+    >>> import matplotlib.pyplot as plt
+    >>>
+    >>> dummy_data = [["2021-03", 30, 3, 1, 10], ["2021-03", 35, 2, 2, 8], ["2021-03", 40, 4, 2, 7], ["2021-03", 50, 1, 1, 6], ["2021-03", 52, 7, 1, 2]]
+    >>> dummy_df = pandas.DataFrame(dummy_data, columns=['Date', 'Age', 'Salary', 'Cars', 'Expenses'])
+    >>>
+    >>> gp_trends = sgp.gradual_decompose(dummy_df, target=1)
+    >>> print(gp_trends.keys())
+    >>>
+    >>> for key, val in gp_trends.items():
+    >>> plt.figure()
+    >>> plt.plot([p[0] for p in val], [p[1] for p in val], '-', label=f"{key}")
+    >>> plt.legend()
+    >>> plt.xlabel("GP 1 Index")
+    >>> plt.ylabel("GP 2 Index")
+    >>> plt.title(f"GP Warping Path")
+    """
+
+    t_grad = TGradAMI(data, target_col=target)
+    eval_dict = t_grad.discover_tgp(use_clustering=True, eval_mode=True)
+    gp_components = eval_dict['GP Components']
+    """:type gp_components: dict"""
+    return gp_components
 
 
 def get_num_cores():

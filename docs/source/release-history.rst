@@ -7,13 +7,22 @@ RELEASE HISTORY
 0.5.6 (2024-11-07)
 ---------------------------
 
+**Updates**
+
+* Constructors update and method for timeseries analysis and feature selection.
+
+
+
+0.5.8 (2024-11-07)
+---------------------------
+
 **Bug fix**
 
 * TGradAMI algorithm time-delay approximation error.
 
 
 
-0.5.6 (2024-11-07)
+0.5.7 (2024-11-07)
 ---------------------------
 
 **Bug fix**

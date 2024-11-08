@@ -3,8 +3,16 @@ RELEASE HISTORY
 ***************
 
 
+0.6.0 (2024-11-08)
+---------------------------
 
-0.5.6 (2024-11-07)
+**Updates**
+
+* Added a method that computes gradual correlation for feature selection use case.
+
+
+
+0.5.9 (2024-11-08)
 ---------------------------
 
 **Updates**

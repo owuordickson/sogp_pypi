@@ -17,6 +17,7 @@ import pandas as pd
 import multiprocessing as mp
 from tabulate import tabulate
 
+from . import GRAANK
 from .data_gp import DataGP
 from .so4gp import TGradAMI
 
@@ -94,9 +95,58 @@ def analyze_gps(data_src, min_sup, est_gps, approach='bfs'):
     return tabulate(data, headers=headers)
 
 
-def gradual_correlation():
-    """"""
-    pass
+def gradual_correlation(data: pd.DataFrame):
+    """
+    A method that calculates the gradual correlation between each pair of attributes in the dataset. This is achieved
+    by mining 2-attribute GPs and using their highest support values to show the correlation between them.
+
+    :param data: [required] the multivariate timeseries data as Pandas DataFrame.
+
+    >>> import pandas
+    >>> import so4gp as sgp
+    >>> import matplotlib.pyplot as plt
+    >>>
+    >>> dummy_data = [[30, 3, 1, 10], [35, 2, 2, 8], [40, 4, 2, 7], [50, 1, 1, 6], [52, 7, 1, 2]]
+    >>> dummy_df = pandas.DataFrame(dummy_data, columns=['Age', 'Salary', 'Cars', 'Expenses'])
+    >>>
+    >>> gp_cor = gradual_correlation(dummy_df)
+    >>> print(gp_cor)
+    """
+
+    # 1. Instantiate GRAANK object and extract GPs
+    grad = GRAANK(data)
+    grad.discover(ignore_support=True, apriori_level=2)
+
+    # 2. Create correlation matrix
+    n = grad.col_count
+    corr_mat = np.zeros((n, n), dtype=float)
+    np.fill_diagonal(corr_mat, 1)
+
+    # 3. Extract column names
+    col_names = []
+    for col_obj in grad.titles:
+        # col_names[int(col_obj[0])] = col_obj[1].decode()
+        col_names.append(col_obj[1].decode())
+    col_names = np.array(col_names)
+
+    # 4. Update correlation matrix with GP support
+    for gp in grad.gradual_patterns:
+        sup = gp.support
+        i = int(gp.gradual_items[0].attribute_col)
+        j = int(gp.gradual_items[1].attribute_col)
+        i_symbol = str(gp.gradual_items[0].symbol)
+        j_symbol = str(gp.gradual_items[1].symbol)
+
+        if i_symbol != j_symbol:
+            sup = -sup
+        if abs(corr_mat[i][j]) < abs(sup):
+            corr_mat[i][j] = sup
+            corr_mat[j][i] = sup
+
+    # 5. Create Pandas DataFrame and return it as result
+    corr_df = pd.DataFrame(corr_mat, columns=col_names)
+    corr_df.insert(0, "", col_names)
+    return corr_df
 
 
 def gradual_decompose(data: pd.DataFrame, target: int):
@@ -105,33 +155,37 @@ def gradual_decompose(data: pd.DataFrame, target: int):
     strong correlation will produce a decomposition graph with dense zigzag patterns. Those with weak correlation will
     produce a decomposition graph with sparse zigzag patterns.
 
-    :param data: the multivariate timeseries data as Pandas DataFrame.
-    :param target: the target column or feature or attribute.
+    :param data: [required] the multivariate timeseries data as Pandas DataFrame.
+    :param target: [required] the target column or feature or attribute.
 
     >>> import pandas
     >>> import so4gp as sgp
     >>> import matplotlib.pyplot as plt
     >>>
-    >>> dummy_data = [["2021-03", 30, 3, 1, 10], ["2021-03", 35, 2, 2, 8], ["2021-03", 40, 4, 2, 7], ["2021-03", 50, 1, 1, 6], ["2021-03", 52, 7, 1, 2]]
+    >>> dummy_data = [["2021-03", 30, 3, 1, 10], ["2021-04", 35, 2, 2, 8], ["2021-05", 40, 4, 2, 7], ["2021-06", 50, 1, 1, 6], ["2021-07", 52, 7, 1, 2]]
     >>> dummy_df = pandas.DataFrame(dummy_data, columns=['Date', 'Age', 'Salary', 'Cars', 'Expenses'])
     >>>
     >>> gp_trends = sgp.gradual_decompose(dummy_df, target=1)
     >>> print(gp_trends.keys())
     >>>
     >>> for key, val in gp_trends.items():
-    >>> plt.figure()
-    >>> plt.plot([p[0] for p in val], [p[1] for p in val], '-', label=f"{key}")
-    >>> plt.legend()
-    >>> plt.xlabel("GP 1 Index")
-    >>> plt.ylabel("GP 2 Index")
-    >>> plt.title(f"GP Warping Path")
+    >>>     plt.figure()
+    >>>     plt.plot([p[0] for p in val], [p[1] for p in val], '-', label=f"{key}")
+    >>>     plt.legend()
+    >>>     plt.xlabel("GP 1 Index")
+    >>>     plt.ylabel("GP 2 Index")
+    >>>     plt.title(f"GP Warping Path")
     """
 
-    t_grad = TGradAMI(data, target_col=target)
-    eval_dict = t_grad.discover_tgp(use_clustering=True, eval_mode=True)
-    gp_components = eval_dict['GP Components']
-    """:type gp_components: dict"""
-    return gp_components
+    try:
+        t_grad = TGradAMI(data, target_col=target)
+        eval_dict = t_grad.discover_tgp(use_clustering=False, eval_mode=True)
+        gp_components = eval_dict['GP Components']
+        """:type gp_components: dict"""
+        return gp_components
+    except Exception as e:
+        # return {'Fatal Error': 'Try again with a bigger dataset or different dataset.'}
+        raise Exception(e)
 
 
 def get_num_cores():

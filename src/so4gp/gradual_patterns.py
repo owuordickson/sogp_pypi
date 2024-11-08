@@ -176,7 +176,7 @@ class GI:
         Computes the inverse of a GI formatted as an array or tuple
 
         :param g_item: gradual item (array/tuple)
-        :type g_item: (tuple, list)
+        :type g_item: (tuple, list) | np.ndarray
 
         :return: inverted gradual item
         """

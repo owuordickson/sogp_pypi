@@ -967,12 +967,14 @@ class GRAANK(DataGP):
         """
         super(GRAANK, self).__init__(*args, **kwargs)
 
-    def _gen_apriori_candidates(self, gi_bins: list, target_col: int =None):
+    def _gen_apriori_candidates(self, gi_bins: np.ndarray, target_col: int | None = None, ignore_sup: bool = False):
         """Description
 
         Generates Apriori GP candidates (w.r.t target-column/reference-column if available)
         :param gi_bins: GI together with bitmaps
-        :return:
+        :param target_col: target feature's column index
+        :param ignore_sup: do not filter GPs based on minimum support threshold.
+        :return: list of extracted GPs and the invalid count.
         """
         min_sup = self.thd_supp
         n = self.attr_size
@@ -1015,7 +1017,7 @@ class GRAANK(DataGP):
                     if test == 1:
                         m = gi_bins[i][1] * gi_bins[j][1]
                         sup = float(np.sum(m)) / float(n * (n - 1.0) / 2.0)
-                        if sup > min_sup:
+                        if sup > min_sup or ignore_sup:
                             res.append([gp_cand, m, sup])
                         else:
                             invalid_count += 1
@@ -1023,11 +1025,14 @@ class GRAANK(DataGP):
                     gc.collect()
         return res, invalid_count
 
-    def discover(self):
+    def discover(self, ignore_support: bool = False, apriori_level: int | None = None):
         """Description
 
-        Uses apriori algorithm to find GP candidates. The candidates are validated if their computed support is greater
-        than or equal to the minimum support threshold specified by the user.
+        Uses apriori algorithm to find gradual pattern (GP) candidates. The candidates are validated if their computed
+        support is greater than or equal to the minimum support threshold specified by the user.
+
+        :param ignore_support: do not filter extracted GPs using user-defined minimum support threshold.
+        :param apriori_level: maximum APRIORI level for generating candidates.
 
         :return: JSON object
         """
@@ -1040,13 +1045,15 @@ class GRAANK(DataGP):
         valid_bins = self.valid_bins
 
         invalid_count = 0
+        candidate_level = 1
         while len(valid_bins) > 0:
-            valid_bins, inv_count = self._gen_apriori_candidates(valid_bins)
+            valid_bins, inv_count = self._gen_apriori_candidates(valid_bins, ignore_sup=ignore_support)
             invalid_count += inv_count
             for v_bin in valid_bins:
                 gi_arr = v_bin[0]
                 # bin_data = v_bin[1]
                 sup = v_bin[2]
+                # if not ignore_support:
                 self.gradual_patterns = ExtGP.remove_subsets(self.gradual_patterns, set(gi_arr))
 
                 gp = ExtGP()
@@ -1058,6 +1065,9 @@ class GRAANK(DataGP):
                 gp.set_support(sup)
                 self.gradual_patterns.append(gp)
                 str_winner_gps.append(gp.print(self.titles))
+            candidate_level += 1
+            if (apriori_level is not None) and candidate_level >= apriori_level:
+                break
         # Output
         out = json.dumps({"Algorithm": "GRAANK", "Patterns": str_winner_gps, "Invalid Count": invalid_count})
         """:type out: object"""
@@ -1104,7 +1114,7 @@ class HillClimbingGRAANK(DataGP):
 
     """
 
-    def __init__(self, *args, max_iter: int = MAX_ITERATIONS, step_size: int = STEP_SIZE, **kwargs):
+    def __init__(self, *args, max_iter: int = MAX_ITERATIONS, step_size: float = STEP_SIZE, **kwargs):
         """Description
 
         Extract gradual patterns (GPs) from a numeric data source using the Hill Climbing (Local Search) Algorithm
@@ -1124,7 +1134,7 @@ class HillClimbingGRAANK(DataGP):
         """
         super(HillClimbingGRAANK, self).__init__(*args, **kwargs)
         self.step_size = step_size
-        """type: step_size: int"""
+        """type: step_size: float"""
         self.max_iteration = max_iter
         """type: max_iteration: int"""
 
@@ -1651,7 +1661,7 @@ class TGrad(GRAANK):
 
         >>> import so4gp as sgp
         >>> import pandas
-        >>> dummy_data = [["2021-03", 30, 3, 1, 10], ["2021-03", 35, 2, 2, 8], ["2021-03", 40, 4, 2, 7], ["2021-03", 50, 1, 1, 6], ["2021-03", 52, 7, 1, 2]]
+        >>> dummy_data = [["2021-03", 30, 3, 1, 10], ["2021-04", 35, 2, 2, 8], ["2021-05", 40, 4, 2, 7], ["2021-06", 50, 1, 1, 6], ["2021-07", 52, 7, 1, 2]]
         >>> dummy_df = pandas.DataFrame(dummy_data, columns=['Date', 'Age', 'Salary', 'Cars', 'Expenses'])
         >>>
         >>> mine_obj = sgp.TGrad(dummy_df, min_sup=0.5, target_col=1, min_rep=0.5)
@@ -1860,7 +1870,7 @@ class TGrad(GRAANK):
                     gradual_patterns.append(tgp)
         return gradual_patterns
 
-    def get_fuzzy_time_lag(self, bin_data: np.ndarray, time_data: np.ndarray | dict, gi_arr: set = None, tri_mf_data: numpy.ndarray | None = None):
+    def get_fuzzy_time_lag(self, bin_data: np.ndarray, time_data: np.ndarray | dict, gi_arr: set = None, tri_mf_data: np.ndarray | None = None):
         """
 
         A method that uses fuzzy membership function to select the most accurate time-delay value. We implement two
@@ -2031,7 +2041,7 @@ class TGradAMI(TGrad):
 
         >>> import so4gp as sgp
         >>> import pandas
-        >>> dummy_data = [["2021-03", 30, 3, 1, 10], ["2021-03", 35, 2, 2, 8], ["2021-03", 40, 4, 2, 7], ["2021-03", 50, 1, 1, 6], ["2021-03", 52, 7, 1, 2]]
+        >>> dummy_data = [["2021-03", 30, 3, 1, 10], ["2021-04", 35, 2, 2, 8], ["2021-05", 40, 4, 2, 7], ["2021-06", 50, 1, 1, 6], ["2021-07", 52, 7, 1, 2]]
         >>> dummy_df = pandas.DataFrame(dummy_data, columns=['Date', 'Age', 'Salary', 'Cars', 'Expenses'])
         >>>
         >>> mine_obj = sgp.TGradAMI(dummy_df, min_sup=0.5, target_col=1, min_rep=0.5, min_error=0.1)
@@ -2072,7 +2082,14 @@ class TGradAMI(TGrad):
             attr_data, _ = self.transform_and_mine(step, return_patterns=False)
             y = np.array(attr_data[self.target_col], dtype=float).T
             x_data = np.array(attr_data[self.feature_cols], dtype=float).T
-            mi_vals = np.array(mutual_info_regression(x_data, y), dtype=float)
+            try:
+                mi_vals = np.array(mutual_info_regression(x_data, y), dtype=float)
+            except ValueError:
+                optimal_dict = {int(self.feature_cols[i]): step for i in range(len(self.feature_cols))}
+                """:type optimal_dict: dict"""
+                self.mi_error = -1
+                self.min_rep = round(((self.row_count - step) / self.row_count), 5)
+                return optimal_dict, step
 
             # Compute MI error
             squared_diff = np.square(np.subtract(mi_vals, init_mi_info))
@@ -2091,6 +2108,7 @@ class TGradAMI(TGrad):
         mi_info_arr[mi_info_arr == 0] = -1
 
         # 4. Identify steps (for every feature w.r.t. target) with minimum error from initial MI
+        print(f"{init_mi_info}\n{mi_info_arr}\n{self.max_step}")
         squared_diff = np.square(np.subtract(mi_info_arr, init_mi_info))
         mse_arr = np.sqrt(squared_diff)
         # mse_arr[mse_arr < self.error_margin] = -1

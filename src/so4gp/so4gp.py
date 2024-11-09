@@ -47,7 +47,10 @@ from sklearn.cluster import KMeans
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.feature_selection import mutual_info_regression
 
-from src.so4gp import DataGP, GI, ExtGP, TGP, TimeDelay
+try:
+    from . import DataGP, GI, ExtGP, TGP, TimeDelay
+except ImportError:
+    from src.so4gp import DataGP, GI, ExtGP, TGP, TimeDelay
 
 
 class AntGRAANK(DataGP):
@@ -2108,7 +2111,6 @@ class TGradAMI(TGrad):
         mi_info_arr[mi_info_arr == 0] = -1
 
         # 4. Identify steps (for every feature w.r.t. target) with minimum error from initial MI
-        print(f"{init_mi_info}\n{mi_info_arr}\n{self.max_step}")
         squared_diff = np.square(np.subtract(mi_info_arr, init_mi_info))
         mse_arr = np.sqrt(squared_diff)
         # mse_arr[mse_arr < self.error_margin] = -1

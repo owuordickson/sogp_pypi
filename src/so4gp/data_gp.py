@@ -18,8 +18,6 @@ import pandas as pd
 from collections import defaultdict
 from dateutil.parser import parse
 
-from .__configs__ import MIN_SUPPORT
-
 
 # -------- DATA SET PREPARATION -------------
 class DataGP:
@@ -45,7 +43,7 @@ class DataGP:
 
     """
 
-    def __init__(self, data_source, min_sup=MIN_SUPPORT, eq=False):
+    def __init__(self, data_source, min_sup=0.5, eq=False):
         """Description of class DataGP
 
 

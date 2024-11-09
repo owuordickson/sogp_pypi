@@ -39,8 +39,6 @@ import math
 import json
 import time
 import random
-
-import numpy
 import numpy as np
 import skfuzzy as fuzzy
 import multiprocessing as mp
@@ -49,9 +47,7 @@ from sklearn.cluster import KMeans
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.feature_selection import mutual_info_regression
 
-from .__configs__ import *
-from .data_gp import DataGP
-from .gradual_patterns import GI, ExtGP, TGP, TimeDelay
+from src.so4gp import DataGP, GI, ExtGP, TGP, TimeDelay
 
 
 class AntGRAANK(DataGP):
@@ -82,7 +78,7 @@ class AntGRAANK(DataGP):
     {"Algorithm": "ACO-GRAANK", "Best Patterns": [[["Expenses-", "Age+"], 1.0]], "Invalid Count": 1, "Iterations":3}
     """
 
-    def __init__(self, *args, max_iter: int = MAX_ITERATIONS, e_factor: float = EVAPORATION_FACTOR, **kwargs):
+    def __init__(self, *args, max_iter: int = 1, e_factor: float = 0.5, **kwargs):
         """Description
 
     Extract gradual patterns (GPs) from a numeric data source using the Ant Colony Optimization approach
@@ -298,7 +294,7 @@ class ClusterGP(DataGP):
     >>> print(result_json) # doctest: +SKIP
     """
 
-    def __init__(self, *args, e_prob: float = ERASURE_PROBABILITY, max_iter: int = SCORE_VECTOR_ITERATIONS, 
+    def __init__(self, *args, e_prob: float = 0.5, max_iter: int = 10,
                  no_prob: bool = False, **kwargs):
         """Description of class CluDataGP (Clustering DataGP)
 
@@ -676,7 +672,7 @@ class GeneticGRAANK(DataGP):
         "Iterations": 2}
     """
 
-    def __init__(self, *args, max_iter=MAX_ITERATIONS, n_pop=N_POPULATION, pc=PC, gamma=GAMMA, mu=MU, sigma=SIGMA, **kwargs):
+    def __init__(self, *args, max_iter=1, n_pop=5, pc=0.5, gamma=1.0, mu=0.9, sigma=0.9, **kwargs):
         """Description
 
         Extract gradual patterns (GPs) from a numeric data source using the Genetic Algorithm approach (proposed
@@ -1114,7 +1110,7 @@ class HillClimbingGRAANK(DataGP):
 
     """
 
-    def __init__(self, *args, max_iter: int = MAX_ITERATIONS, step_size: float = STEP_SIZE, **kwargs):
+    def __init__(self, *args, max_iter: int = 1, step_size: float = 0.5, **kwargs):
         """Description
 
         Extract gradual patterns (GPs) from a numeric data source using the Hill Climbing (Local Search) Algorithm
@@ -1137,6 +1133,8 @@ class HillClimbingGRAANK(DataGP):
         """type: step_size: float"""
         self.max_iteration = max_iter
         """type: max_iteration: int"""
+        self.n_var = 1
+        """:type n_var: int"""
 
     def discover(self):
         """Description
@@ -1168,7 +1166,7 @@ class HillClimbingGRAANK(DataGP):
         best_sol.position = None
         # candidate.position = None
         if best_sol.position is None:
-            best_sol.position = np.random.uniform(var_min, var_max, N_VAR)
+            best_sol.position = np.random.uniform(var_min, var_max, self.n_var)
         # evaluate the initial point
         NumericSS.apply_bound(best_sol, var_min, var_max)
         best_sol.cost = NumericSS.cost_function(best_sol.position, attr_keys, self)
@@ -1346,8 +1344,8 @@ class ParticleGRAANK(DataGP):
 
     """
 
-    def __init__(self, *args, max_iter: int = MAX_ITERATIONS, n_particle: int = N_PARTICLES, vel: float = VELOCITY, 
-                 coeff_p: float = PERSONAL_COEFF, coeff_g: float = GLOBAL_COEFF, **kwargs):
+    def __init__(self, *args, max_iter: int = 1, n_particle: int = 5, vel: float = 0.9,
+                 coeff_p: float = 0.01, coeff_g: float = 0.9, **kwargs):
         """Description
 
         Extract gradual patterns (GPs) from a numeric data source using the Particle Swarm Optimization Algorithm
@@ -1531,7 +1529,7 @@ class RandomGRAANK(DataGP):
 
     """
 
-    def __init__(self, *args, max_iter: int = MAX_ITERATIONS, **kwargs):
+    def __init__(self, *args, max_iter: int = 1, **kwargs):
         """Description
 
         Extract gradual patterns (GPs) from a numeric data source using the Random Search Algorithm (LS-GRAANK)
@@ -1552,6 +1550,8 @@ class RandomGRAANK(DataGP):
         super(RandomGRAANK, self).__init__(*args, **kwargs)
         self.max_iteration = max_iter
         """type: max_iteration: int"""
+        self.n_var = 1
+        """:type n_var: int"""
 
     def discover(self):
         """Description
@@ -1582,7 +1582,7 @@ class RandomGRAANK(DataGP):
 
         # INITIALIZE
         best_sol = candidate.deepcopy()
-        best_sol.position = np.random.uniform(var_min, var_max, N_VAR)
+        best_sol.position = np.random.uniform(var_min, var_max, self.n_var)
         best_sol.cost = NumericSS.cost_function(best_sol.position, attr_keys, self)
 
         # Best Cost of Iteration

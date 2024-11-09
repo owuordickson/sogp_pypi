@@ -17,9 +17,7 @@ import pandas as pd
 import multiprocessing as mp
 from tabulate import tabulate
 
-from . import GRAANK
-from .data_gp import DataGP
-from .so4gp import TGradAMI
+from src.so4gp import GRAANK, DataGP, TGradAMI
 
 
 def analyze_gps(data_src, min_sup, est_gps, approach='bfs'):
@@ -109,8 +107,13 @@ def gradual_correlation(data: pd.DataFrame):
     >>> dummy_data = [[30, 3, 1, 10], [35, 2, 2, 8], [40, 4, 2, 7], [50, 1, 1, 6], [52, 7, 1, 2]]
     >>> dummy_df = pandas.DataFrame(dummy_data, columns=['Age', 'Salary', 'Cars', 'Expenses'])
     >>>
-    >>> gp_cor = gradual_correlation(dummy_df)
+    >>> gp_cor = sgp.gradual_correlation(dummy_df)
     >>> print(gp_cor)
+                 Age  Salary  Cars  Expenses
+    0       Age  1.0     0.6  -0.4      -1.0
+    1    Salary  0.6     1.0  -0.3      -0.6
+    2      Cars -0.4    -0.3   1.0       0.4
+    3  Expenses -1.0    -0.6   0.4       1.0
     """
 
     # 1. Instantiate GRAANK object and extract GPs
@@ -145,6 +148,7 @@ def gradual_correlation(data: pd.DataFrame):
 
     # 5. Create Pandas DataFrame and return it as result
     corr_df = pd.DataFrame(corr_mat, columns=col_names)
+    """:type corr_df: pd.DataFrame"""
     corr_df.insert(0, "", col_names)
     return corr_df
 

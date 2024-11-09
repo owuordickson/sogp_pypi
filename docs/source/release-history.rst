@@ -3,6 +3,16 @@ RELEASE HISTORY
 ***************
 
 
+0.6.3 (2024-11-09)
+---------------------------
+
+**Bug fixes**
+
+* Gradual correlation method 'index' problem.
+
+
+
+
 0.6.2 (2024-11-09)
 ---------------------------
 

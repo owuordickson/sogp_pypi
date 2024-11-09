@@ -112,11 +112,11 @@ def gradual_correlation(data: pd.DataFrame):
     >>>
     >>> gp_cor = sgp.gradual_correlation(dummy_df)
     >>> print(gp_cor)
-                 Age  Salary  Cars  Expenses
-    0       Age  1.0     0.6  -0.4      -1.0
-    1    Salary  0.6     1.0  -0.3      -0.6
-    2      Cars -0.4    -0.3   1.0       0.4
-    3  Expenses -1.0    -0.6   0.4       1.0
+              Age  Salary  Cars  Expenses
+    Age       1.0     0.6  -0.4      -1.0
+    Salary    0.6     1.0  -0.3      -0.6
+    Cars     -0.4    -0.3   1.0       0.4
+    Expenses -1.0    -0.6   0.4       1.0
     """
 
     # 1. Instantiate GRAANK object and extract GPs
@@ -152,7 +152,7 @@ def gradual_correlation(data: pd.DataFrame):
     # 5. Create Pandas DataFrame and return it as result
     corr_df = pd.DataFrame(corr_mat, columns=col_names)
     """:type corr_df: pd.DataFrame"""
-    corr_df.insert(0, "", col_names)
+    corr_df.index = col_names
     return corr_df
 
 

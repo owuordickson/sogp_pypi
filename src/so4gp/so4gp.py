@@ -70,15 +70,6 @@ class AntGRAANK(DataGP):
         its computed support is greater or equal to the minimum support threshold. The valid GPs are used to update the
         pheromone levels and better candidates are generated.
 
-    >>> import so4gp as sgp
-    >>> import pandas
-    >>> dummy_data = [[30, 3, 1, 10], [35, 2, 2, 8], [40, 4, 2, 7], [50, 1, 1, 6], [52, 7, 1, 2]]
-    >>> dummy_df = pandas.DataFrame(dummy_data, columns=['Age', 'Salary', 'Cars', 'Expenses'])
-    >>>
-    >>> mine_obj = sgp.AntGRAANK(dummy_df, 0.5, max_iter=3, e_factor=0.5)
-    >>> result_json = mine_obj.discover()
-    >>> print(result_json) # doctest: +SKIP
-    {"Algorithm": "ACO-GRAANK", "Best Patterns": [[["Expenses-", "Age+"], 1.0]], "Invalid Count": 1, "Iterations":3}
     """
 
     def __init__(self, *args, max_iter: int = 1, e_factor: float = 0.5, **kwargs):
@@ -101,6 +92,19 @@ class AntGRAANK(DataGP):
         :param args: [required] data source path of Pandas DataFrame, [optional] minimum-support, [optional] eq 
         :param max_iter: [optional] maximum_iteration, default is 1
         :param e_factor: [optional] evaporation factor, default is 0.5
+
+        >>> import so4gp as sgp
+        >>> import pandas
+        >>> import json
+        >>> dummy_data = [[30, 3, 1, 10], [35, 2, 2, 8], [40, 4, 2, 7], [50, 1, 1, 6], [52, 7, 1, 2]]
+        >>> dummy_df = pandas.DataFrame(dummy_data, columns=['Age', 'Salary', 'Cars', 'Expenses'])
+        >>>
+        >>> mine_obj = sgp.AntGRAANK(dummy_df, 0.5, max_iter=3, e_factor=0.5)
+        >>> result_json = mine_obj.discover()
+        >>> result = json.loads(result_json)
+        >>> # print(result['Patterns'])
+        >>> print(result_json) # doctest: +SKIP
+        {"Algorithm": "ACO-GRAANK", "Best Patterns": [[["Expenses-", "Age+"], 1.0]], "Invalid Count": 1, "Iterations":3}
 
         """
         super(AntGRAANK, self).__init__(*args, **kwargs)
@@ -287,14 +291,6 @@ class ClusterGP(DataGP):
     patterns (GP). It takes a numeric file (in CSV format) as input and converts it into an object whose attributes are
     used by algorithms to extract GPs.
 
-    >>> import so4gp as sgp
-    >>> import pandas
-    >>> dummy_data = [[30, 3, 1, 10], [35, 2, 2, 8], [40, 4, 2, 7], [50, 1, 1, 6], [52, 7, 1, 2]]
-    >>> dummy_df = pandas.DataFrame(dummy_data, columns=['Age', 'Salary', 'Cars', 'Expenses'])
-    >>>
-    >>> mine_obj = sgp.ClusterGP(dummy_df, 0.5, max_iter=3, e_prob=0.5)
-    >>> result_json = mine_obj.discover()
-    >>> print(result_json) # doctest: +SKIP
     """
 
     def __init__(self, *args, e_prob: float = 0.5, max_iter: int = 10,
@@ -308,6 +304,18 @@ class ClusterGP(DataGP):
         :param args: [required] data source path of Pandas DataFrame, [optional] minimum-support, [optional] eq 
         :param e_prob: [optional] erasure probability, the default is 0.5
         :param max_iter: [optional] maximum iteration for score vector estimation, the default is 10
+
+        >>> import so4gp as sgp
+        >>> import pandas
+        >>> import json
+        >>> dummy_data = [[30, 3, 1, 10], [35, 2, 2, 8], [40, 4, 2, 7], [50, 1, 1, 6], [52, 7, 1, 2]]
+        >>> dummy_df = pandas.DataFrame(dummy_data, columns=['Age', 'Salary', 'Cars', 'Expenses'])
+        >>>
+        >>> mine_obj = sgp.ClusterGP(dummy_df, 0.5, max_iter=3, e_prob=0.5)
+        >>> result_json = mine_obj.discover()
+        >>> result = json.loads(result_json)
+        >>> # print(result['Patterns'])
+        >>> print(result_json) # doctest: +SKIP
         """
         super(ClusterGP, self).__init__(*args, **kwargs)
         self.erasure_probability = e_prob
@@ -591,7 +599,7 @@ class ClusterGP(DataGP):
         """:type est_sup: float"""
         return est_sup
 
-    def discover(self, testing=False):
+    def discover(self, eval_mode=False):
         """Description
 
         Applies spectral clustering to determine which gradual items belong to the same group based on the similarity
@@ -599,10 +607,10 @@ class ClusterGP(DataGP):
         are validated if their computed support is greater than or equal to the minimum support threshold specified by
         the user.
 
-        :param testing: [optional] returns different format if algorithm is used in a test environment
-        :type testing: bool
+        :param eval_mode: [optional] run algorithm in evaluation mode. Returns more evaluation data as dict.
+        :type eval_mode: bool
 
-        :return: JSON object
+        :return: JSON | dict object
         """
 
         # 1. Generate net-win matrices
@@ -631,15 +639,11 @@ class ClusterGP(DataGP):
         str_gps, estimated_gps = self._infer_gps(y_predicted)
 
         # 4. Output - DO NOT ADD TO PyPi Package
-        out = structure()
-        out.estimated_gps = estimated_gps
-        out.max_iteration = self.max_iteration
-        out.titles = self.titles
-        out.col_count = self.col_count
-        out.row_count = self.row_count
-        out.e_prob = self.erasure_probability
-        out.cluster_time = (end - start)  # TO BE REMOVED
-        if testing:
+        out = {'estimated_gps': estimated_gps, 'max_iteration': self.max_iteration, 'titles': self.titles,
+               'col_count': self.col_count, 'row_count': self.row_count, 'e_prob': self.erasure_probability,
+               'cluster_time': (end - start)}
+        """:type out: dict"""
+        if eval_mode:
             return out
 
         # Output
@@ -663,16 +667,6 @@ class GeneticGRAANK(DataGP):
          support value the lower the cost. The aim of the algorithm is search through a population of individuals (or
          candidates) and find those with the lowest cost as efficiently as possible.
 
-    >>> import so4gp as sgp
-    >>> import pandas
-    >>> dummy_data = [[30, 3, 1, 10], [35, 2, 2, 8], [40, 4, 2, 7], [50, 1, 1, 6], [52, 7, 1, 2]]
-    >>> dummy_df = pandas.DataFrame(dummy_data, columns=['Age', 'Salary', 'Cars', 'Expenses'])
-    >>>
-    >>> mine_obj = sgp.GeneticGRAANK(dummy_df, 0.5, max_iter=3, n_pop=10)
-    >>> result_json = mine_obj.discover()
-    >>> print(result_json) # doctest: +SKIP
-    {"Algorithm": "GA-GRAANK", "Best Patterns": [[["Age+", "Salary+", "Expenses-"], 0.6]], "Invalid Count": 12,
-        "Iterations": 2}
     """
 
     def __init__(self, *args, max_iter=1, n_pop=5, pc=0.5, gamma=1.0, mu=0.9, sigma=0.9, **kwargs):
@@ -707,6 +701,20 @@ class GeneticGRAANK(DataGP):
 
         :param sigma: [optional] mutation sigma ratio, default is 0.9
         :type sigma: float
+
+        >>> import so4gp as sgp
+        >>> import pandas
+        >>> import json
+        >>> dummy_data = [[30, 3, 1, 10], [35, 2, 2, 8], [40, 4, 2, 7], [50, 1, 1, 6], [52, 7, 1, 2]]
+        >>> dummy_df = pandas.DataFrame(dummy_data, columns=['Age', 'Salary', 'Cars', 'Expenses'])
+        >>>
+        >>> mine_obj = sgp.GeneticGRAANK(dummy_df, 0.5, max_iter=3, n_pop=10)
+        >>> result_json = mine_obj.discover()
+        >>> result = json.loads(result_json)
+        >>> # print(result['Patterns'])
+        >>> print(result_json) # doctest: +SKIP
+        {"Algorithm": "GA-GRAANK", "Best Patterns": [[["Age+", "Salary+", "Expenses-"], 0.6]], "Invalid Count": 12,
+            "Iterations": 2}
         """
         super(GeneticGRAANK, self).__init__(*args, **kwargs)
         self.max_iteration = max_iter
@@ -938,15 +946,6 @@ class GRAANK(DataGP):
 
         This class extends class DataGP which is responsible for generating the GP bitmaps.
 
-        >>> import so4gp as sgp
-        >>> import pandas
-        >>> dummy_data = [[30, 3, 1, 10], [35, 2, 2, 8], [40, 4, 2, 7], [50, 1, 1, 6], [52, 7, 1, 2]]
-        >>> dummy_df = pandas.DataFrame(dummy_data, columns=['Age', 'Salary', 'Cars', 'Expenses'])
-        >>>
-        >>> mine_obj = sgp.GRAANK(data_source=dummy_df, min_sup=0.5, eq=False)
-        >>> result_json = mine_obj.discover()
-        >>> print(result_json) # doctest: +SKIP
-
         """
 
     def __init__(self, *args, **kwargs):
@@ -963,6 +962,18 @@ class GRAANK(DataGP):
         This class extends class DataGP which is responsible for generating the GP bitmaps.
 
         :param args: [required] data source path of Pandas DataFrame, [optional] minimum-support, [optional] eq
+
+        >>> import so4gp as sgp
+        >>> import pandas
+        >>> import json
+        >>> dummy_data = [[30, 3, 1, 10], [35, 2, 2, 8], [40, 4, 2, 7], [50, 1, 1, 6], [52, 7, 1, 2]]
+        >>> dummy_df = pandas.DataFrame(dummy_data, columns=['Age', 'Salary', 'Cars', 'Expenses'])
+        >>>
+        >>> mine_obj = sgp.GRAANK(data_source=dummy_df, min_sup=0.5, eq=False)
+        >>> result_json = mine_obj.discover()
+        >>> result = json.loads(result_json)
+        >>> # print(result['Patterns'])
+        >>> print(result_json) # doctest: +SKIP
         """
         super(GRAANK, self).__init__(*args, **kwargs)
 
@@ -1101,16 +1112,6 @@ class HillClimbingGRAANK(DataGP):
          value the lower the cost. The aim of the algorithm is search through group of positions and find those with
          the lowest cost as efficiently as possible.
 
-    >>> import so4gp as sgp
-    >>> import pandas
-    >>> dummy_data = [[30, 3, 1, 10], [35, 2, 2, 8], [40, 4, 2, 7], [50, 1, 1, 6], [52, 7, 1, 2]]
-    >>> dummy_df = pandas.DataFrame(dummy_data, columns=['Age', 'Salary', 'Cars', 'Expenses'])
-    >>>
-    >>> mine_obj = sgp.HillClimbingGRAANK(dummy_df, 0.5, max_iter=3, step_size=0.5)
-    >>> result_json = mine_obj.discover()
-    >>> print(result_json) # doctest: +SKIP
-    {"Algorithm": "LS-GRAANK", "Best Patterns": [[["Age+", "Expenses-"], 1.0]], "Invalid Count": 2, "Iterations": 2}
-
     """
 
     def __init__(self, *args, max_iter: int = 1, step_size: float = 0.5, **kwargs):
@@ -1130,6 +1131,19 @@ class HillClimbingGRAANK(DataGP):
         :param args: [required] data source path of Pandas DataFrame, [optional] minimum-support, [optional] eq 
         :param max_iter: [optional] maximum_iteration, default is 1
         :param step_size: [optional] step size, default is 0.5
+
+        >>> import so4gp as sgp
+        >>> import pandas
+        >>> import json
+        >>> dummy_data = [[30, 3, 1, 10], [35, 2, 2, 8], [40, 4, 2, 7], [50, 1, 1, 6], [52, 7, 1, 2]]
+        >>> dummy_df = pandas.DataFrame(dummy_data, columns=['Age', 'Salary', 'Cars', 'Expenses'])
+        >>>
+        >>> mine_obj = sgp.HillClimbingGRAANK(dummy_df, 0.5, max_iter=3, step_size=0.5)
+        >>> result_json = mine_obj.discover()
+        >>> result = json.loads(result_json)
+        >>> # print(result['Patterns'])
+        >>> print(result_json) # doctest: +SKIP
+        {"Algorithm": "LS-GRAANK", "Best Patterns": [[["Age+", "Expenses-"], 1.0]], "Invalid Count": 2, "Iterations": 2}
         """
         super(HillClimbingGRAANK, self).__init__(*args, **kwargs)
         self.step_size = step_size
@@ -1335,16 +1349,6 @@ class ParticleGRAANK(DataGP):
          support value the higher the fitness. The aim of the algorithm is search through a population of particles
          (or candidates) and find those with the highest fitness as efficiently as possible.
 
-    >>> import so4gp as sgp
-    >>> import pandas
-    >>> dummy_data = [[30, 3, 1, 10], [35, 2, 2, 8], [40, 4, 2, 7], [50, 1, 1, 6], [52, 7, 1, 2]]
-    >>> dummy_df = pandas.DataFrame(dummy_data, columns=['Age', 'Salary', 'Cars', 'Expenses'])
-    >>>
-    >>> mine_obj = sgp.ParticleGRAANK(dummy_df, 0.5, max_iter=3, n_particle=10)
-    >>> result_json = mine_obj.discover()
-    >>> print(result_json) # doctest: +SKIP
-    {"Algorithm": "PSO-GRAANK", "Best Patterns": [], "Invalid Count": 12, "Iterations": 2}
-
     """
 
     def __init__(self, *args, max_iter: int = 1, n_particle: int = 5, vel: float = 0.9,
@@ -1368,6 +1372,19 @@ class ParticleGRAANK(DataGP):
         :param vel: [optional] velocity, default is 0.9
         :param coeff_p: [optional] personal coefficient, default is 0.01
         :param coeff_g: [optional] global coefficient, default is 0.9
+
+        >>> import so4gp as sgp
+        >>> import pandas
+        >>> import json
+        >>> dummy_data = [[30, 3, 1, 10], [35, 2, 2, 8], [40, 4, 2, 7], [50, 1, 1, 6], [52, 7, 1, 2]]
+        >>> dummy_df = pandas.DataFrame(dummy_data, columns=['Age', 'Salary', 'Cars', 'Expenses'])
+        >>>
+        >>> mine_obj = sgp.ParticleGRAANK(dummy_df, 0.5, max_iter=3, n_particle=10)
+        >>> result_json = mine_obj.discover()
+        >>> result = json.loads(result_json)
+        >>> # print(result['Patterns'])
+        >>> print(result_json) # doctest: +SKIP
+        {"Algorithm": "PSO-GRAANK", "Best Patterns": [], "Invalid Count": 12, "Iterations": 2}
         """
         super(ParticleGRAANK, self).__init__(*args, **kwargs)
         self.max_iteration = max_iter
@@ -1519,17 +1536,6 @@ class RandomGRAANK(DataGP):
 
         max_iteration: integer value determines the number of iterations for the algorithm
 
-    >>> import so4gp as sgp
-    >>> import pandas
-    >>> dummy_data = [[30, 3, 1, 10], [35, 2, 2, 8], [40, 4, 2, 7], [50, 1, 1, 6], [52, 7, 1, 2]]
-    >>> dummy_df = pandas.DataFrame(dummy_data, columns=['Age', 'Salary', 'Cars', 'Expenses'])
-    >>>
-    >>> mine_obj = sgp.RandomGRAANK(dummy_df, 0.5, max_iter=3)
-    >>> result_json = mine_obj.discover()
-    >>> print(result_json) # doctest: +SKIP
-    {"Algorithm": "RS-GRAANK", "Best Patterns": [[["Age+", "Salary+", "Expenses-"], 0.6]], "Invalid Count": 1,
-        "Iterations": 3}
-
     """
 
     def __init__(self, *args, max_iter: int = 1, **kwargs):
@@ -1549,6 +1555,19 @@ class RandomGRAANK(DataGP):
         :param args: [required] data source path of Pandas DataFrame, [optional] minimum-support, [optional] eq 
         :param max_iter: [optional] maximum_iteration, default is 1
 
+        >>> import so4gp as sgp
+        >>> import pandas
+        >>> import json
+        >>> dummy_data = [[30, 3, 1, 10], [35, 2, 2, 8], [40, 4, 2, 7], [50, 1, 1, 6], [52, 7, 1, 2]]
+        >>> dummy_df = pandas.DataFrame(dummy_data, columns=['Age', 'Salary', 'Cars', 'Expenses'])
+        >>>
+        >>> mine_obj = sgp.RandomGRAANK(dummy_df, 0.5, max_iter=3)
+        >>> result_json = mine_obj.discover()
+        >>> result = json.loads(result_json)
+        >>> # print(result['Patterns'])
+        >>> print(result_json) # doctest: +SKIP
+        {"Algorithm": "RS-GRAANK", "Best Patterns": [[["Age+", "Salary+", "Expenses-"], 0.6]], "Invalid Count": 1,
+            "Iterations": 3}
         """
         super(RandomGRAANK, self).__init__(*args, **kwargs)
         self.max_iteration = max_iter
@@ -1664,11 +1683,14 @@ class TGrad(GRAANK):
 
         >>> import so4gp as sgp
         >>> import pandas
+        >>> import json
         >>> dummy_data = [["2021-03", 30, 3, 1, 10], ["2021-04", 35, 2, 2, 8], ["2021-05", 40, 4, 2, 7], ["2021-06", 50, 1, 1, 6], ["2021-07", 52, 7, 1, 2]]
         >>> dummy_df = pandas.DataFrame(dummy_data, columns=['Date', 'Age', 'Salary', 'Cars', 'Expenses'])
         >>>
         >>> mine_obj = sgp.TGrad(dummy_df, min_sup=0.5, target_col=1, min_rep=0.5)
         >>> result_json = mine_obj.discover_tgp(parallel=True)
+        >>> result = json.loads(result_json)
+        >>> # print(result['Patterns'])
         >>> print(result_json)
         """
 
@@ -2044,11 +2066,14 @@ class TGradAMI(TGrad):
 
         >>> import so4gp as sgp
         >>> import pandas
+        >>> import json
         >>> dummy_data = [["2021-03", 30, 3, 1, 10], ["2021-04", 35, 2, 2, 8], ["2021-05", 40, 4, 2, 7], ["2021-06", 50, 1, 1, 6], ["2021-07", 52, 7, 1, 2]]
         >>> dummy_df = pandas.DataFrame(dummy_data, columns=['Date', 'Age', 'Salary', 'Cars', 'Expenses'])
         >>>
         >>> mine_obj = sgp.TGradAMI(dummy_df, min_sup=0.5, target_col=1, min_rep=0.5, min_error=0.1)
         >>> result_json = mine_obj.discover_tgp(use_clustering=True, eval_mode=False)
+        >>> result = json.loads(result_json)
+        >>> # print(result['Patterns'])
         >>> print(result_json)
         """
 

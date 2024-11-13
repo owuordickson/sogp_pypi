@@ -3,12 +3,22 @@ RELEASE HISTORY
 ***************
 
 
+0.6.5 (2024-11-13)
+---------------------------
+
+**Updates**
+
+* Added target-col to GRAANK.
+
+
+
+
 0.6.4 (2024-11-12)
 ---------------------------
 
 **Updates**
 
-* Documentation corrections.
+* Documentation additions.
 
 
 

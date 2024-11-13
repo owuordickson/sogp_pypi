@@ -1035,7 +1035,7 @@ class GRAANK(DataGP):
                     gc.collect()
         return res, invalid_count
 
-    def discover(self, ignore_support: bool = False, apriori_level: int | None = None):
+    def discover(self, ignore_support: bool = False, apriori_level: int | None = None, target_col: int | None = None):
         """Description
 
         Uses apriori algorithm to find gradual pattern (GP) candidates. The candidates are validated if their computed
@@ -1043,6 +1043,7 @@ class GRAANK(DataGP):
 
         :param ignore_support: do not filter extracted GPs using user-defined minimum support threshold.
         :param apriori_level: maximum APRIORI level for generating candidates.
+        :param target_col: target feature's column index.
 
         :return: JSON object
         """
@@ -1057,7 +1058,9 @@ class GRAANK(DataGP):
         invalid_count = 0
         candidate_level = 1
         while len(valid_bins) > 0:
-            valid_bins, inv_count = self._gen_apriori_candidates(valid_bins, ignore_sup=ignore_support)
+            valid_bins, inv_count = self._gen_apriori_candidates(valid_bins,
+                                                                 target_col=target_col,
+                                                                 ignore_sup=ignore_support)
             invalid_count += inv_count
             for v_bin in valid_bins:
                 gi_arr = v_bin[0]

@@ -10,7 +10,7 @@ if __name__ == "__main__":
     mine_obj = sgp.GRAANK(dummy_df, min_sup=0.5, eq=False)
     # mine_obj = sgp.ClusterGP(dummy_df, 0.5, max_iter=3, e_prob=0.5)
     # mine_obj = sgp.AntGRAANK(dummy_df, 0.5, max_iter=3, e_factor=0.5)
-    result_json = mine_obj.discover()
+    result_json = mine_obj.discover(target_col=3)
     print(result_json)
 
     # from so4gp.miscellaneous import gradual_decompose

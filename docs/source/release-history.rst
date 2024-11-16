@@ -8,7 +8,7 @@ RELEASE HISTORY
 
 **Updates**
 
-* Added target-col to GRAANK.
+* Added target-col to GRAANK. Changed licence to GNU GPL v3
 
 
 

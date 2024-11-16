@@ -101,7 +101,7 @@ def analyze_gps(data_src, min_sup, est_gps, approach='bfs'):
     return tabulate(data, headers=headers)
 
 
-def gradual_correlation(data: pd.DataFrame):
+def univariate_gradpfs(data: pd.DataFrame):
     """
     A method that calculates the gradual correlation between each pair of attributes in the dataset. This is achieved
     by mining 2-attribute GPs and using their highest support values to show the correlation between them.

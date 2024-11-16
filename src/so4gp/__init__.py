@@ -18,7 +18,7 @@ from .so4gp import TGrad
 from .so4gp import TGradAMI
 
 from .miscellaneous import analyze_gps
-from .miscellaneous import gradual_correlation
+from .miscellaneous import univariate_gradpfs
 from .miscellaneous import gradual_decompose
 from .miscellaneous import get_num_cores
 from .miscellaneous import get_slurm_cores

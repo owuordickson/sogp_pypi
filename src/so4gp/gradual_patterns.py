@@ -324,7 +324,9 @@ class GP:
         """Description
 
         Breaks down all the gradual items (GIs) in the gradual pattern into columns and variation symbols and returns
-        them as separate variables
+        them as separate variables. For instance a GP {"1+", "3-"} will be returned as [1, 3], [1, -1]: where [1, 3] is
+        the list of attributes/features and [1, -1] are their corresponding gradual variations (1 -> '+' and 1- -> '-').
+
         :return: separate columns and variation symbols
         """
         attrs = list()

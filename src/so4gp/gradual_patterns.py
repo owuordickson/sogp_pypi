@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # SPDX-License-Identifier: GNU GPL v3
-# This file is dual licensed under the terms of the GNU General Public, Version
-# 3.0.  See the LICENSE file in the root of this
+# This file is dual licensed under the terms of the GNU GPL v3.0.
+# See the LICENSE file in the root of this
 # repository for complete details.
 
 """
@@ -273,7 +273,7 @@ class GP:
         For example:
         >>> import so4gp
         >>> new_gp = so4gp.GP()
-        >>> new_gp.add_items_from_list(['0+', '2-', '3-'])
+        >>> new_gp.add_items_from_list(["0+", "2-", "3-"])
 
         :param lst_items: str or set
         :type lst_items: list
@@ -503,29 +503,29 @@ class ExtGP(GP):
         self.freq_count = 0
         """:type freq_count: int"""
 
-    def validate_graank(self, d_set):
+    def validate_graank(self, d_gp):
         """Description
 
         Validates a candidate gradual pattern (GP) based on support computation. A GP is invalid if its support value is
         less than the minimum support threshold set by the user. It uses a breath-first approach to compute support.
 
-        :param d_set: Data_GP object
-        :type d_set: so4gp.DataGP # noinspection PyTypeChecker
+        :param d_gp: Data_GP object
+        :type d_gp: so4gp.DataGP # noinspection PyTypeChecker
 
         :return: a valid GP or an empty GP
         """
         # pattern = [('2', "+"), ('4', "+")]
-        min_supp = d_set.thd_supp
-        n = d_set.attr_size
+        min_supp = d_gp.thd_supp
+        n = d_gp.attr_size
         gen_pattern = ExtGP()
         """type gen_pattern: ExtGP"""
         bin_arr = np.array([])
 
         for gi in self.gradual_items:
-            arg = np.argwhere(np.isin(d_set.valid_bins[:, 0], gi.gradual_item))
+            arg = np.argwhere(np.isin(d_gp.valid_bins[:, 0], gi.gradual_item))
             if len(arg) > 0:
                 i = arg[0][0]
-                valid_bin = d_set.valid_bins[i]
+                valid_bin = d_gp.valid_bins[i]
                 if bin_arr.size <= 0:
                     bin_arr = np.array([valid_bin[1], valid_bin[1]])
                     gen_pattern.add_gradual_item(gi)
@@ -542,20 +542,20 @@ class ExtGP(GP):
         else:
             return gen_pattern
 
-    def validate_tree(self, d_set):
+    def validate_tree(self, d_gp):
         """Description
 
         Validates a candidate gradual pattern (GP) based on support computation. A GP is invalid if its support value is
         less than the minimum support threshold set by the user. It applies a depth-first (FP-Growth) approach
         to compute support.
 
-        :param d_set: Data_GP object
-        :type d_set: so4gp.DataGP # noinspection PyTypeChecker
+        :param d_gp: Data_GP object
+        :type d_gp: so4gp.DataGP # noinspection PyTypeChecker
 
         :return: a valid GP or an empty GP
         """
-        min_supp = d_set.thd_supp
-        n = d_set.row_count
+        min_supp = d_gp.thd_supp
+        n = d_gp.row_count
         gen_pattern = ExtGP()
         """type gen_pattern: ExtGP"""
         temp_tids = None
@@ -564,7 +564,7 @@ class ExtGP(GP):
             node = int(gi_int[0] + 1) * gi_int[1]
             gi_int = (gi.inv_gi()).as_integer()
             node_inv = int(gi_int[0] + 1) * gi_int[1]
-            for k, v in d_set.valid_tids.items():
+            for k, v in d_gp.valid_tids.items():
                 if (node == k) or (node_inv == k):
                     if temp_tids is None:
                         temp_tids = v
@@ -839,16 +839,16 @@ class TimeDelay:
         """:type support: float"""
         self.valid = False
         """type: valid: bool"""
-        self.sign = self._get_sign()
+        self.sign = self.__get_sign()
         """type: sign: str"""
         self.formatted_time = {}
         """type: formatted_time: dict"""
         if tstamp != 0:
-            time_arr = self._format_time()
+            time_arr = self.__format_time()
             self.formatted_time = {'value': time_arr[0], 'duration': time_arr[1]}
             self.valid = True
 
-    def _get_sign(self):
+    def __get_sign(self):
         """
         Checks and returns the sign of the time-delay value (later/before).
 
@@ -860,7 +860,7 @@ class TimeDelay:
             sign = "+"
         return sign
 
-    def _format_time(self):
+    def __format_time(self):
         """
         Formats the time-delay value as a Date in string format (i.e., seconds/minutes/hours/days/weeks/months/years).
 

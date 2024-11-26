@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # SPDX-License-Identifier: GNU GPL v3
-# This file is dual licensed under the terms of the GNU General Public, Version
-# 3.0.  See the LICENSE file in the root of this
+# This file is dual licensed under the terms of the GNU GPL v3.0.
+# See the LICENSE file in the root of this
 # repository for complete details.
 
 """
@@ -24,7 +24,6 @@ from collections import defaultdict
 from dateutil.parser import parse
 
 
-# -------- DATA SET PREPARATION -------------
 class DataGP:
     """Description of class DataGP
 
@@ -76,9 +75,9 @@ class DataGP:
         self.row_count, self.col_count = self.data.shape
         """:type row_count: int"""
         """:type col_count: int"""
-        self.time_cols = self._get_time_cols()
+        self.time_cols = self.__get_time_cols()
         """:type time_cols: numpy.ndarray"""
-        self.attr_cols = self._get_attr_cols()
+        self.attr_cols = self.__get_attr_cols()
         """:type attr_cols: numpy.ndarray"""
         self.valid_bins = np.array([])
         """:type valid_bins: numpy.ndarray"""
@@ -91,7 +90,7 @@ class DataGP:
         self.gradual_patterns = None
         """:type gradual_patterns: list | None"""
 
-    def _get_attr_cols(self):
+    def __get_attr_cols(self):
         """Description
 
         Returns indices of all columns with non-datetime objects
@@ -102,7 +101,7 @@ class DataGP:
         attr_cols = np.setdiff1d(all_cols, self.time_cols)
         return attr_cols
 
-    def _get_time_cols(self):
+    def __get_time_cols(self):
         """Description
 
         Tests each column's objects for date-time values. Returns indices of all columns with date-time objects
@@ -172,10 +171,10 @@ class DataGP:
             # 2a. Generate 1-itemset gradual items
             with np.errstate(invalid='ignore'):
                 if not self.equal:
-                    temp_pos = col_data > col_data[:, np.newaxis]
+                    temp_pos = np.array(col_data > col_data[:, np.newaxis])
                 else:
-                    temp_pos = col_data >= col_data[:, np.newaxis]
-                    np.fill_diagonal(temp_pos, 0)
+                    temp_pos = np.array(col_data >= col_data[:, np.newaxis])
+                    np.fill_diagonal(temp_pos, False)
 
                 # 2b. Check support of each generated itemset
                 supp = float(np.sum(temp_pos)) / float(n * (n - 1.0) / 2.0)

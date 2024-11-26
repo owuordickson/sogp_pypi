@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # SPDX-License-Identifier: GNU GPL v3
-# This file is dual licensed under the terms of the GNU General Public, Version
-# 3.0.  See the LICENSE file in the root of this
+# This file is dual licensed under the terms of the GNU GPL v3.0.
+# See the LICENSE file in the root of this
 # repository for complete details.
 
 """
@@ -99,66 +99,6 @@ def analyze_gps(data_src, min_sup, est_gps, approach='bfs'):
         else:
             data.append([est_gp.to_string(), round(est_sup, 3), -1, np.inf, np.inf])
     return tabulate(data, headers=headers)
-
-
-def univariate_gradpfs(data: pd.DataFrame):
-    """
-    A method that calculates the gradual correlation between each pair of attributes in the dataset. This is achieved
-    by mining 2-attribute GPs and using their highest support values to show the correlation between them.
-
-    :param data: [required] the multivariate timeseries data as Pandas DataFrame.
-
-    >>> import pandas
-    >>> import so4gp as sgp
-    >>> import matplotlib.pyplot as plt
-    >>>
-    >>> dummy_data = [[30, 3, 1, 10], [35, 2, 2, 8], [40, 4, 2, 7], [50, 1, 1, 6], [52, 7, 1, 2]]
-    >>> dummy_df = pandas.DataFrame(dummy_data, columns=['Age', 'Salary', 'Cars', 'Expenses'])
-    >>>
-    >>> gp_cor = sgp.gradual_correlation(dummy_df)
-    >>> print(gp_cor)
-              Age  Salary  Cars  Expenses
-    Age       1.0     0.6  -0.4      -1.0
-    Salary    0.6     1.0  -0.3      -0.6
-    Cars     -0.4    -0.3   1.0       0.4
-    Expenses -1.0    -0.6   0.4       1.0
-    """
-
-    # 1. Instantiate GRAANK object and extract GPs
-    grad = GRAANK(data)
-    grad.discover(ignore_support=True, apriori_level=2)
-
-    # 2. Create correlation matrix
-    n = grad.col_count
-    corr_mat = np.zeros((n, n), dtype=float)
-    np.fill_diagonal(corr_mat, 1)
-
-    # 3. Extract column names
-    col_names = []
-    for col_obj in grad.titles:
-        # col_names[int(col_obj[0])] = col_obj[1].decode()
-        col_names.append(col_obj[1].decode())
-    col_names = np.array(col_names)
-
-    # 4. Update correlation matrix with GP support
-    for gp in grad.gradual_patterns:
-        sup = gp.support
-        i = int(gp.gradual_items[0].attribute_col)
-        j = int(gp.gradual_items[1].attribute_col)
-        i_symbol = str(gp.gradual_items[0].symbol)
-        j_symbol = str(gp.gradual_items[1].symbol)
-
-        if i_symbol != j_symbol:
-            sup = -sup
-        if abs(corr_mat[i][j]) < abs(sup):
-            corr_mat[i][j] = sup
-            corr_mat[j][i] = sup
-
-    # 5. Create Pandas DataFrame and return it as result
-    corr_df = pd.DataFrame(corr_mat, columns=col_names)
-    """:type corr_df: pd.DataFrame"""
-    corr_df.index = col_names
-    return corr_df
 
 
 def gradual_decompose(data: pd.DataFrame, target: int):

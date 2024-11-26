@@ -10,14 +10,10 @@ if __name__ == "__main__":
     mine_obj = sgp.GRAANK(dummy_df, min_sup=0.5, eq=False)
     # mine_obj = sgp.ClusterGP(dummy_df, 0.5, max_iter=3, e_prob=0.5)
     # mine_obj = sgp.AntGRAANK(dummy_df, 0.5, max_iter=3, e_factor=0.5)
-    result_json = mine_obj.discover(target_col=3)
+    result_json = mine_obj.discover(target_col=4)
     print(result_json)
 
     # from so4gp.miscellaneous import gradual_decompose
     # gp_trends = gradual_decompose(dummy_df, target=1)
     # print(gp_trends)
     # print(DataGP.test_time("09-01-2005"))
-
-    from so4gp.miscellaneous import gradual_correlation
-    gp_cor = gradual_correlation(dummy_df)
-    print(gp_cor)

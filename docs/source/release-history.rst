@@ -3,6 +3,17 @@ RELEASE HISTORY
 ***************
 
 
+0.6.6 (2024-11-26)
+---------------------------
+
+**Updates**
+
+* Multivariate feature selection through elimination of irrelevant and redundant features.
+
+
+
+
+
 0.6.5 (2024-11-13)
 ---------------------------
 

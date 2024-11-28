@@ -3,14 +3,21 @@ RELEASE HISTORY
 ***************
 
 
+0.6.7 (2024-11-28)
+---------------------------
+
+**Updates**
+
+* Added GradPFS algorithm for univariate and multivariate regression tasks.
+
+
+
 0.6.6 (2024-11-26)
 ---------------------------
 
 **Updates**
 
 * Multivariate feature selection through elimination of irrelevant and redundant features.
-
-
 
 
 

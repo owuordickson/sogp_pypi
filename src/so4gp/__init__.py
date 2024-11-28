@@ -22,6 +22,7 @@ from .so4gp import ParticleGRAANK
 from .so4gp import RandomGRAANK
 from .so4gp import TGrad
 from .so4gp import TGradAMI
+from .so4gp import GradPFS
 
 from .miscellaneous import analyze_gps
 from .miscellaneous import gradual_decompose
@@ -30,7 +31,7 @@ from .miscellaneous import get_slurm_cores
 from .miscellaneous import write_file
 
 # Project Details
-__version__ = "0.6.6"
+__version__ = "0.6.7"
 __title__ = f"so4gp (v{__version__})"
 __author__ = "Dickson Owuor"
 __credits__ = "Montpellier University"

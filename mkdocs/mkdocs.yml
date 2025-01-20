@@ -1,0 +1,5 @@
+site_name: so4gp
+nav:
+  - Home: index.md
+  - Install: install.md
+  - Usage: usage.md

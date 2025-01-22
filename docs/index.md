@@ -4,13 +4,13 @@ firstpage:
 lastpage:
 ---
 
-```{project-logo} _static/img/logo_su.png
+
+```{figure} _static/img/logo_su.png
 :alt: SU Logo
+:width: 50
 ```
 
-```{project-heading}
-A collection of gradual pattern mining algoithms and tools
-```
+# A collection of gradual pattern mining algorithms and tools
 
 ```{figure} _static/img/gp-mining.png
    :alt: GP Mining

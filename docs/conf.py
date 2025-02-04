@@ -92,7 +92,7 @@ def setup(app):
 #
 html_theme = "furo"
 html_title = "so4gp Documentation"
-html_baseurl = "https://gymnasium.farama.org"
+html_baseurl = "https://sogp_pi.readthedocs.io"
 html_copy_source = False
 # html_favicon = "_static/img/favicon.png"
 html_theme_options = {

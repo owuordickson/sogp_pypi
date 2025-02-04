@@ -99,7 +99,7 @@ html_theme_options = {
     #"light_logo": "img/so4gp_black.svg",
     #"dark_logo": "img/so4gp_white.svg",
     #"gtag": "G-6H9C8TWXZ8",
-    "description": "A collection of gradual pattern mining algoithms and tools",
+    "description": "A collection of gradual pattern mining algorithms and tools",
     #"image": "img/so4gp-github.png",
     "versioning": True,
     "source_repository": "https://github.com/owuordickson/sogp_pypi",

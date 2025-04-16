@@ -127,7 +127,7 @@ class AntGRAANK(DataGP):
         self.attribute_keys = None
         """:type attribute_keys: list | None"""
 
-    def __fit(self):
+    def _fit(self):
         """Description
 
         Generates the distance matrix (d)
@@ -155,7 +155,7 @@ class AntGRAANK(DataGP):
         self.attribute_keys = attr_keys
         gc.collect()
 
-    def __gen_aco_candidates(self, p_matrix):
+    def _gen_aco_candidates(self, p_matrix):
         """Description
 
         Generates GP candidates based on the pheromone levels.
@@ -190,7 +190,7 @@ class AntGRAANK(DataGP):
         p_matrix = (1 - self.evaporation_factor) * p_matrix
         return pattern, p_matrix
 
-    def __update_pheromones(self, pattern, p_matrix):
+    def _update_pheromones(self, pattern, p_matrix):
         """Description
 
         Updates the pheromone level of the pheromone matrix
@@ -224,7 +224,7 @@ class AntGRAANK(DataGP):
         # d_set = DataGP(f_path, min_supp)
         # """:type d_set: DataGP"""
         self.fit_bitmap()
-        self.__fit()  # distance matrix (d) & attributes corresponding to d
+        self._fit()  # distance matrix (d) & attributes corresponding to d
         d = self.distance_matrix
 
         a = self.attr_size
@@ -249,7 +249,7 @@ class AntGRAANK(DataGP):
         # 4. Iterations for ACO
         # while repeated < 1:
         while counter < self.max_iteration:
-            rand_gp, pheromones = self.__gen_aco_candidates(pheromones)
+            rand_gp, pheromones = self._gen_aco_candidates(pheromones)
             if len(rand_gp.gradual_items) > 1:
                 # print(rand_gp.get_pattern())
                 exits = rand_gp.is_duplicate(self.gradual_patterns, loser_gps)
@@ -268,7 +268,7 @@ class AntGRAANK(DataGP):
                         repeated += 1
                     else:
                         if gen_gp.support >= self.thd_supp:
-                            pheromones = self.__update_pheromones(gen_gp, pheromones)
+                            pheromones = self._update_pheromones(gen_gp, pheromones)
                             self.gradual_patterns.append(gen_gp)
                             str_winner_gps.append(gen_gp.print(self.titles))
                         else:
@@ -332,7 +332,7 @@ class ClusterGP(DataGP):
         """:type erasure_probability: float"""
         self.max_iteration = max_iter
         """:type max_iteration: int"""
-        self.gradual_items, self.cum_wins, self.net_win_mat, self.ij = self.__construct_matrices(e_prob)
+        self.gradual_items, self.cum_wins, self.net_win_mat, self.ij = self._construct_matrices(e_prob)
         """:type gradual_items: np.ndarray"""
         """:type cum_wins: np.ndarray"""
         """:type net_win_mat: np.ndarray"""
@@ -340,9 +340,9 @@ class ClusterGP(DataGP):
         self.win_mat = np.array([])
         """:type win_mat: np.ndarray"""
         if no_prob:
-            self.gradual_items, self.win_mat, self.cum_wins, self.net_win_mat, self.ij = self.__construct_all_matrices()
+            self.gradual_items, self.win_mat, self.cum_wins, self.net_win_mat, self.ij = self._construct_all_matrices()
 
-    def __construct_matrices(self, e):
+    def _construct_matrices(self, e):
         """Description
 
         Generates all the gradual items and, constructs: (1) net-win matrix, (2) cumulative wins, (3) pairwise objects.
@@ -413,7 +413,7 @@ class ClusterGP(DataGP):
 
         return np.array(lst_gis), np.array(cum_wins), np.array(s_mat), pair_ij
 
-    def __construct_all_matrices(self):
+    def _construct_all_matrices(self):
         """Description
 
         Generates all the gradual items and, constructs: (1) win matrix (2) net-win matrix, (3) cumulative wins,
@@ -502,7 +502,7 @@ class ClusterGP(DataGP):
         # print(np.array(nodes_mat))
         return np.array(lst_gis), np.array(w_mat), np.array(cum_wins), np.array(s_mat), pair_ij
 
-    def __infer_gps(self, clusters):
+    def _infer_gps(self, clusters):
         """Description
 
         A function that infers GPs from clusters of gradual items.
@@ -529,11 +529,11 @@ class ClusterGP(DataGP):
                 # 2. Compute score vector from R matrix
                 score_vectors = []  # Approach 2
                 for c_win in cluster_cum_wins:
-                    temp = self.__estimate_score_vector(c_win)
+                    temp = self._estimate_score_vector(c_win)
                     score_vectors.append(temp)
 
                 # 3. Estimate support
-                est_sup = self.__estimate_support(score_vectors)
+                est_sup = self._estimate_support(score_vectors)
 
                 # 4. Infer GPs from the clusters
                 if est_sup >= self.thd_supp:
@@ -545,7 +545,7 @@ class ClusterGP(DataGP):
                     str_patterns.append(gp.print(self.titles))
         return str_patterns, patterns
 
-    def __estimate_score_vector(self, c_wins):
+    def _estimate_score_vector(self, c_wins):
         """Description
 
         A function that estimates the score vector based on the cumulative wins.
@@ -587,7 +587,7 @@ class ClusterGP(DataGP):
                 score_vector = abs(temp_vec / np.sum(temp_vec))
         return score_vector
 
-    def __estimate_support(self, score_vectors):
+    def _estimate_support(self, score_vectors):
         """Description
 
         A function that estimates the frequency support of a GP based on its score vector.
@@ -646,7 +646,7 @@ class ClusterGP(DataGP):
         end = time.time()  # TO BE REMOVED
 
         # 3. Infer GPs
-        str_gps, estimated_gps = self.__infer_gps(y_predicted)
+        str_gps, estimated_gps = self._infer_gps(y_predicted)
 
         # 4. Output - DO NOT ADD TO PyPi Package
         out = {'estimated_gps': estimated_gps, 'max_iteration': self.max_iteration, 'titles': self.titles,
@@ -740,7 +740,7 @@ class GeneticGRAANK(DataGP):
         self.sigma = sigma
         """type: sigma: float"""
 
-    def __crossover(self, p1: structure, p2: structure):
+    def _crossover(self, p1: structure, p2: structure):
         """Description
 
         Crosses over the genes of 2 parents (an individual with a specific position and cost) in order to generate 2
@@ -757,7 +757,7 @@ class GeneticGRAANK(DataGP):
         c2.position = alpha * p2.position + (1 - alpha) * p1.position
         return c1, c2
 
-    def __mutate(self, x: structure):
+    def _mutate(self, x: structure):
         """Description
 
         Mutates an individual's position in order to create a new and different individual.
@@ -850,7 +850,7 @@ class GeneticGRAANK(DataGP):
                 p2 = pop[q[1]]
 
                 # a. Perform Crossover
-                c1, c2 = self.__crossover(p1, p2)
+                c1, c2 = self._crossover(p1, p2)
 
                 # Apply Bound
                 NumericSS.apply_bound(c1, var_min, var_max)
@@ -875,8 +875,8 @@ class GeneticGRAANK(DataGP):
                 str_eval += "{}: {} \n".format(eval_count, best_sol.cost)
 
                 # b. Perform Mutation
-                c1 = self.__mutate(c1)
-                c2 = self.__mutate(c2)
+                c1 = self._mutate(c1)
+                c2 = self._mutate(c2)
 
                 # Apply Bound
                 NumericSS.apply_bound(c1, var_min, var_max)
@@ -987,7 +987,7 @@ class GRAANK(DataGP):
         """
         super(GRAANK, self).__init__(*args, **kwargs)
 
-    def __gen_apriori_candidates(self, gi_bins: np.ndarray, ignore_sup: bool = False,
+    def _gen_apriori_candidates(self, gi_bins: np.ndarray, ignore_sup: bool = False,
                                 target_col: int | None = None, exclude_target: bool = False):
         """Description
 
@@ -1086,7 +1086,7 @@ class GRAANK(DataGP):
         invalid_count = 0
         candidate_level = 1
         while len(valid_bins) > 0:
-            valid_bins, inv_count = self.__gen_apriori_candidates(valid_bins,
+            valid_bins, inv_count = self._gen_apriori_candidates(valid_bins,
                                                                  ignore_sup=ignore_support,
                                                                  target_col=target_col,
                                                                  exclude_target=exclude_target)
@@ -1831,7 +1831,7 @@ class TGrad(GRAANK):
 
                     if return_patterns:
                         # 2. Execute t-graank for each transformation
-                        t_gps = self.__mine(time_delay_data=time_diffs, attr_data=delayed_attr_data)
+                        t_gps = self._mine(time_delay_data=time_diffs, attr_data=delayed_attr_data)
                         if len(t_gps) > 0:
                             return t_gps
                         return False
@@ -1841,7 +1841,7 @@ class TGrad(GRAANK):
             msg = "Fatal Error: Time format in column could not be processed"
             raise Exception(msg)
 
-    def __mine(self, time_delay_data: np.ndarray | dict = None, attr_data: np.ndarray = None, clustering_method: bool = False):
+    def _mine(self, time_delay_data: np.ndarray | dict = None, attr_data: np.ndarray = None, clustering_method: bool = False):
         """
 
         Uses apriori algorithm to find GP candidates based on the target-attribute. The candidates are validated if
@@ -1868,7 +1868,7 @@ class TGrad(GRAANK):
 
         invalid_count = 0
         while len(valid_bins) > 0:
-            valid_bins, inv_count = self.__gen_apriori_candidates(valid_bins, target_col=self.target_col)
+            valid_bins, inv_count = self._gen_apriori_candidates(valid_bins, target_col=self.target_col)
             invalid_count += inv_count
             for v_bin in valid_bins:
                 gi_arr = v_bin[0]
@@ -2256,7 +2256,7 @@ class TGradAMI(TGrad):
                                                                    clustering_method=use_clustering)
             """:type t_gps: list"""
         else:
-            list_tgp = self.__mine(time_delay_data=time_data, attr_data=delayed_data, clustering_method=use_clustering)
+            list_tgp = self._mine(time_delay_data=time_data, attr_data=delayed_data, clustering_method=use_clustering)
             """:type t_gps: list"""
             gp_components = None
 
@@ -2326,7 +2326,7 @@ class TGradAMI(TGrad):
 
         invalid_count = 0
         while len(valid_bins) > 0:
-            valid_bins, inv_count = self.__gen_apriori_candidates(valid_bins, target_col=self.target_col)
+            valid_bins, inv_count = self._gen_apriori_candidates(valid_bins, target_col=self.target_col)
             invalid_count += inv_count
             for v_bin in valid_bins:
                 gi_arr = v_bin[0]

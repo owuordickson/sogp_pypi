@@ -31,7 +31,7 @@ from .miscellaneous import get_slurm_cores
 from .miscellaneous import write_file
 
 # Project Details
-__version__ = "0.6.7"
+__version__ = "0.6.8"
 __title__ = f"so4gp (v{__version__})"
 __author__ = "Dickson Owuor"
 __credits__ = "Montpellier University"

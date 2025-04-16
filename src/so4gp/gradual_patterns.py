@@ -841,16 +841,16 @@ class TimeDelay:
         """:type support: float"""
         self.valid = False
         """type: valid: bool"""
-        self.sign = self.__get_sign()
+        self.sign = self._get_sign()
         """type: sign: str"""
         self.formatted_time = {}
         """type: formatted_time: dict"""
         if tstamp != 0:
-            time_arr = self.__format_time()
+            time_arr = self._format_time()
             self.formatted_time = {'value': time_arr[0], 'duration': time_arr[1]}
             self.valid = True
 
-    def __get_sign(self):
+    def _get_sign(self):
         """
         Checks and returns the sign of the time-delay value (later/before).
 
@@ -862,7 +862,7 @@ class TimeDelay:
             sign = "+"
         return sign
 
-    def __format_time(self):
+    def _format_time(self):
         """
         Formats the time-delay value as a Date in string format (i.e., seconds/minutes/hours/days/weeks/months/years).
 

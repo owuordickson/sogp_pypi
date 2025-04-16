@@ -75,9 +75,9 @@ class DataGP:
         self.row_count, self.col_count = self.data.shape
         """:type row_count: int"""
         """:type col_count: int"""
-        self.time_cols = self.__get_time_cols()
+        self.time_cols = self._get_time_cols()
         """:type time_cols: numpy.ndarray"""
-        self.attr_cols = self.__get_attr_cols()
+        self.attr_cols = self._get_attr_cols()
         """:type attr_cols: numpy.ndarray"""
         self.valid_bins = np.array([])
         """:type valid_bins: numpy.ndarray"""
@@ -90,7 +90,7 @@ class DataGP:
         self.gradual_patterns = None
         """:type gradual_patterns: list | None"""
 
-    def __get_attr_cols(self):
+    def _get_attr_cols(self):
         """Description
 
         Returns indices of all columns with non-datetime objects
@@ -101,7 +101,7 @@ class DataGP:
         attr_cols = np.setdiff1d(all_cols, self.time_cols)
         return attr_cols
 
-    def __get_time_cols(self):
+    def _get_time_cols(self):
         """Description
 
         Tests each column's objects for date-time values. Returns indices of all columns with date-time objects

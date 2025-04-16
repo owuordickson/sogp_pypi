@@ -1,8 +1,8 @@
-numpy~=2.2.2
+numpy~=2.2.4
 pandas~=2.2.3
 seaborn~=0.13.2
 scikit-fuzzy~=0.5.0
-matplotlib~=3.10.0
+matplotlib~=3.10.1
 ypstruct~=0.0.2
 scikit-learn~=1.6.1
 python-dateutil~=2.9.0.post0

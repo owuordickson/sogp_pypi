@@ -3,5 +3,6 @@ test.py
 *.csv
 *.egg-info/
 .pypirc
+*token
 
 dist/

@@ -2279,8 +2279,8 @@ class TGradAMI(TGrad):
             eval_dict = {
                 'Algorithm': 'TGradAMI',
                 'Patterns': str_gps,
-                'Time Data': np.vstack((np.array(title_row), delayed_data.T)),
-                'Transformed Data': np.vstack((np.array(time_title), time_data.T)),
+                'Time Data': np.vstack((np.array(time_title), time_data.T)),
+                'Transformed Data': np.vstack((np.array(title_row), delayed_data.T)),
                 'GP Components': gp_components
             }
             # Output

@@ -1,3 +1,4 @@
+[![DOI](https://zenodo.org/badge/388183952.svg)](https://doi.org/10.5281/zenodo.16281808)
 
 **SO4GP** stands for: "Some Optimizations for Gradual Patterns". SO4GP applies optimizations such as swarm intelligence, HDF5 chunks, cluster analysis and many others in order to improve the efficiency of extracting gradual patterns. It provides Python algorithm implementations for these optimization techniques. The algorithm implementations include:
 

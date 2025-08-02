@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # SPDX-License-Identifier: GNU GPL v3
-# This file is dual licensed under the terms of the GNU GPL v3.0.
-# See the LICENSE file in the root of this
+# This file is licensed under the terms of the GNU GPL v3.0.
+# See the LICENSE file at the root of this
 # repository for complete details.
 
 """
@@ -18,35 +18,11 @@ import numpy as np
 
 
 class GI:
-    """Description of class GI (Gradual Item)
-
-    A class that is used to create GI objects. A GI is a pair (i,v) where i is a column and v is a variation symbol -
-    increasing/decreasing. Each column of a data set yields 2 GIs; for example, column age yields GI age+ or age-.
-
-    An example representation of a GI object: (0, +)
-
-    This class has the following attributes:
-        attribute_col: column index of a data set
-
-        symbol: variation symbol (either + or -)
-
-        gradual_item: the GI in a ndarray format
-
-        tuple: the GI in a tuple format
-
-        rank_sum:
-
-    >>> import so4gp as sgp
-    >>> gradual_item = sgp.GI(1, "+")
-    >>> print(gradual_item.to_string())
-    1+
-
-    """
 
     def __init__(self, attr_col, symbol):
-        """Description of class GI (Gradual Item)
+        """
 
-        A class that is used to create GI objects. A GI is a pair (i,v) where is a column and v is a variation symbol -
+        GI (Gradual Item). A class that is used to create GI objects. A GI is a pair (i,v) where is a column, and v is a variation symbol -
         increasing/decreasing. Each column of a data set yields 2 GIs; for example, column age yields GI age+ or age-.
 
         This class has the following attributes:
@@ -58,17 +34,17 @@ class GI:
 
             tuple: the GI in a tuple format
 
-            rank_sum:
+            rank_sum: An integer value
 
         >>> import so4gp as sgp
         >>> gradual_item = sgp.GI(1, "+")
         >>> print(gradual_item.to_string())
         1+
 
-        :param attr_col: column index
+        :param attr_col: Column index
         :type attr_col: int
 
-        :param symbol: variation symbol either "+" or "-"
+        :param symbol: Variation symbol either "+" or "-"
         :type symbol: str
 
         """
@@ -112,7 +88,7 @@ class GI:
     def as_integer(self):
         """Description
 
-        Converts variation symbol into an integer (i.e., + to 1; and - to -1)
+        Converts a variation symbol into an integer (i.e., + to 1; and - to -1)
         :return: GI with an integer variation symbol
         """
         if self.symbol == "+":
@@ -126,7 +102,7 @@ class GI:
     def as_string(self):
         """Description
 
-        Stringifies a GI. It converts variation symbol into a string (i.e., + to _pos; and - to _neg)
+        Stringifies a GI. It converts a variation symbol into a string (i.e., + to _pos; and - to _neg)
         :return: GI with a string variation symbol
         """
         if self.symbol == "+":
@@ -158,10 +134,11 @@ class GI:
 
     @staticmethod
     def parse_gi(gi_str):
-        """Description
+        """
 
         Converts a stringified GI into normal GI.
-        :param gi_str: stringified GI
+
+        :param gi_str: A stringified GI
         :type gi_str: str
 
         :return: GI
@@ -193,34 +170,11 @@ class GI:
 
 
 class GP:
-    """Description of class GP (Gradual Pattern)
-
-    A class that is used to create GP objects. a GP object is a set of gradual items (GI) and its quality is measured by
-    its computed support value. For example given a data set with 3 columns (age, salary, cars) and 10 objects. A GP may
-    take the form: {age+, salary-} with a support of 0.8. This implies that 8 out of 10 objects have the values of
-    column age 'increasing' and column 'salary' decreasing.
-
-    An example representation of a GP object: {(0, +), (1, -), (3, +)}
-
-     The class has the following attributes:
-        gradual_items: list if GIs
-
-        support: computed support value as a float
-
-    >>> import so4gp as sgp
-    >>> gradual_pattern = sgp.GP()
-    >>> gradual_pattern.add_gradual_item(sgp.GI(0, "+"))
-    >>> gradual_pattern.add_gradual_item(sgp.GI(1, "-"))
-    >>> gradual_pattern.set_support(0.5)
-    >>> print(f"{gradual_pattern.to_string()} : {gradual_pattern.support}")
-
-    """
 
     def __init__(self):
-        """Description of class GP (Gradual Pattern)
-
-            A class that is used to create GP objects. a GP object is a set of gradual items (GI) and its quality is
-            measured by its computed support value. For example given a data set with 3 columns (age, salary,
+        """
+            GP (Gradual Pattern). A class that is used to create GP objects. A GP object is a set of gradual items (GI), and its quality is
+            measured by its computed support value. For example, given a data set with 3 columns (age, salary,
             cars) and 10 objects. A GP may take the form: {age+, salary-} with a support of 0.8. This implies that 8
             out of 10 objects have the values of column age 'increasing' and column 'salary' decreasing.
 
@@ -233,7 +187,7 @@ class GP:
         >>> gradual_pattern.add_gradual_item(sgp.GI(0, "+"))
         >>> gradual_pattern.add_gradual_item(sgp.GI(1, "-"))
         >>> gradual_pattern.set_support(0.5)
-        >>> print(f"{gradual_pattern.to_string()} : {gradual_pattern.support}")
+        >>> print(f"{gradual_pattern.to_string()}: {gradual_pattern.support}")
 
             """
         self.gradual_items = list()
@@ -266,19 +220,16 @@ class GP:
         else:
             pass
 
-    def add_items_from_list(self, lst_items):
-        """Description
-
+    def add_items_from_list(self, lst_items) -> None:
+        """
         Adds gradual items from a list of str or a list of sets.
-        For example:
+        For example,
         >>> import so4gp
         >>> new_gp = so4gp.GP()
         >>> new_gp.add_items_from_list(["0+", "2-", "3-"])
 
-        :param lst_items: str or set
+        :param lst_items: A string or set
         :type lst_items: list
-
-        :return: none
         """
         for str_gi in lst_items:
             if type(str_gi[1]) is str:
@@ -321,13 +272,12 @@ class GP:
         return pattern
 
     def get_attributes(self):
-        """Description
-
+        """
         Breaks down all the gradual items (GIs) in the gradual pattern into columns and variation symbols and returns
-        them as separate variables. For instance a GP {"1+", "3-"} will be returned as [1, 3], [1, -1]: where [1, 3] is
+        them as separate variables. For instance, a GP {"1+", "3-"} will be returned as [1, 3], [1, -1]: where [1, 3] is
         the list of attributes/features and [1, -1] are their corresponding gradual variations (1 -> '+' and 1- -> '-').
 
-        :return: separate columns and variation symbols
+        :return: Separate columns and variation symbols
         """
         attrs = list()
         syms = list()
@@ -401,7 +351,7 @@ class GP:
         :param gi: gradual item
         :type gi: GI
 
-        :return: True if column exists, False otherwise
+        :return: True if a column exists, False otherwise
         """
         if gi is None:
             return False
@@ -438,7 +388,7 @@ class GP:
 
         A method that returns patterns with actual column names
 
-        :param columns: Columns names
+        :param columns: Column names
         :type columns: list[str]
 
         :return: GP with actual column names
@@ -456,33 +406,6 @@ class GP:
 
 
 class ExtGP(GP):
-    """Description of class ExtGP (Extended Gradual Pattern)
-
-    A class that inherits class GP which is used to create more advanced GP objects. a GP object is a set of gradual
-    items and its quality is measured by its computed support value. For example given a data set with 3 columns
-    (age, salary, cars) and 10 objects. A GP may take the form: {age+, salary-} with a support of 0.8. This implies that
-    8 out of 10 objects have the values of column age 'increasing' and column 'salary' decreasing.
-
-    The class GP has the following attributes:
-        gradual_items: list if GIs
-
-        support: computed support value as a float
-
-    The class ExtGP adds the following functions:
-        validate: used to validate GPs
-
-        check_am: used to verify if a GP obeys anti-monotonicity
-
-        is_duplicate: checks a GP is already extracted
-
-    >>> import so4gp as sgp
-    >>> gradual_pattern = sgp.ExtGP()
-    >>> gradual_pattern.add_gradual_item(sgp.GI(0, "+"))
-    >>> gradual_pattern.add_gradual_item(sgp.GI(1, "-"))
-    >>> gradual_pattern.set_support(0.5)
-    >>> print(f"{gradual_pattern.to_string()} : {gradual_pattern.support}")
-
-    """
 
     def __init__(self):
         """Description of class ExtGP (Extended Gradual Pattern)
@@ -498,7 +421,7 @@ class ExtGP(GP):
         >>> gradual_pattern.add_gradual_item(sgp.GI(0, "+"))
         >>> gradual_pattern.add_gradual_item(sgp.GI(1, "-"))
         >>> gradual_pattern.set_support(0.5)
-        >>> print(f"{gradual_pattern.to_string()} : {gradual_pattern.support}")
+        >>> print(f"{gradual_pattern.to_string()}: {gradual_pattern.support}")
 
         """
         super(ExtGP, self).__init__()
@@ -506,15 +429,14 @@ class ExtGP(GP):
         """:type freq_count: int"""
 
     def validate_graank(self, d_gp):
-        """Description
-
+        """
         Validates a candidate gradual pattern (GP) based on support computation. A GP is invalid if its support value is
         less than the minimum support threshold set by the user. It uses a breath-first approach to compute support.
 
         :param d_gp: Data_GP object
         :type d_gp: so4gp.DataGP # noinspection PyTypeChecker
 
-        :return: a valid GP or an empty GP
+        :return: A valid GP or an empty GP
         """
         # pattern = [('2', "+"), ('4', "+")]
         min_supp = d_gp.thd_supp
@@ -545,8 +467,7 @@ class ExtGP(GP):
             return gen_pattern
 
     def validate_tree(self, d_gp):
-        """Description
-
+        """
         Validates a candidate gradual pattern (GP) based on support computation. A GP is invalid if its support value is
         less than the minimum support threshold set by the user. It applies a depth-first (FP-Growth) approach
         to compute support.
@@ -554,7 +475,7 @@ class ExtGP(GP):
         :param d_gp: Data_GP object
         :type d_gp: so4gp.DataGP # noinspection PyTypeChecker
 
-        :return: a valid GP or an empty GP
+        :return: A valid GP or an empty GP
         """
         min_supp = d_gp.thd_supp
         n = d_gp.row_count
@@ -597,14 +518,13 @@ class ExtGP(GP):
             return gen_pattern
 
     def check_am(self, gp_list, subset=True):
-        """Description
-
+        """
         Anti-monotonicity check. Checks if a GP is a subset or superset of an already existing GP
 
-        :param gp_list: list of existing GPs
+        :param gp_list: A list of existing GPs
         :type gp_list: list[so4gp.ExtGP]
 
-        :param subset: check if it is a subset
+        :param subset: A check if it is a subset
         :type subset: bool
 
         :return: True if superset/subset, False otherwise
@@ -637,7 +557,7 @@ class ExtGP(GP):
         :param invalid_gps: list of GPs
         :type invalid_gps: list[so4gp.ExtGP]
 
-        :return: True if pattern is either list, False otherwise
+        :return: True if a pattern is either list, False otherwise
         """
         if invalid_gps is None:
             pass
@@ -655,17 +575,16 @@ class ExtGP(GP):
     @staticmethod
     def remove_subsets(gp_list, gi_arr):
         """
-        Description
 
         Remove subset GPs from the list.
 
-        :param gp_list: list of existing GPs
+        :param gp_list: List of existing GPs
         :type gp_list: list[so4gp.ExtGP]
 
-        :param gi_arr: gradual items in an array
+        :param gi_arr: Gradual items in an array
         :type gi_arr: set
 
-        :return: list of GPs
+        :return: List of GPs
         """
         mod_gp_list = []
         for gp in gp_list:
@@ -678,25 +597,13 @@ class ExtGP(GP):
 
 
 class TGP(ExtGP):
-    """Description of class TGP (Temporal Gradual Pattern)
 
-    A class that inherits an existing GP class to create Temporal GP objects. A TGP is a gradual pattern with a
-    time-delay. It has a target gradual item (which is created from a user-defined attribute)  and it is used as the
-    anchor for mining patterns from a dataset. The work is published in: https://ieeexplore.ieee.org/abstract/document/8858883/.
-
-    The class has the following attributes:
-
-    target_gradual_item: the gradual item on which the pattern is based.
-
-    temporal_gradual_items: gradual items which occur after specific time delays.
-
-    """
     def __init__(self):
         """
         Description of class TGP (Temporal Gradual Pattern)
 
         A class that inherits an existing GP class to create Temporal GP objects. A TGP is a gradual pattern with a
-        time-delay. It has a target gradual item (which is created from a user-defined attribute)  and it is used as the
+        time-delay. It has a target gradual item (which is created from a user-defined attribute), and it is used as the
         anchor for mining patterns from a dataset. The class has the following attributes:
 
         target_gradual_item: the gradual item on which the pattern is based.
@@ -748,25 +655,23 @@ class TGP(ExtGP):
         else:
             pass
 
-    def to_string(self):
-        """Description
-
+    def to_string(self) -> list:
+        """
         Returns the Temporal-GP in string format as a list.
-        :return: list
         """
         pattern = [self.target_gradual_item.to_string()]
         for item, t_lag in self.temporal_gradual_items:
             str_time = f"{t_lag.sign}{t_lag.formatted_time['value']} {t_lag.formatted_time['duration']}"
-            pattern.append([f"({item.to_string()}) {str_time}"])
+            pattern.append(f"({item.to_string()}) {str_time}")
         return pattern
 
     # noinspection PyUnresolvedReferences
     def print(self, columns):
         """Description
 
-        A method that returns fuzzy temporal gradual pattern (TGP) with actual column names
+        A method that returns a fuzzy temporal gradual pattern (TGP) with actual column names
 
-        :param columns: Columns names
+        :param columns: Column names
         :type columns: list[str]
 
         :return: TGP with actual column names
@@ -793,31 +698,14 @@ class TGP(ExtGP):
 
 
 class TimeDelay:
-    """
-    Description of class TimeDelay (Time Delay)
 
-    A class used in Fuzzy Temporal Gradual Patterns to create the time-delay object. The class TimeDelay has the following attributes:
-
-    timestamp: the time-delay value as a timestamp.
-
-    support: the truth value of the time-delay value.
-
-    valid: if the time-delay value is valid (should not be zero).
-
-    sign: if the time is earlier (-) or later (+)
-
-    formatted_time: time-delay formatted as a Date (in terms of hours/days/weeks/months/years)
-
-    """
     def __init__(self, tstamp=0, supp=0):
         """
-        Description of class TimeDelay (Time Delay)
-
-            A class used in Fuzzy Temporal Gradual Patterns to create the time-delay object. The class TimeDelay has the following attributes:
+            TimeDelay (Time Delay). A class used in Fuzzy Temporal Gradual Patterns to create the time-delay object. The class TimeDelay has the following attributes:
 
             timestamp: the time-delay value as a timestamp.
 
-            support: the truth value of the time-delay value.
+            support: the true value of the time-delay value.
 
             valid: if the time-delay value is valid (should not be zero).
 
@@ -829,11 +717,11 @@ class TimeDelay:
         >>> t_delay = sgp.TimeDelay(3600, 0.75)
         >>> t_delay.to_string()
 
-        :param tstamp: the time-delay value as a timestamp.
-        :type tstamp: float
+        :param tstamp: The time-delay value as a timestamp.
+        :type tstamp: Float
 
-        :param supp: the truth value of the time-delay value.
-        :type supp: float
+        :param supp: The true value of the time-delay value.
+        :type supp: Float
         """
         self.timestamp = tstamp
         """type: timestamp: float"""
@@ -850,11 +738,11 @@ class TimeDelay:
             self.formatted_time = {'value': time_arr[0], 'duration': time_arr[1]}
             self.valid = True
 
-    def _get_sign(self):
+    def _get_sign(self) -> str:
         """
         Checks and returns the sign of the time-delay value (later/before).
 
-        :return: the sign of the time-delay value.
+        :return: The sign of the time-delay value.
         """
         if self.timestamp < 0:
             sign = "-"
@@ -862,11 +750,11 @@ class TimeDelay:
             sign = "+"
         return sign
 
-    def _format_time(self):
+    def _format_time(self) -> list:
         """
         Formats the time-delay value as a Date in string format (i.e., seconds/minutes/hours/days/weeks/months/years).
 
-        :return: the formatted time-delay as a list.
+        :return: The formatted time-delay as a list.
         """
         stamp_in_seconds = abs(self.timestamp)
         years = stamp_in_seconds / 3.154e+7
@@ -895,11 +783,11 @@ class TimeDelay:
         else:
             return [round(years, 0), "years"]
 
-    def to_string(self):
+    def to_string(self) -> str:
         """
         Returns formated time-delay as a string.
 
-        :return: time-delay as a string.
+        :return: The time-delay as a string.
         """
         if not self.formatted_time:
             txt = ("~ " + self.sign + str(self.formatted_time['value']) + " " + str(self.formatted_time['duration'])

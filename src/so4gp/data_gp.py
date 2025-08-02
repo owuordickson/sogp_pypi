@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # SPDX-License-Identifier: GNU GPL v3
-# This file is dual licensed under the terms of the GNU GPL v3.0.
-# See the LICENSE file in the root of this
+# This file is licensed under the terms of the GNU GPL v3.0.
+# See the LICENSE file at the root of this
 # repository for complete details.
 
 """
@@ -31,7 +31,7 @@ class DataGP:
     algorithms to extract gradual patterns (GP). It takes a numeric file (in CSV format) as input and converts it into
     an object whose attributes are used by algorithms to extract GPs.
 
-        A GP is a set of gradual items (GI) and its quality is measured by its computed support value. For example given
+        A GP is a set of gradual items (GI), and its quality is measured by its computed support value. For example, given
     a data set with 3 columns (age, salary, cars) and 10 objects. A GP may take the form: {age+, salary-} with a support
     of 0.8. This implies that 8 out of 10 objects have the values of column age 'increasing' and column 'salary'
     decreasing.
@@ -102,13 +102,12 @@ class DataGP:
         return attr_cols
 
     def _get_time_cols(self):
-        """Description
-
+        """
         Tests each column's objects for date-time values. Returns indices of all columns with date-time objects
 
-        :return: ndarray
+        :return: A ndarray object containing the indices of the time columns.
         """
-        # Retrieve first column only
+        # Retrieve the first column only
         time_cols = list()
         n = self.col_count
         for i in range(n):  # check every column/attribute for time format
@@ -122,11 +121,11 @@ class DataGP:
         return np.array(time_cols)
 
     def get_gi_bitmap(self, col):
-        """Description
+        """
 
         Computes and returns the bitmap matrix corresponding to an attribute.
 
-        :param col: specific attribute (or column)
+        :param col: Specific attribute (or column)
         :return: numpy (bitmap)
         """
         if col in self.time_cols:
@@ -142,12 +141,12 @@ class DataGP:
             return temp_pos
 
     def fit_bitmap(self, attr_data=None):
-        """Description
+        """
 
         Generates bitmaps for columns with numeric objects. It stores the bitmaps in attribute valid_bins (those bitmaps
         whose computed support values are greater or equal to the minimum support threshold value).
 
-        :param attr_data: stepped attribute objects
+        :param attr_data: Stepped attribute objects
         :type attr_data: np.ndarray
         :return: void
         """
@@ -160,7 +159,7 @@ class DataGP:
             self.attr_size = len(attr_data[self.attr_cols[0]])
 
         # 2. Construct and store 1-item_set valid bins
-        # execute binary rank to calculate support of pattern
+        # execute binary rank to calculate support of a pattern
         n = self.attr_size
         valid_bins = list()
         for col in self.attr_cols:
@@ -168,7 +167,7 @@ class DataGP:
             incr = np.array((col, '+'), dtype='i, S1')
             decr = np.array((col, '-'), dtype='i, S1')
 
-            # 2a. Generate 1-itemset gradual items
+            # 2a. Generate a 1-itemset gradual items
             with np.errstate(invalid='ignore'):
                 if not self.equal:
                     temp_pos = np.array(col_data > col_data[:, np.newaxis])
@@ -187,14 +186,13 @@ class DataGP:
             self.no_bins = True
         gc.collect()
 
-    def fit_tids(self):
-        """Description
+    def fit_tids(self) -> None:
+        """
 
         Generates transaction ids (tids) for each column/feature with numeric objects. It stores the tids in attribute
         valid_tids (those tids whose computed support values are greater or equal to the minimum support threshold
         value).
 
-        :return: void
         """
         self.fit_bitmap()
         n = self.row_count
@@ -210,15 +208,15 @@ class DataGP:
 
     @staticmethod
     def read(data_src):
-        """Description
+        """
 
         Reads all the contents of a file (in CSV format) or a data-frame. Checks if its columns have numeric values. It
         separates its columns headers (titles) from the objects.
 
-        :param data_src:
+        :param data_src: A data source, it can either be a 'file in csv format' or a 'Pandas DataFrame'
         :type data_src: pd.DataFrame | str
 
-        :return: title, column objects
+        :return: The title, column objects
         """
         # 1. Retrieve data set from source
         if isinstance(data_src, pd.DataFrame):
@@ -276,13 +274,13 @@ class DataGP:
 
     @staticmethod
     def test_time(date_str):
-        """Description
+        """
 
         Tests if a str represents a date-time variable.
 
-        :param date_str: str value
+        :param date_str: A string
         :type date_str: str
-        :return: bool (True if it is date-time variable, False otherwise)
+        :return: bool (True if it is a date-time variable, False otherwise)
         """
         # add all the possible formats
         try:

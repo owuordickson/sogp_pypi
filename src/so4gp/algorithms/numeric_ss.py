@@ -70,7 +70,7 @@ class NumericSS:
         pattern = NumericSS.decode_gp(attr_keys, position)
         temp_bin = np.array([])
         for gi in pattern.gradual_items:
-            arg = np.argwhere(np.isin(d_set.valid_bins[:, 0], gi.gradual_item))
+            arg = np.argwhere(np.isin(d_set.valid_bins[:, 0], gi.as_array))
             if len(arg) > 0:
                 i = arg[0][0]
                 valid_bin = d_set.valid_bins[i]

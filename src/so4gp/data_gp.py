@@ -25,29 +25,8 @@ from dateutil.parser import parse
 
 
 class DataGP:
-    """Description of class DataGP
 
-    A class for creating data-gp objects. A data-gp object is meant to store all the parameters required by GP
-    algorithms to extract gradual patterns (GP). It takes a numeric file (in CSV format) as input and converts it into
-    an object whose attributes are used by algorithms to extract GPs.
-
-        A GP is a set of gradual items (GI), and its quality is measured by its computed support value. For example, given
-    a data set with 3 columns (age, salary, cars) and 10 objects. A GP may take the form: {age+, salary-} with a support
-    of 0.8. This implies that 8 out of 10 objects have the values of column age 'increasing' and column 'salary'
-    decreasing.
-
-    >>> import so4gp as sgp
-    >>> import pandas
-    >>> dummy_data = [[30, 3, 1, 10], [35, 2, 2, 8], [40, 4, 2, 7], [50, 1, 1, 6], [52, 7, 1, 2]]
-    >>> columns = ['Age', 'Salary', 'Cars', 'Expenses']
-    >>> dummy_df = pandas.DataFrame(dummy_data, columns=['Age', 'Salary', 'Cars', 'Expenses'])
-    >>>
-    >>> data_gp = sgp.DataGP(data_source=dummy_df, min_sup=0.5)
-    >>> data_gp.fit_bitmap()
-
-    """
-
-    def __init__(self, data_source, min_sup=0.5, eq=False):
+    def __init__(self, data_source, min_sup=0.5, eq=False) -> None:
         """Description of class DataGP
 
 
@@ -90,7 +69,7 @@ class DataGP:
         self.gradual_patterns = None
         """:type gradual_patterns: list | None"""
 
-    def _get_attr_cols(self):
+    def _get_attr_cols(self) -> np.ndarray:
         """Description
 
         Returns indices of all columns with non-datetime objects
@@ -101,7 +80,7 @@ class DataGP:
         attr_cols = np.setdiff1d(all_cols, self.time_cols)
         return attr_cols
 
-    def _get_time_cols(self):
+    def _get_time_cols(self) -> np.ndarray:
         """
         Tests each column's objects for date-time values. Returns indices of all columns with date-time objects
 
@@ -120,7 +99,7 @@ class DataGP:
                 continue
         return np.array(time_cols)
 
-    def get_gi_bitmap(self, col):
+    def get_gi_bitmap(self, col) -> np.ndarray:
         """
 
         Computes and returns the bitmap matrix corresponding to an attribute.
@@ -140,7 +119,7 @@ class DataGP:
                 temp_pos = np.where(col_data < col_data[:, np.newaxis], 1, 0)
             return temp_pos
 
-    def fit_bitmap(self, attr_data=None):
+    def fit_bitmap(self, attr_data=None) -> None:
         """
 
         Generates bitmaps for columns with numeric objects. It stores the bitmaps in attribute valid_bins (those bitmaps
@@ -207,7 +186,7 @@ class DataGP:
                 self.valid_tids[int_gi] = set_ij
 
     @staticmethod
-    def read(data_src):
+    def read(data_src) -> tuple[list, np.ndarray]:
         """
 
         Reads all the contents of a file (in CSV format) or a data-frame. Checks if its columns have numeric values. It
@@ -273,7 +252,7 @@ class DataGP:
                 raise Exception("Error: " + str(error))
 
     @staticmethod
-    def test_time(date_str):
+    def test_time(date_str) -> None | tuple[bool, float] | tuple[bool, bool]:
         """
 
         Tests if a str represents a date-time variable.
@@ -299,7 +278,7 @@ class DataGP:
                     raise ValueError('no valid date-time format found')
 
     @staticmethod
-    def clean_data(df):
+    def clean_data(df) -> tuple[list, np.ndarray]:
         """Description
 
         Cleans a data-frame (i.e., missing values, outliers) before extraction of GPs

@@ -95,7 +95,7 @@ class ParticleGRAANK(DataGP):
 
         # self.target = 1
         # self.target_error = 1e-6
-        attr_keys = [GI(x[0], x[1].decode()).as_string() for x in self.valid_bins[:, 0]]
+        attr_keys = [GI(x[0], x[1].decode()).as_string for x in self.valid_bins[:, 0]]
 
         if self.no_bins:
             return []

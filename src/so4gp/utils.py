@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # SPDX-License-Identifier: GNU GPL v3
-# This file is dual licensed under the terms of the GNU GPL v3.0.
-# See the LICENSE file in the root of this
+# This file is licensed under the terms of the GNU GPL v3.0.
+# See the LICENSE file at the root of this
 # repository for complete details.
 
 """
@@ -23,15 +23,16 @@ import multiprocessing as mp
 from tabulate import tabulate
 
 try:
-    from . import GRAANK, DataGP, TGradAMI
+    from . import DataGP
+    from .algorithms import GRAANK, TGradAMI
 except ImportError:
-    from src.so4gp import GRAANK, DataGP, TGradAMI
+    from src.so4gp import DataGP
+    from src.so4gp.algorithms import GRAANK, TGradAMI
 
 
-def analyze_gps(data_src, min_sup, est_gps, approach='bfs'):
-    """Description
-
-    For each estimated GP, computes its true support using GRAANK approach and returns the statistics (% error,
+def analyze_gps(data_src, min_sup, est_gps, approach='bfs') -> str:
+    """
+    For each estimated GP, computes its true support using the GRAANK approach and returns the statistics (% error,
     and standard deviation).
 
     >>> import so4gp as sgp
@@ -56,18 +57,19 @@ def analyze_gps(data_src, min_sup, est_gps, approach='bfs'):
     ['0+', '1-']                       0.5              0.4  25.0%                              0.071
     ['1+', '3-', '0+']                 0.48             0.6  -20.0%                             0.085
 
-    :param data_src: data set file
+    :param data_src: Data set file
+    :type data_src: pd.DataFrame | str
 
-    :param min_sup: minimum support (set by user)
+    :param min_sup: Minimum support (set by user)
     :type min_sup: float
 
-    :param est_gps: estimated GPs
+    :param est_gps: Estimated GPs
     :type est_gps: list
 
-    :param approach: 'bfs' (default) or 'dfs'
+    :param approach: 'Bfs' (default) or 'dfs'
     :type approach: str
 
-    :return: tabulated results
+    :return: Tabulated results
     """
     if approach == 'dfs':
         d_set = DataGP(data_src, min_sup)
@@ -101,9 +103,9 @@ def analyze_gps(data_src, min_sup, est_gps, approach='bfs'):
     return tabulate(data, headers=headers)
 
 
-def gradual_decompose(data: pd.DataFrame, target: int):
+def gradual_decompose(data: pd.DataFrame, target: int) -> dict | Exception:
     """
-    A method that decomposes a multivariate timeseries data into its gradual components.  Attributes that have
+    A method that decomposes multivariate timeseries data into its gradual components.  Attributes that have
     strong correlation will produce a decomposition graph with dense zigzag patterns. Those with weak correlation will
     produce a decomposition graph with sparse zigzag patterns.
 
@@ -140,11 +142,10 @@ def gradual_decompose(data: pd.DataFrame, target: int):
         raise Exception(e)
 
 
-def get_num_cores():
-    """Description
-
-    Finds the count of CPU cores in a computer or a SLURM super-computer.
-    :return: number of cpu cores (int)
+def get_num_cores() -> int:
+    """
+    Finds the count of CPU cores in a computer or a SLURM supercomputer.
+    :return: Number of cpu cores (int)
     """
     num_cores = get_slurm_cores()
     if not num_cores:
@@ -152,11 +153,10 @@ def get_num_cores():
     return num_cores
 
 
-def get_slurm_cores():
-    """Description
-
-    Test computer to see if it is a SLURM environment, then gets number of CPU cores.
-    :return: count of CPUs (int) or False
+def get_slurm_cores() -> int | bool:
+    """
+    Test the computer to see if it is a SLURM environment, then gets the number of CPU cores.
+    :return: Count of CPUs (int) or False
     """
     try:
         cores = int(os.environ['SLURM_JOB_CPUS_PER_NODE'])
@@ -178,13 +178,13 @@ def get_slurm_cores():
         return False
 
 
-def write_file(data, path, wr=True):
+def write_file(data, path, wr=True) -> None:
     """Description
 
     Writes data into a file
     :param data: information to be written
     :param path: name of file and storage path
-    :param wr: writes data into file if True
+    :param wr: writes data into the file if True
     :return:
     """
     if wr:

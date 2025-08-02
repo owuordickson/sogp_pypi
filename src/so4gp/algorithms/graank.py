@@ -71,6 +71,22 @@ class GRAANK(DataGP):
         :param exclude_target: only accept GP candidates that do not contain the target feature.
         :return: list of extracted GPs and the invalid count.
         """
+
+        def inv_arr(g_item) -> tuple[int, str]:
+            """Description
+
+            Computes the inverse of a GI formatted as an array or tuple
+
+            :param g_item: gradual item (array/tuple)
+            :type g_item: (tuple, list) | np.ndarray
+
+            :return: inverted gradual item
+            """
+            if g_item[1] == "+":
+                return tuple((g_item[0], "-"))
+            else:
+                return tuple((g_item[0], "+"))
+
         min_sup = self.thd_supp
         n = self.attr_size
 
@@ -94,7 +110,7 @@ class GRAANK(DataGP):
 
                 # 2. Identify GP candidate (create its inverse)
                 gp_cand = gi_i | gi_j
-                inv_gp_cand = {GI.inv_arr(x) for x in gp_cand}
+                inv_gp_cand = {inv_arr(x) for x in gp_cand}
 
                 # 3. Apply target-feature search
                 # (ONLY proceed if target-feature is part of the GP candidate - exclude_target is False)

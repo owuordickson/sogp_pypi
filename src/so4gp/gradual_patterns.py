@@ -10,7 +10,7 @@
 @license: GNU GPL v3
 @email: owuordickson@gmail.com
 @created: 21 July 2021
-@modified: 27 October 2022
+@modified: 02 August 2025
 
 A collection of Gradual Pattern classes and methods.
 """
@@ -24,17 +24,6 @@ class GI:
 
         GI (Gradual Item). A class that is used to create GI objects. A GI is a pair (i,v) where is a column, and v is a variation symbol -
         increasing/decreasing. Each column of a data set yields 2 GIs; for example, column age yields GI age+ or age-.
-
-        This class has the following attributes:
-            attribute_col: column index of a data set
-
-            symbol: variation symbol (either + or -)
-
-            gradual_item: the GI in a ndarray format
-
-            tuple: the GI in a tuple format
-
-            rank_sum: An integer value
 
         >>> import so4gp as sgp
         >>> gradual_item = sgp.GI(1, "+")
@@ -52,68 +41,61 @@ class GI:
         """:type attribute_col: int"""
         self.symbol = symbol
         """:type symbol: str"""
-        self.gradual_item = np.array((attr_col, symbol), dtype='i, S1')
-        self.tuple = tuple([attr_col, symbol])
-        self.rank_sum = 0
+        self.rank_sum: int = 0
 
-    def inv(self):
-        """Description
+    @property
+    def is_decreasing(self) -> bool:
+        """Checks if a GI's variation corresponds to decreasing and returns True, False otherwise."""
+        if self.symbol == "-":
+            return True
+        else:
+            return False
 
-        Inverts a GI to the opposite variation (i.e., from - to +; or, from + to -)
-        :return: inverted GI (ndarray)
-        """
+    @property
+    def as_array(self) -> np.ndarray:
+        """The Gradual Item (GI) in ndarray format"""
+        return np.array((self.attribute_col, self.symbol), dtype='i, S1')
+
+    @property
+    def as_swapped_array(self) -> np.ndarray:
+        """The resulting GI with symbol swapped (i.e., from - to +; or, from + to -) in ndarray format"""
         if self.symbol == "+":
-            # temp = tuple([self.attribute_col, "-"])
-            temp = np.array((self.attribute_col, "-"), dtype='i, S1')
+            # tuple([self.attribute_col, "-"])
+            return np.array((self.attribute_col, "-"), dtype='i, S1')
         elif self.symbol == "-":
-            # temp = tuple([self.attribute_col, "+"])
-            temp = np.array((self.attribute_col, "+"), dtype='i, S1')
+            # tuple([self.attribute_col, "+"])
+            return np.array((self.attribute_col, "+"), dtype='i, S1')
         else:
-            temp = np.array((self.attribute_col, 'x'), dtype='i, S1')
-        return temp
+            return np.array((self.attribute_col, 'x'), dtype='i, S1')
 
-    def inv_gi(self):
-        """Description
+    @property
+    def as_tuple(self) -> tuple[int, str]:
+        """The Gradual Item (GI) in tuple format"""
+        return tuple((self.attribute_col, self.symbol))
 
-        Inverts a GI to the opposite variation (i.e., from - to +; or, from + to -)
-        :return: inverted GI object
-        """
+    @property
+    def as_integer(self) -> list[int]:
+        """The Gradual Item (GI) in integer format. Converts a variation symbol into an integer
+        (i.e., + to 1; and - to -1) and returns as a list (e.g., (1+) -> [1, -1])."""
         if self.symbol == "+":
-            sym = "-"
-        else:
-            sym = "+"
-        new_gi = GI(self.attribute_col, sym)
-        return new_gi
-
-    def as_integer(self):
-        """Description
-
-        Converts a variation symbol into an integer (i.e., + to 1; and - to -1)
-        :return: GI with an integer variation symbol
-        """
-        if self.symbol == "+":
-            temp = [self.attribute_col, 1]
+            return [self.attribute_col, 1]
         elif self.symbol == "-":
-            temp = [self.attribute_col, -1]
+            return [self.attribute_col, -1]
         else:
-            temp = [self.attribute_col, 0]
-        return temp
+            return [self.attribute_col, 0]
 
-    def as_string(self):
-        """Description
-
-        Stringifies a GI. It converts a variation symbol into a string (i.e., + to _pos; and - to _neg)
-        :return: GI with a string variation symbol
-        """
+    @property
+    def as_string(self) -> str:
+        """The Gradual Item (GI) in string format. Stringifies a GI. It converts a variation symbol into a string
+        (i.e., + to _pos; and - to _neg)."""
         if self.symbol == "+":
-            temp = str(self.attribute_col) + '_pos'
+            return str(self.attribute_col) + "_pos"
         elif self.symbol == "-":
-            temp = str(self.attribute_col) + '_neg'
+            return str(self.attribute_col) + "_neg"
         else:
-            temp = str(self.attribute_col) + '_inv'
-        return temp
+            return str(self.attribute_col) + "_inv"
 
-    def to_string(self):
+    def to_string(self) -> str:
         """Description
 
         Returns a GI in string format
@@ -121,16 +103,18 @@ class GI:
         """
         return str(self.attribute_col) + self.symbol
 
-    def is_decrement(self):
+    @staticmethod
+    def swap_gi_symbol(gi_obj):
         """Description
 
-        Checks if a GI's variation corresponds to decreasing
-        :return: True is GI has a decreasing variation, False otherwise
+        Inverts a GI symbol to the opposite variation (i.e., from - to +; or, from + to -)
+        :return: inverted GI object
         """
-        if self.symbol == "-":
-            return True
+        if gi_obj.symbol == "+":
+            sym = "-"
         else:
-            return False
+            sym = "+"
+        return GI(gi_obj.attribute_col, sym)
 
     @staticmethod
     def parse_gi(gi_str):
@@ -150,23 +134,6 @@ class GI:
         else:
             symbol = "+"
         return GI(attr_col, symbol)
-
-    @staticmethod
-    def inv_arr(g_item):
-        """Description
-
-        Computes the inverse of a GI formatted as an array or tuple
-
-        :param g_item: gradual item (array/tuple)
-        :type g_item: (tuple, list) | np.ndarray
-
-        :return: inverted gradual item
-        """
-        if g_item[1] == "+":
-            temp = tuple([g_item[0], "-"])
-        else:
-            temp = tuple([g_item[0], "+"])
-        return temp
 
 
 class GP:
@@ -245,7 +212,7 @@ class GP:
         """
         pattern = list()
         for item in self.gradual_items:
-            pattern.append(item.gradual_item.tolist())
+            pattern.append(item.as_array.tolist())
         return pattern
 
     def get_np_pattern(self):
@@ -256,7 +223,7 @@ class GP:
         """
         pattern = []
         for item in self.gradual_items:
-            pattern.append(item.gradual_item)
+            pattern.append(item.as_array)
         return np.array(pattern)
 
     def get_tuples(self):
@@ -282,7 +249,7 @@ class GP:
         attrs = list()
         syms = list()
         for item in self.gradual_items:
-            gi = item.as_integer()
+            gi = item.as_integer
             attrs.append(gi[0])
             syms.append(gi[1])
         return attrs, syms
@@ -310,7 +277,7 @@ class GP:
         """
         pattern = list()
         for gi in self.gradual_items:
-            pattern.append(gi.inv().tolist())
+            pattern.append(gi.as_swapped_array.tolist())
         return pattern
 
     def contains(self, gi):
@@ -379,7 +346,7 @@ class GP:
         """
         gi_dict = {}
         for gi in self.gradual_items:
-            gi_dict.update({gi.as_string(): 0})
+            gi_dict.update({gi.as_string: 0})
         return gi_dict
 
     # noinspection PyUnresolvedReferences
@@ -446,7 +413,7 @@ class ExtGP(GP):
         bin_arr = np.array([])
 
         for gi in self.gradual_items:
-            arg = np.argwhere(np.isin(d_gp.valid_bins[:, 0], gi.gradual_item))
+            arg = np.argwhere(np.isin(d_gp.valid_bins[:, 0], gi.as_array))
             if len(arg) > 0:
                 i = arg[0][0]
                 valid_bin = d_gp.valid_bins[i]
@@ -483,9 +450,9 @@ class ExtGP(GP):
         """type gen_pattern: ExtGP"""
         temp_tids = None
         for gi in self.gradual_items:
-            gi_int = gi.as_integer()
+            gi_int = gi.as_integer
             node = int(gi_int[0] + 1) * gi_int[1]
-            gi_int = (gi.inv_gi()).as_integer()
+            gi_int = (GI.swap_gi_symbol(gi)).as_integer
             node_inv = int(gi_int[0] + 1) * gi_int[1]
             for k, v in d_gp.valid_tids.items():
                 if (node == k) or (node_inv == k):

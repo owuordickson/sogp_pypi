@@ -87,7 +87,7 @@ class AntGRAANK(DataGP):
         """
         v_bins = self.valid_bins
         # 1. Fetch valid bins group
-        attr_keys = [GI(x[0], x[1].decode()).as_string() for x in v_bins[:, 0]]
+        attr_keys = [GI(x[0], x[1].decode()).as_string for x in v_bins[:, 0]]
 
         # 2. Initialize an empty d-matrix
         n = len(attr_keys)
@@ -154,7 +154,7 @@ class AntGRAANK(DataGP):
         :type p_matrix: numpy.ndarray
         :return: updated pheromone matrix
         """
-        idx = [self.attribute_keys.index(x.as_string()) for x in pattern.gradual_items]
+        idx = [self.attribute_keys.index(x.as_string) for x in pattern.gradual_items]
         for n in range(len(idx)):
             for m in range(n + 1, len(idx)):
                 i = idx[n]

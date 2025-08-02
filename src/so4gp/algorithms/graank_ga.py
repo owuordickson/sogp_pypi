@@ -147,7 +147,7 @@ class GeneticGRAANK(DataGP):
 
         # Prepare data set
         self.fit_bitmap()
-        attr_keys = [GI(x[0], x[1].decode()).as_string() for x in self.valid_bins[:, 0]]
+        attr_keys = [GI(x[0], x[1].decode()).as_string for x in self.valid_bins[:, 0]]
 
         if self.no_bins:
             return []

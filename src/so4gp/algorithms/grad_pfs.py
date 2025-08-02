@@ -161,7 +161,7 @@ class GradPFS:
         # 3a. Collect the irrelevant features (and redundant among themselves)
         rel_lst = []
         for gp in grad.gradual_patterns:
-             rel_attributes = gp.get_attributes()[0]
+             rel_attributes = gp.decompose()[0]
              for attr in rel_attributes:
                  rel_lst.append(attr)
         rel_set = set(rel_lst)

@@ -226,7 +226,7 @@ class AntGRAANK(DataGP):
                         else:
                             loser_gps.append(gen_gp)
                             invalid_count += 1
-                    if set(gen_gp.get_pattern()) != set(rand_gp.get_pattern()):
+                    if set(gen_gp.as_list) != set(rand_gp.as_list()):
                         loser_gps.append(rand_gp)
                 else:
                     repeated += 1

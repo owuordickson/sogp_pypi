@@ -158,11 +158,11 @@ class GP:
 
             """
         self.gradual_items = list()
-        """:type gradual_items: list """
+        """:type gradual_items: list[GI] """
         self.support = 0
         """:type support: float"""
 
-    def set_support(self, support):
+    def set_support(self, support) -> bool:
         """Description
 
         Sets the computed support value of the gradual pattern (GP)
@@ -171,9 +171,12 @@ class GP:
 
         :return: void
         """
-        self.support = round(support, 3)
+        if support <= 1:
+            self.support = round(support, 3)
+            return True
+        return False
 
-    def add_gradual_item(self, item):
+    def add_gradual_item(self, item) -> bool:
         """Description
 
         Adds a gradual item (GI) into the gradual pattern (GP)
@@ -184,8 +187,8 @@ class GP:
         """
         if item.symbol == "-" or item.symbol == "+":
             self.gradual_items.append(item)
-        else:
-            pass
+            return True
+        return False
 
     def add_items_from_list(self, lst_items) -> None:
         """
@@ -204,29 +207,44 @@ class GP:
             elif type(str_gi[1]) is bytes:
                 self.add_gradual_item(GI(int(str_gi[0]), str(str_gi[1].decode())))
 
-    def get_pattern(self):
+    @property
+    def as_list(self) -> list:
         """Description
 
         Returns the gradual pattern (GP) as a list
         :return: gradual pattern
         """
         pattern = list()
-        for item in self.gradual_items:
-            pattern.append(item.as_array.tolist())
+        for gi in self.gradual_items:
+            pattern.append(gi.as_array.tolist())
         return pattern
 
-    def get_np_pattern(self):
+    @property
+    def as_swapped_list(self) -> list:
+        """Description
+
+        Swaps all the variation symbols of all the gradual items (GIs) in the gradual pattern (GP)
+        :return: GP with swapped variation symbols
+        """
+        pattern = list()
+        for gi in self.gradual_items:
+            pattern.append(gi.as_swapped_array.tolist())
+        return pattern
+
+    @property
+    def as_array(self) -> np.ndarray:
         """Description
 
         Returns a gradual pattern (GP) as a ndarray
         :return: ndarray
         """
         pattern = []
-        for item in self.gradual_items:
-            pattern.append(item.as_array)
+        for gi in self.gradual_items:
+            pattern.append(gi.as_array)
         return np.array(pattern)
 
-    def get_tuples(self):
+    @property
+    def as_tuples(self) -> list[tuple[int, str]]:
         """Description
 
         Returns the gradual pattern (GP) as a list of GI tuples
@@ -234,11 +252,10 @@ class GP:
         """
         pattern = list()
         for gi in self.gradual_items:
-            temp = tuple([gi.attribute_col, gi.symbol])
-            pattern.append(temp)
+            pattern.append(gi.as_tuple)
         return pattern
 
-    def get_attributes(self):
+    def decompose(self) -> tuple[list[int], list[str]]:
         """
         Breaks down all the gradual items (GIs) in the gradual pattern into columns and variation symbols and returns
         them as separate variables. For instance, a GP {"1+", "3-"} will be returned as [1, 3], [1, -1]: where [1, 3] is
@@ -254,7 +271,7 @@ class GP:
             syms.append(gi[1])
         return attrs, syms
 
-    def get_index(self, gi):
+    def find_index(self, gi):
         """Description
 
         Returns the index position of a gradual item in the gradual pattern
@@ -268,17 +285,6 @@ class GP:
             if (gi.symbol == gi_obj.symbol) and (gi.attribute_col == gi_obj.attribute_col):
                 return i
         return -1
-
-    def inv_pattern(self):
-        """Description
-
-        Inverts all the variation symbols of all the gradual items (GIs) in the gradual pattern (GP)
-        :return: inverted GP
-        """
-        pattern = list()
-        for gi in self.gradual_items:
-            pattern.append(gi.as_swapped_array.tolist())
-        return pattern
 
     def contains(self, gi):
         """Description
@@ -499,15 +505,15 @@ class ExtGP(GP):
         result = False
         if subset:
             for pat in gp_list:
-                result1 = set(self.get_pattern()).issubset(set(pat.get_pattern()))
-                result2 = set(self.inv_pattern()).issubset(set(pat.get_pattern()))
+                result1 = set(self.as_list).issubset(set(pat.get_pattern()))
+                result2 = set(self.as_swapped_list).issubset(set(pat.get_pattern()))
                 if result1 or result2:
                     result = True
                     break
         else:
             for pat in gp_list:
-                result1 = set(self.get_pattern()).issuperset(set(pat.get_pattern()))
-                result2 = set(self.inv_pattern()).issuperset(set(pat.get_pattern()))
+                result1 = set(self.as_list).issuperset(set(pat.get_pattern()))
+                result2 = set(self.as_swapped_list).issuperset(set(pat.get_pattern()))
                 if result1 or result2:
                     result = True
                     break
@@ -530,12 +536,12 @@ class ExtGP(GP):
             pass
         else:
             for pat in invalid_gps:
-                if set(self.get_pattern()) == set(pat.get_pattern()) or \
-                        set(self.inv_pattern()) == set(pat.get_pattern()):
+                if set(self.as_list) == set(pat.get_pattern()) or \
+                        set(self.as_swapped_list) == set(pat.get_pattern()):
                     return True
         for pat in valid_gps:
-            if set(self.get_pattern()) == set(pat.get_pattern()) or \
-                    set(self.inv_pattern()) == set(pat.get_pattern()):
+            if set(self.as_list) == set(pat.get_pattern()) or \
+                    set(self.as_swapped_list) == set(pat.get_pattern()):
                 return True
         return False
 

@@ -271,7 +271,7 @@ class GP:
             syms.append(gi[1])
         return attrs, syms
 
-    def find_index(self, gi):
+    def find_index(self, gi) -> int:
         """Description
 
         Returns the index position of a gradual item in the gradual pattern
@@ -286,7 +286,7 @@ class GP:
                 return i
         return -1
 
-    def contains(self, gi):
+    def contains(self, gi) -> bool:
         """Description
 
         Checks if a gradual item (GI) is a member of a gradual pattern (GP)
@@ -301,7 +301,7 @@ class GP:
             return True
         return False
 
-    def contains_strict(self, gi):
+    def contains_strict(self, gi) -> bool:
         """Description
 
         Strictly checks if a gradual item (GI) is a member of a gradual pattern (GP)
@@ -317,7 +317,7 @@ class GP:
                 return True
         return False
 
-    def contains_attr(self, gi):
+    def contains_attr(self, gi) -> bool:
         """Description
 
         Checks is any gradual item (GI) in the gradual pattern (GP) is composed of the column
@@ -333,7 +333,7 @@ class GP:
                 return True
         return False
 
-    def to_string(self):
+    def to_string(self) -> list[str]:
         """Description
 
         Returns the GP in string format
@@ -344,7 +344,7 @@ class GP:
             pattern.append(item.to_string())
         return pattern
 
-    def to_dict(self):
+    def to_dict(self) -> dict[str, int]:
         """Description
 
         Returns the GP as a dictionary
@@ -356,7 +356,7 @@ class GP:
         return gi_dict
 
     # noinspection PyUnresolvedReferences
-    def print(self, columns):
+    def print(self, columns) -> list[list[str] | float]:
         """Description
 
         A method that returns patterns with actual column names
@@ -490,7 +490,7 @@ class ExtGP(GP):
         else:
             return gen_pattern
 
-    def check_am(self, gp_list, subset=True):
+    def check_am(self, gp_list, subset=True) -> bool:
         """
         Anti-monotonicity check. Checks if a GP is a subset or superset of an already existing GP
 
@@ -519,7 +519,7 @@ class ExtGP(GP):
                     break
         return result
 
-    def is_duplicate(self, valid_gps, invalid_gps=None):
+    def is_duplicate(self, valid_gps, invalid_gps=None) -> bool:
         """Description
 
         Checks if a pattern is in the list of winner GPs or loser GPs
@@ -546,7 +546,7 @@ class ExtGP(GP):
         return False
 
     @staticmethod
-    def remove_subsets(gp_list, gi_arr):
+    def remove_subsets(gp_list, gi_arr) -> list:
         """
 
         Remove subset GPs from the list.
@@ -595,7 +595,7 @@ class TGP(ExtGP):
         self.temporal_gradual_items = list()
         """:type temporal_gradual_items: list()"""
 
-    def add_target_gradual_item(self, item):
+    def add_target_gradual_item(self, item) -> bool:
         """Description
 
             Adds a target gradual item (fTGI) into the fuzzy temporal gradual pattern (fTGP)
@@ -607,10 +607,10 @@ class TGP(ExtGP):
         if item.symbol == "-" or item.symbol == "+":
             self.gradual_items.append(item)
             self.target_gradual_item = item
-        else:
-            pass
+            return True
+        return False
 
-    def add_temporal_gradual_item(self, item, time_delay):
+    def add_temporal_gradual_item(self, item, time_delay) -> bool:
         """Description
 
             Adds a fuzzy temporal gradual item (fTGI) into the fuzzy temporal gradual pattern (fTGP)
@@ -625,8 +625,8 @@ class TGP(ExtGP):
         if item.symbol == "-" or item.symbol == "+":
             self.gradual_items.append(item)
             self.temporal_gradual_items.append([item, time_delay])
-        else:
-            pass
+            return True
+        return False
 
     def to_string(self) -> list:
         """
@@ -639,7 +639,7 @@ class TGP(ExtGP):
         return pattern
 
     # noinspection PyUnresolvedReferences
-    def print(self, columns):
+    def print(self, columns) -> list[list[str] | float]:
         """Description
 
         A method that returns a fuzzy temporal gradual pattern (TGP) with actual column names
@@ -702,7 +702,7 @@ class TimeDelay:
         """:type support: float"""
         self.valid = False
         """type: valid: bool"""
-        self.sign = self._get_sign()
+        self.sign = self.delay_sign
         """type: sign: str"""
         self.formatted_time = {}
         """type: formatted_time: dict"""
@@ -711,17 +711,17 @@ class TimeDelay:
             self.formatted_time = {'value': time_arr[0], 'duration': time_arr[1]}
             self.valid = True
 
-    def _get_sign(self) -> str:
+    @property
+    def delay_sign(self) -> str:
         """
         Checks and returns the sign of the time-delay value (later/before).
 
         :return: The sign of the time-delay value.
         """
         if self.timestamp < 0:
-            sign = "-"
+            return "-"
         else:
-            sign = "+"
-        return sign
+            return "+"
 
     def _format_time(self) -> list:
         """

@@ -82,9 +82,9 @@ class GRAANK(DataGP):
         if gi_dict is None:
             return []
 
-        invalid_count = 0
-        res = []
         all_candidates = []
+        invalid_count = 0
+        res_dict = {}
 
         gi_key_list = list(gi_dict.keys())
         for i in range(len(gi_dict) - 1):
@@ -93,12 +93,12 @@ class GRAANK(DataGP):
                 gi_str_i = gi_key_list[i]
                 gi_str_j = gi_key_list[j]
                 try:
-                    gi_i = {gi_str_i}
+                    gi_i = {list(gi_str_i) if isinstance(gi_str_i, tuple) else gi_str_i}
                     gi_j = {gi_str_j}
                     gi_o = {gi_key_list[0]}
                 except TypeError:
-                    gi_i = set(gi_str_i)
-                    gi_j = set(gi_str_j)
+                    gi_i = set(list(gi_str_i) if isinstance(gi_str_i, tuple) else gi_str_i)
+                    gi_j = set(list(gi_str_j) if isinstance(gi_str_j, tuple) else gi_str_j)
                     gi_o = set(gi_key_list[0])
 
                 # 2. Identify a GP candidate (create its inverse)
@@ -131,15 +131,16 @@ class GRAANK(DataGP):
                         else:
                             repeated_attr = k[0]
                     if test == 1:
-                        m = gi_dict[gi_str_i] * gi_dict[gi_str_j]
-                        sup = float(np.sum(m)) / float(n * (n - 1.0) / 2.0)
+                        bin_mat = gi_dict[gi_str_i] * gi_dict[gi_str_j]
+                        sup = float(np.sum(bin_mat)) / float(n * (n - 1.0) / 2.0)
                         if sup > min_sup or ignore_sup:
-                            res.append([gp_cand, m, sup])
+                            # res_dict.append([gp_cand, bin_mat, sup])
+                            res_dict[tuple(gp_cand)] = bin_mat
                         else:
                             invalid_count += 1
                     all_candidates.append(gp_cand)
                     gc.collect()
-        return res, invalid_count
+        return res_dict, invalid_count
 
     def discover(self, ignore_support: bool = False, apriori_level: int | None = None,
                  target_col: int | None = None, exclude_target: bool = False):
@@ -157,10 +158,11 @@ class GRAANK(DataGP):
         """
 
         self.fit_bitmap()
+        valid_bins_dict = self.valid_bins.copy()
 
-        self.gradual_patterns: list[GP] = []
+        n = self.attr_size
         str_winner_gps = []
-        valid_bins_dict = self.valid_bins
+        self.gradual_patterns: list[GP] = []
 
         invalid_count = 0
         candidate_level = 1
@@ -170,16 +172,14 @@ class GRAANK(DataGP):
                                                                  target_col=target_col,
                                                                  exclude_target=exclude_target)
             invalid_count += inv_count
-            for gi_str, bin_mat in valid_bins_dict:
-                gi_arr = v_bin[0]
-                # bin_data = v_bin[1]
-                sup = v_bin[2]
+            for gp_set, bin_mat in valid_bins_dict.items():
                 # if not ignore_support:
-                self.gradual_patterns = GP.remove_subsets(self.gradual_patterns, set(gi_arr))
+                self.gradual_patterns = GP.remove_subsets(self.gradual_patterns, set(gp_set))
+                sup = float(np.sum(bin_mat)) / float(n * (n - 1.0) / 2.0)
 
                 gp: GP = GP()
-                for obj in gi_arr:
-                    gi: GI = GI(obj[0], obj[1].decode())
+                for gi_str in gp_set:
+                    gi: GI = GI.from_string(gi_str)
                     gp.add_gradual_item(gi)
                 gp.support = sup
                 self.add_gradual_pattern(gp)

@@ -477,79 +477,67 @@ class GP:
         else:
             return gen_pattern
 
-    def check_am(self, gp_list, subset=True) -> bool:
+    def check_am(self, gp_list: list["GP"], subset:bool=True) -> bool:
         """
         Anti-monotonicity check. Checks if a GP is a subset or superset of an already existing GP
 
         :param gp_list: A list of existing GPs
-        :type gp_list: list[so4gp.ExtGP]
-
         :param subset: A check if it is a subset
-        :type subset: bool
-
         :return: True if superset/subset, False otherwise
         """
         result = False
         if subset:
             for pat in gp_list:
-                result1 = set(self.as_list).issubset(set(pat.get_pattern()))
-                result2 = set(self.as_swapped_list).issubset(set(pat.get_pattern()))
+                result1 = set(self.as_list).issubset(set(pat.as_list))
+                result2 = set(self.as_swapped_list).issubset(set(pat.as_list))
                 if result1 or result2:
                     result = True
                     break
         else:
             for pat in gp_list:
-                result1 = set(self.as_list).issuperset(set(pat.get_pattern()))
-                result2 = set(self.as_swapped_list).issuperset(set(pat.get_pattern()))
+                result1 = set(self.as_list).issuperset(set(pat.as_list))
+                result2 = set(self.as_swapped_list).issuperset(set(pat.as_list))
                 if result1 or result2:
                     result = True
                     break
         return result
 
-    def is_duplicate(self, valid_gps, invalid_gps=None) -> bool:
+    def is_duplicate(self, valid_gps:list["GP"], invalid_gps:list["GP"]=None) -> bool:
         """Description
 
         Checks if a pattern is in the list of winner GPs or loser GPs
 
         :param valid_gps: list of GPs
-        :type valid_gps: list[so4gp.ExtGP]
-
         :param invalid_gps: list of GPs
-        :type invalid_gps: list[so4gp.ExtGP]
-
-        :return: True if a pattern is either list, False otherwise
+        :return: True if pattern is a list, False otherwise
         """
         if invalid_gps is None:
             pass
         else:
             for pat in invalid_gps:
-                if set(self.as_list) == set(pat.get_pattern()) or \
-                        set(self.as_swapped_list) == set(pat.get_pattern()):
+                if set(self.as_list) == set(pat.as_list) or \
+                        set(self.as_swapped_list) == set(pat.as_list):
                     return True
         for pat in valid_gps:
-            if set(self.as_list) == set(pat.get_pattern()) or \
-                    set(self.as_swapped_list) == set(pat.get_pattern()):
+            if set(self.as_list) == set(pat.as_list) or \
+                    set(self.as_swapped_list) == set(pat.as_list):
                 return True
         return False
 
     @staticmethod
-    def remove_subsets(gp_list, gi_arr) -> list:
+    def remove_subsets(gp_list:list["GP"], gi_arr:set) -> list:
         """
 
         Remove subset GPs from the list.
 
         :param gp_list: List of existing GPs
-        :type gp_list: list[so4gp.ExtGP]
-
         :param gi_arr: Gradual items in an array
-        :type gi_arr: set
-
         :return: List of GPs
         """
         mod_gp_list = []
         for gp in gp_list:
-            result1 = set(gp.get_pattern()).issubset(gi_arr)
-            result2 = set(gp.inv_pattern()).issubset(gi_arr)
+            result1 = set(gp.as_list).issubset(gi_arr)
+            result2 = set(gp.as_swapped_list).issubset(gi_arr)
             if not (result1 or result2):
                 mod_gp_list.append(gp)
         return mod_gp_list

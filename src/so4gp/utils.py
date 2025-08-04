@@ -44,11 +44,11 @@ def analyze_gps(data_src, min_sup, est_gps, approach='bfs') -> str:
     >>> estimated_gps = list()
     >>> temp_gp = sgp.ExtGP()
     >>> temp_gp.add_items_from_list(['0+', '1-'])
-    >>> temp_gp.set_support(0.5)
+    >>> temp_gp.support(0.5)
     >>> estimated_gps.append(temp_gp)
     >>> temp_gp = sgp.ExtGP()
     >>> temp_gp.add_items_from_list(['1+', '3-', '0+'])
-    >>> temp_gp.set_support(0.48)
+    >>> temp_gp.support(0.48)
     >>> estimated_gps.append(temp_gp)
     >>> res = sgp.analyze_gps(dummy_df, min_sup=0.4, est_gps=estimated_gps, approach='bfs')
     >>> print(res)
@@ -81,7 +81,7 @@ def analyze_gps(data_src, min_sup, est_gps, approach='bfs') -> str:
     data = []
     for est_gp in est_gps:
         est_sup = est_gp.support
-        est_gp.set_support(0)
+        est_gp.support(0)
         if approach == 'dfs':
             true_gp = est_gp.validate_tree(d_set)
         else:

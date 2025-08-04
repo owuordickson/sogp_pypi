@@ -264,7 +264,7 @@ class ClusterGP(DataGP):
                     gp = ExtGP()
                     for gi in cluster_gis:
                         gp.add_gradual_item(gi)
-                    gp.set_support(est_sup)
+                    gp.support(est_sup)
                     patterns.append(gp)
                     str_patterns.append(gp.print(self.titles))
         return str_patterns, patterns

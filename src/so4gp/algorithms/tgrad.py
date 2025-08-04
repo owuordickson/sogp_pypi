@@ -212,7 +212,7 @@ class TGrad(GRAANK):
                             tgp.add_target_gradual_item(gi)
                         else:
                             tgp.add_temporal_gradual_item(gi, t_lag)
-                    tgp.set_support(sup)
+                    tgp.support(sup)
                     gradual_patterns.append(tgp)
         return gradual_patterns
 

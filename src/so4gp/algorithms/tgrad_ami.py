@@ -286,7 +286,7 @@ class TGradAMI(TGrad):
                             tgp.add_target_gradual_item(gi)
                         else:
                             tgp.add_temporal_gradual_item(gi, t_lag)
-                    tgp.set_support(sup)
+                    tgp.support(sup)
                     gradual_patterns.append(tgp)
                     gp_components[f"{tgp.to_string()}"] = GRAANK.decompose_to_gp_component(bin_data)
 

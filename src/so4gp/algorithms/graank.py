@@ -179,7 +179,7 @@ class GRAANK(DataGP):
                     gi = GI(obj[0], obj[1].decode())
                     """:type gi: GI"""
                     gp.add_gradual_item(gi)
-                gp.set_support(sup)
+                gp.support(sup)
                 self.gradual_patterns.append(gp)
                 str_winner_gps.append(gp.print(self.titles))
             candidate_level += 1

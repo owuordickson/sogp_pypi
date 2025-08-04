@@ -37,15 +37,29 @@ class GI:
         :type symbol: str
 
         """
-        self.attribute_col = attr_col
+        self._attribute_col = attr_col
         """:type attribute_col: int"""
-        self.symbol = symbol
+        self._symbol = ""
         """:type symbol: str"""
+        if symbol == "-" or symbol == "+":
+            self._symbol = symbol
+        else:
+            raise ValueError("Invalid variation symbol. It should be either '+' or '-'.")
+
+    @property
+    def attribute_col(self) -> int:
+        """The column index of a GI"""
+        return self._attribute_col
+
+    @property
+    def symbol(self) -> str:
+        """The variation symbol of a GI"""
+        return self._symbol
 
     @property
     def is_decreasing(self) -> bool:
         """Checks if a GI's variation corresponds to decreasing and returns True, False otherwise."""
-        if self.symbol == "-":
+        if self._symbol == "-":
             return True
         else:
             return False
@@ -53,46 +67,46 @@ class GI:
     @property
     def as_array(self) -> np.ndarray:
         """The Gradual Item (GI) in ndarray format"""
-        return np.array((self.attribute_col, self.symbol), dtype='i, S1')
+        return np.array((self._attribute_col, self._symbol), dtype='i, S1')
 
     @property
     def as_swapped_array(self) -> np.ndarray:
         """The resulting GI with symbol swapped (i.e., from - to +; or, from + to -) in ndarray format"""
-        if self.symbol == "+":
+        if self._symbol == "+":
             # tuple([self.attribute_col, "-"])
-            return np.array((self.attribute_col, "-"), dtype='i, S1')
-        elif self.symbol == "-":
+            return np.array((self._attribute_col, "-"), dtype='i, S1')
+        elif self._symbol == "-":
             # tuple([self.attribute_col, "+"])
-            return np.array((self.attribute_col, "+"), dtype='i, S1')
+            return np.array((self._attribute_col, "+"), dtype='i, S1')
         else:
-            return np.array((self.attribute_col, 'x'), dtype='i, S1')
+            return np.array((self._attribute_col, 'x'), dtype='i, S1')
 
     @property
     def as_tuple(self) -> tuple[int, str]:
         """The Gradual Item (GI) in tuple format"""
-        return tuple((self.attribute_col, self.symbol))
+        return tuple((self._attribute_col, self._symbol))
 
     @property
     def as_integer(self) -> list[int]:
         """The Gradual Item (GI) in integer format. Converts a variation symbol into an integer
         (i.e., + to 1; and - to -1) and returns as a list (e.g., (1+) -> [1, -1])."""
-        if self.symbol == "+":
-            return [self.attribute_col, 1]
-        elif self.symbol == "-":
-            return [self.attribute_col, -1]
+        if self._symbol == "+":
+            return [self._attribute_col, 1]
+        elif self._symbol == "-":
+            return [self._attribute_col, -1]
         else:
-            return [self.attribute_col, 0]
+            return [self._attribute_col, 0]
 
     @property
     def as_string(self) -> str:
         """The Gradual Item (GI) in string format. Stringifies a GI. It converts a variation symbol into a string
         (i.e., + to _pos; and - to _neg)."""
-        if self.symbol == "+":
-            return str(self.attribute_col) + "_pos"
-        elif self.symbol == "-":
-            return str(self.attribute_col) + "_neg"
+        if self._symbol == "+":
+            return str(self._attribute_col) + "_pos"
+        elif self._symbol == "-":
+            return str(self._attribute_col) + "_neg"
         else:
-            return str(self.attribute_col) + "_inv"
+            return str(self._attribute_col) + "_inv"
 
     def to_string(self) -> str:
         """Description
@@ -100,7 +114,7 @@ class GI:
         Returns a GI in string format
         :return: string
         """
-        return str(self.attribute_col) + self.symbol
+        return str(self._attribute_col) + self._symbol
 
     @staticmethod
     def swap_gi_symbol(gi_obj):
@@ -152,28 +166,34 @@ class GP:
         >>> gradual_pattern = sgp.GP()
         >>> gradual_pattern.add_gradual_item(sgp.GI(0, "+"))
         >>> gradual_pattern.add_gradual_item(sgp.GI(1, "-"))
-        >>> gradual_pattern.set_support(0.5)
+        >>> gradual_pattern.support = 0.5
         >>> print(f"{gradual_pattern.to_string()}: {gradual_pattern.support}")
 
             """
-        self.gradual_items = list()
-        """:type gradual_items: list[GI] """
-        self.support = 0
-        """:type support: float"""
+        self._gradual_items: list[GI] = list()
+        self._support: float = 0
 
-    def set_support(self, support) -> bool:
-        """Description
+    @property
+    def gradual_items(self) -> list[GI]:
+        return self._gradual_items
 
-        Sets the computed support value of the gradual pattern (GP)
-        :param support: support value
-        :type support: float
+    @property
+    def support(self) -> float:
+        return self._support
 
-        :return: void
-        """
-        if support <= 1:
-            self.support = round(support, 3)
-            return True
-        return False
+    @support.setter
+    def support(self, support):
+        self._support = round(support, 3) if support <= 1 else support
+
+    @gradual_items.setter
+    def gradual_items(self, items):
+        if not isinstance(items, list):
+            raise TypeError("Items must be a list of Gradual Items (GI) objects.")
+
+        if isinstance(items[0], GI):
+            self._gradual_items = items
+        else:
+            raise TypeError("Items must be a list of Gradual Items (GI) objects.")
 
     def add_gradual_item(self, item) -> bool:
         """Description
@@ -184,8 +204,8 @@ class GP:
 
         :return: void
         """
-        if item.symbol == "-" or item.symbol == "+":
-            self.gradual_items.append(item)
+        if isinstance(item, GI):
+            self._gradual_items.append(item)
             return True
         return False
 
@@ -214,7 +234,7 @@ class GP:
         :return: gradual pattern
         """
         pattern = list()
-        for gi in self.gradual_items:
+        for gi in self._gradual_items:
             pattern.append(gi.as_array.tolist())
         return pattern
 
@@ -226,7 +246,7 @@ class GP:
         :return: GP with swapped variation symbols
         """
         pattern = list()
-        for gi in self.gradual_items:
+        for gi in self._gradual_items:
             pattern.append(gi.as_swapped_array.tolist())
         return pattern
 
@@ -238,7 +258,7 @@ class GP:
         :return: ndarray
         """
         pattern = []
-        for gi in self.gradual_items:
+        for gi in self._gradual_items:
             pattern.append(gi.as_array)
         return np.array(pattern)
 
@@ -250,7 +270,7 @@ class GP:
         :return: list of GI tuples
         """
         pattern = list()
-        for gi in self.gradual_items:
+        for gi in self._gradual_items:
             pattern.append(gi.as_tuple)
         return pattern
 
@@ -264,7 +284,7 @@ class GP:
         """
         attrs = list()
         syms = list()
-        for item in self.gradual_items:
+        for item in self._gradual_items:
             gi = item.as_integer
             attrs.append(gi[0])
             syms.append(gi[1])
@@ -279,8 +299,8 @@ class GP:
 
         :return: index of gradual item
         """
-        for i in range(len(self.gradual_items)):
-            gi_obj = self.gradual_items[i]
+        for i in range(len(self._gradual_items)):
+            gi_obj = self._gradual_items[i]
             if (gi.symbol == gi_obj.symbol) and (gi.attribute_col == gi_obj.attribute_col):
                 return i
         return -1
@@ -296,7 +316,7 @@ class GP:
         """
         if gi is None:
             return False
-        if gi in self.gradual_items:
+        if gi in self._gradual_items:
             return True
         return False
 
@@ -311,7 +331,7 @@ class GP:
         """
         if gi is None:
             return False
-        for gi_obj in self.gradual_items:
+        for gi_obj in self._gradual_items:
             if (gi.attribute_col == gi_obj.attribute_col) and (gi.symbol == gi_obj.symbol):
                 return True
         return False
@@ -327,7 +347,7 @@ class GP:
         """
         if gi is None:
             return False
-        for gi_obj in self.gradual_items:
+        for gi_obj in self._gradual_items:
             if gi.attribute_col == gi_obj.attribute_col:
                 return True
         return False
@@ -339,7 +359,7 @@ class GP:
         :return: string
         """
         pattern = list()
-        for item in self.gradual_items:
+        for item in self._gradual_items:
             pattern.append(item.to_string())
         return pattern
 
@@ -350,7 +370,7 @@ class GP:
         :return: dict
         """
         gi_dict = {}
-        for gi in self.gradual_items:
+        for gi in self._gradual_items:
             gi_dict.update({gi.as_string: 0})
         return gi_dict
 
@@ -366,7 +386,7 @@ class GP:
         :return: GP with actual column names
         """
         pattern = list()
-        for item in self.gradual_items:
+        for item in self._gradual_items:
             col_title = columns[item.attribute_col]
             try:
                 col = str(col_title.value.decode())
@@ -374,7 +394,7 @@ class GP:
                 col = str(col_title[1].decode())
             pat = str(col + item.symbol)
             pattern.append(pat)  # (item.to_string())
-        return [pattern, self.support]
+        return [pattern, self._support]
 
 
 class ExtGP(GP):
@@ -392,13 +412,12 @@ class ExtGP(GP):
         >>> gradual_pattern = sgp.ExtGP()
         >>> gradual_pattern.add_gradual_item(sgp.GI(0, "+"))
         >>> gradual_pattern.add_gradual_item(sgp.GI(1, "-"))
-        >>> gradual_pattern.set_support(0.5)
+        >>> gradual_pattern.support = 0.5
         >>> print(f"{gradual_pattern.to_string()}: {gradual_pattern.support}")
 
         """
         super(ExtGP, self).__init__()
-        self.freq_count = 0
-        """:type freq_count: int"""
+        self.freq_count: int = 0
 
     def validate_graank(self, d_gp):
         """
@@ -432,7 +451,7 @@ class ExtGP(GP):
                     if supp >= min_supp:
                         bin_arr[0] = temp_bin.copy()
                         gen_pattern.add_gradual_item(gi)
-                        gen_pattern.set_support(supp)
+                        gen_pattern.support = supp
         if len(gen_pattern.gradual_items) <= 1:
             return self
         else:
@@ -471,7 +490,7 @@ class ExtGP(GP):
                         if supp >= min_supp:
                             temp_tids = temp.copy()
                             gen_pattern.add_gradual_item(gi)
-                            gen_pattern.set_support(supp)
+                            gen_pattern.support = supp
                 """elif node_inv == k:
                     if temp_tids is None:
                         temp_tids = v

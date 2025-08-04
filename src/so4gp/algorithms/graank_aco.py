@@ -7,8 +7,6 @@
 import gc
 import json
 import numpy as np
-
-
 try:
     from ..data_gp import DataGP
     from ..gradual_patterns import GI, GP
@@ -21,13 +19,13 @@ class AntGRAANK(DataGP):
         """Description
 
     Extract gradual patterns (GPs) from a numeric data source using the Ant Colony Optimization approach
-    (proposed in a published paper by Dickson Owuor). A GP is a set of gradual items (GI) and its quality is
-    measured by its computed support value. For example given a data set with 3 columns (age, salary, cars) and 10
+    (proposed in a published paper by Dickson Owuor). A GP is a set of gradual items (GI), and its quality is
+    measured by its computed support value. For example, given a data set with 3 columns (age, salary, cars) and 10
     objects. A GP may take the form: {age+, salary-} with a support of 0.8. This implies that 8 out of 10 objects
     have the values of column age 'increasing' and column 'salary' decreasing.
 
-        In this approach, it is assumed that every column can be converted into gradual item (GI). If the GI is valid
-        (i.e. its computed support is greater than the minimum support threshold) then it is either increasing or
+        In this approach, it is assumed that every column can be converted into a gradual item (GI). If the GI is valid
+        (i.e., its computed support is greater than the minimum support threshold), then it is either increasing or
         decreasing (+ or -), otherwise it is irrelevant (x). Therefore, a pheromone matrix is built using the number of
         columns and the possible variations (increasing, decreasing, irrelevant) or (+, -, x). The algorithm starts by
         randomly generating GP candidates using the pheromone matrix, each candidate is validated by confirming that
@@ -91,17 +89,15 @@ class AntGRAANK(DataGP):
         gc.collect()
 
     def _gen_aco_candidates(self, p_matrix):
-        """Description
-
+        """
         Generates GP candidates based on the pheromone levels.
 
-        :param p_matrix: pheromone matrix
+        :param p_matrix: The pheromone matrix
         :type p_matrix: np.ndarray
         :return: pheromone matrix (ndarray)
         """
         v_matrix = self.distance_matrix
-        pattern = ExtGP()
-        ":type pattern: ExtGP"
+        pattern: GP = GP()
 
         # 1. Generate gradual items with the highest pheromone and visibility
         m = p_matrix.shape[0]
@@ -170,7 +166,7 @@ class AntGRAANK(DataGP):
         it_count = 0
         counter = 0
 
-        if self.no_bins:
+        if self.valid_bins is None:
             return []
 
         # 1. Remove d[i][j] < frequency-count of min_supp
@@ -209,7 +205,7 @@ class AntGRAANK(DataGP):
                         else:
                             loser_gps.append(gen_gp)
                             invalid_count += 1
-                    if set(gen_gp.as_list) != set(rand_gp.as_list()):
+                    if set(gen_gp.as_list) != set(rand_gp.as_list):
                         loser_gps.append(rand_gp)
                 else:
                     repeated += 1

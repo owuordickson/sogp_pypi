@@ -24,17 +24,17 @@ class RandomGRAANK(DataGP):
         """Description
 
         Extract gradual patterns (GPs) from a numeric data source using the Random Search Algorithm (LS-GRAANK)
-        approach (proposed in a published research paper by Dickson Owuor). A GP is a set of gradual items (GI) and its
-        quality is measured by its computed support value. For example given a data set with 3 columns (age, salary,
+        approach (proposed in a published research paper by Dickson Owuor). A GP is a set of gradual items (GI), and its
+        quality is measured by its computed support value. For example, given a data set with 3 columns (age, salary,
         cars) and 10 objects. A GP may take the form: {age+, salary-} with a support of 0.8. This implies that 8 out of
         10 objects have the values of column age 'increasing' and column 'salary' decreasing.
 
             In this approach, we assume that every GP candidate may be represented as a position that has a cost value
             associated with it. The cost is derived from the computed support of that candidate, the higher the support
-            value the lower the cost. The aim of the algorithm is search through group of positions and find those with
+             value, the lower the cost. The aim of the algorithm is to search through a group of positions and find those with
             the lowest cost as efficiently as possible.
 
-        :param args: [required] data source path of Pandas DataFrame, [optional] minimum-support, [optional] eq
+        :param args: [required] a data source path of Pandas DataFrame, [optional] minimum-support, [optional] eq
         :param max_iter: [optional] maximum_iteration, default is 1
 
         >>> import so4gp as sgp
@@ -69,7 +69,7 @@ class RandomGRAANK(DataGP):
         self.fit_bitmap()
         attr_keys = [GI(x[0], x[1].decode()).as_string for x in self.valid_bins[:, 0]]
 
-        if self.no_bins:
+        if self.valid_bins is None:
             return []
 
         # Parameters

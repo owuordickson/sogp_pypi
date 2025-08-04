@@ -24,17 +24,17 @@ class GeneticGRAANK(DataGP):
         """Description
 
         Extract gradual patterns (GPs) from a numeric data source using the Genetic Algorithm approach (proposed
-        in a published  paper by Dickson Owuor). A GP is a set of gradual items (GI) and its quality is measured by
-        its computed support value. For example given a data set with 3 columns (age, salary, cars) and 10 objects.
+        in a published paper by Dickson Owuor). A GP is a set of gradual items (GI), and its quality is measured by
+        its computed support value. For example, given a data set with 3 columns (age, salary, cars) and 10 objects.
         A GP may take the form: {age+, salary-} with a support of 0.8. This implies that 8 out of 10 objects have the
         values of column age 'increasing' and column 'salary' decreasing.
 
              In this approach, we assume that every GP candidate may be represented as a binary gene (or individual)
              that has a unique position and cost. The cost is derived from the computed support of that candidate, the
-             higher the support value the lower the cost. The aim of the algorithm is search through a population of
+             higher the support value, the lower the cost. The aim of the algorithm is to search through a population of
              individuals (or candidates) and find those with the lowest cost as efficiently as possible.
 
-        :param args: [required] data source path of Pandas DataFrame, [optional] minimum-support, [optional] eq
+        :param args: [required] a data source path of Pandas DataFrame, [optional] minimum-support, [optional] eq
         :param max_iter: [optional] maximum_iteration, default is 1
         :type max_iter: int
 
@@ -82,14 +82,13 @@ class GeneticGRAANK(DataGP):
         """type: sigma: float"""
 
     def _crossover(self, p1: structure, p2: structure):
-        """Description
-
-        Crosses over the genes of 2 parents (an individual with a specific position and cost) in order to generate 2
+        """
+        Crosses over the genes of 2 parents (an individual with a specific position and cost) to generate 2
         different offsprings.
 
-        :param p1: parent 1 individual
-        :param p2: parent 2 individual
-        :return: 2 offsprings (children)
+        :param p1: The parent 1 individual
+        :param p2: The parent 2 individuals
+        :return: Two offsprings (children)
         """
         c1 = p1.deepcopy()
         c2 = p2.deepcopy()
@@ -99,12 +98,12 @@ class GeneticGRAANK(DataGP):
         return c1, c2
 
     def _mutate(self, x: structure):
-        """Description
+        """
 
-        Mutates an individual's position in order to create a new and different individual.
+        Mutates an individual's position to create a new and different individual.
 
-        :param x: existing individual
-        :return: new individual
+        :param x: The existing individual
+        :return: A new individual
         """
         y = x.deepcopy()
         str_x = str(int(y.position))
@@ -135,21 +134,21 @@ class GeneticGRAANK(DataGP):
         self.fit_bitmap()
         attr_keys = [GI(x[0], x[1].decode()).as_string for x in self.valid_bins[:, 0]]
 
-        if self.no_bins:
+        if self.valid_bins is None:
             return []
 
         # Problem Information
         # cost_function
 
         # Parameters
-        # pc: Proportion of children (if its 1, then nc == npop
+        # pc: Proportion of children (if it's 1, then nc == npop
         it_count = 0
         eval_count = 0
         counter = 0
         var_min = 0
         var_max = int(''.join(['1'] * len(attr_keys)), 2)
 
-        nc = int(np.round(self.pc * self.n_pop / 2) * 2)  # No. of children np.round is used to get even number
+        nc = int(np.round(self.pc * self.n_pop / 2) * 2)  # Number of children np.round is used to get an even number
 
         # Empty Individual Template
         empty_individual = structure()

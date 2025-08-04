@@ -16,23 +16,6 @@ except ImportError:
     from src.so4gp import DataGP, GI, GP
 
 class AntGRAANK(DataGP):
-    """Description of class AntGRAANK
-
-    Extract gradual patterns (GPs) from a numeric data source using the Ant Colony Optimization approach
-    (proposed in a published paper by Dickson Owuor). A GP is a set of gradual items (GI) and its quality is
-    measured by its computed support value. For example given a data set with 3 columns (age, salary, cars) and 10
-    objects. A GP may take the form: {age+, salary-} with a support of 0.8. This implies that 8 out of 10 objects
-    have the values of column age 'increasing' and column 'salary' decreasing.
-
-        In this approach, it is assumed that every column can be converted into gradual item (GI). If the GI is valid
-        (i.e. its computed support is greater than the minimum support threshold) then it is either increasing or
-        decreasing (+ or -), otherwise it is irrelevant (x). Therefore, a pheromone matrix is built using the number of
-        columns and the possible variations (increasing, decreasing, irrelevant) or (+, -, x). The algorithm starts by
-        randomly generating GP candidates using the pheromone matrix, each candidate is validated by confirming that
-        its computed support is greater or equal to the minimum support threshold. The valid GPs are used to update the
-        pheromone levels and better candidates are generated.
-
-    """
 
     def __init__(self, *args, max_iter: int = 1, e_factor: float = 0.5, **kwargs):
         """Description

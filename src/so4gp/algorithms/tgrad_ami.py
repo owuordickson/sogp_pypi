@@ -19,16 +19,14 @@ except ImportError:
     from src.so4gp.algorithms import TGrad, GRAANK
 
 class TGradAMI(TGrad):
-    """
-    Algorithm for estimating time-lag using Average Mutual Information (AMI) and KMeans clustering which is extended to
+
+    def __init__(self, *args, min_error: float = 0.0001, **kwargs):
+        """
+        Algorithm for estimating time-lag using Average Mutual Information (AMI) and KMeans clustering which is extended to
     mining gradual patterns. The average mutual information I(X; Y) is a measure of the amount of “information” that
     the random variables X and Y provide about one another.
 
     This algorithm extends the work published in: https://ieeexplore.ieee.org/abstract/document/8858883.
-    """
-
-    def __init__(self, *args, min_error: float = 0.0001, **kwargs):
-        """
         TGradAMI is an algorithm that improves the classical TGrad algorithm for extracting more accurate temporal
         gradual patterns. It computes Mutual Information (MI) with respect to target-column with original dataset to
         get the actual relationship between variables: by computing MI for every possible time-delay and if the

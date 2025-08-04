@@ -19,20 +19,6 @@ except ImportError:
     from src.so4gp.algorithms import NumericSS
 
 class GeneticGRAANK(DataGP):
-    """Description
-
-    Extract gradual patterns (GPs) from a numeric data source using the Genetic Algorithm approach (proposed
-    in a published  paper by Dickson Owuor). A GP is a set of gradual items (GI) and its quality is measured by
-    its computed support value. For example given a data set with 3 columns (age, salary, cars) and 10 objects.
-    A GP may take the form: {age+, salary-} with a support of 0.8. This implies that 8 out of 10 objects have the
-    values of column age 'increasing' and column 'salary' decreasing.
-
-         In this approach, we assume that every GP candidate may be represented as a binary gene (or individual) that
-         has a unique position and cost. The cost is derived from the computed support of that candidate, the higher the
-         support value the lower the cost. The aim of the algorithm is search through a population of individuals (or
-         candidates) and find those with the lowest cost as efficiently as possible.
-
-    """
 
     def __init__(self, *args, max_iter=1, n_pop=5, pc=0.5, gamma=1.0, mu=0.9, sigma=0.9, **kwargs):
         """Description

@@ -14,16 +14,6 @@ except ImportError:
     from src.so4gp import DataGP, GI, GP
 
 class NumericSS:
-    """Description of class NumericSS (Numeric Search Space)
-
-    A class that implements functions that allow swarm algorithms to explore a numeric search space.
-
-    The class NumericSS has the following functions:
-        decode_gp: decodes a GP from a numeric position
-        cost_function: computes the fitness of a GP
-        apply_bound: applies minimum and maximum values
-
-    """
 
     def __init__(self):
         pass

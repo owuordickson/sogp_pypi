@@ -19,24 +19,6 @@ except ImportError:
     from src.so4gp.algorithms import NumericSS
 
 class RandomGRAANK(DataGP):
-    """Description
-
-    Extract gradual patterns (GPs) from a numeric data source using the Random Search Algorithm (LS-GRAANK)
-    approach (proposed in a published research paper by Dickson Owuor). A GP is a set of gradual items (GI) and its
-    quality is measured by its computed support value. For example given a data set with 3 columns (age, salary,
-    cars) and 10 objects. A GP may take the form: {age+, salary-} with a support of 0.8. This implies that 8 out of
-    10 objects have the values of column age 'increasing' and column 'salary' decreasing.
-
-         In this approach, it is assumed that every GP candidate may be represented as a position that has a cost value
-         associated with it. The cost is derived from the computed support of that candidate, the higher the support
-         value the lower the cost. The aim of the algorithm is search through group of positions and find those with
-         the lowest cost as efficiently as possible.
-
-    This class extends class DataGP, and it provides the following additional attributes:
-
-        max_iteration: integer value determines the number of iterations for the algorithm
-
-    """
 
     def __init__(self, *args, max_iter: int = 1, **kwargs):
         """Description

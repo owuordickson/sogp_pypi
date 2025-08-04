@@ -19,20 +19,6 @@ except ImportError:
     from src.so4gp.algorithms import NumericSS
 
 class ParticleGRAANK(DataGP):
-    """Description
-
-    Extract gradual patterns (GPs) from a numeric data source using the Particle Swarm Optimization Algorithm
-    approach (proposed in a published research paper by Dickson Owuor). A GP is a set of gradual items (GI) and its
-    quality is measured by its computed support value. For example given a data set with 3 columns (age, salary,
-    cars) and 10 objects. A GP may take the form: {age+, salary-} with a support of 0.8. This implies that 8 out of
-    10 objects have the values of column age 'increasing' and column 'salary' decreasing.
-
-         In this approach, it is assumed that every GP candidate may be represented as a particle that has a unique
-         position and fitness. The fitness is derived from the computed support of that candidate, the higher the
-         support value the higher the fitness. The aim of the algorithm is search through a population of particles
-         (or candidates) and find those with the highest fitness as efficiently as possible.
-
-    """
 
     def __init__(self, *args, max_iter: int = 1, n_particle: int = 5, vel: float = 0.9,
                  coeff_p: float = 0.01, coeff_g: float = 0.9, **kwargs):

@@ -41,7 +41,6 @@ class GI:
         """:type attribute_col: int"""
         self.symbol = symbol
         """:type symbol: str"""
-        self.rank_sum: int = 0
 
     @property
     def is_decreasing(self) -> bool:

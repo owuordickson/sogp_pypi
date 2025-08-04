@@ -23,6 +23,7 @@ import pandas as pd
 from collections import defaultdict
 from dateutil.parser import parse
 
+from .gradual_patterns import GP, ExtGP, TGP
 
 class DataGP:
 
@@ -44,25 +45,76 @@ class DataGP:
         :type eq: bool
 
         """
-        self.thd_supp = min_sup
-        """:type thd_supp: float"""
-        self.equal = eq
-        """:type eq: bool"""
+        self._thd_supp: float = min_sup
+        self._include_equal_values: bool = eq
         self._titles, self._data = DataGP.read(data_source)
-        """:type titles: list"""
-        """:type data: np.ndarray"""
+        """:type _titles: list"""
+        """:type _data: np.ndarray"""
         self._row_count: int = 0
         self._col_count: int = 0
         self._time_cols: np.ndarray = np.array([])
         self._attr_cols: np.ndarray = np.array([])
         self._valid_bins = np.array([])
-        """:type valid_bins: numpy.ndarray"""
+        """:type _valid_bins: numpy.ndarray"""
         self._valid_tids: defaultdict = defaultdict(set)
         self._no_bins: bool = False
         self._attr_size: int = 0
         self._gradual_patterns = None
-        """:type gradual_patterns: list | None"""
+        """:type _gradual_patterns: list | None"""
         self._init_attributes()
+
+    @property
+    def thd_supp(self) -> float:
+        return self._thd_supp
+
+    @property
+    def titles(self) -> list:
+        return self._titles
+
+    @property
+    def data(self) -> np.ndarray:
+        return self._data
+
+    @property
+    def row_count(self) -> int:
+        return self._row_count
+
+    @property
+    def col_count(self) -> int:
+        return self._col_count
+
+    @property
+    def time_cols(self) -> np.ndarray:
+        return self._time_cols
+
+    @property
+    def attr_cols(self) -> np.ndarray:
+        return self._attr_cols
+
+    @property
+    def valid_bins(self) -> np.ndarray:
+        return self._valid_bins
+
+    @property
+    def valid_tids(self) -> defaultdict:
+        return self._valid_tids
+
+    @property
+    def no_bins(self) -> bool:
+        return self._no_bins
+
+    @property
+    def attr_size(self) -> int:
+        return self._attr_size
+
+    @property
+    def gradual_patterns(self) -> list | None:
+        return self._gradual_patterns
+
+    def add_gradual_pattern(self, pattern) -> None:
+        if not isinstance(pattern, (GP, ExtGP, TGP)):
+            raise Exception("Pattern must be of type GP, ExtGP, or TGP")
+        self._gradual_patterns.append(pattern)
 
     def _init_attributes(self) -> None:
         """Initializes the attributes of the data-gp object."""
@@ -130,7 +182,7 @@ class DataGP:
 
             # 2a. Generate a 1-itemset gradual items
             with np.errstate(invalid='ignore'):
-                if not self.equal:
+                if not self._include_equal_values:
                     temp_pos = np.array(col_data > col_data[:, np.newaxis])
                 else:
                     temp_pos = np.array(col_data >= col_data[:, np.newaxis])
@@ -138,7 +190,7 @@ class DataGP:
 
                 # 2b. Check support of each generated itemset
                 supp = float(np.sum(temp_pos)) / float(n * (n - 1.0) / 2.0)
-                if supp >= self.thd_supp:
+                if supp >= self._thd_supp:
                     valid_bins.append(np.array([incr.tolist(), temp_pos], dtype=object))
                     valid_bins.append(np.array([decr.tolist(), temp_pos.T], dtype=object))
         self._valid_bins = np.array(valid_bins)
@@ -164,7 +216,7 @@ class DataGP:
             tids_len = len(set_ij)
 
             supp = float((tids_len*0.5) * (tids_len - 1)) / float(n * (n - 1.0) / 2.0)
-            if supp >= self.thd_supp:
+            if supp >= self._thd_supp:
                 self._valid_tids[int_gi] = set_ij
 
     @staticmethod

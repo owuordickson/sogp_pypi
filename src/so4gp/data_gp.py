@@ -48,76 +48,58 @@ class DataGP:
         """:type thd_supp: float"""
         self.equal = eq
         """:type eq: bool"""
-        self.titles, self.data = DataGP.read(data_source)
+        self._titles, self._data = DataGP.read(data_source)
         """:type titles: list"""
         """:type data: np.ndarray"""
-        self.row_count, self.col_count = self.data.shape
-        """:type row_count: int"""
-        """:type col_count: int"""
-        self.time_cols = self._get_time_cols()
-        """:type time_cols: numpy.ndarray"""
-        self.attr_cols = self._get_attr_cols()
-        """:type attr_cols: numpy.ndarray"""
-        self.valid_bins = np.array([])
+        self._row_count: int = 0
+        self._col_count: int = 0
+        self._time_cols: np.ndarray = np.array([])
+        self._attr_cols: np.ndarray = np.array([])
+        self._valid_bins = np.array([])
         """:type valid_bins: numpy.ndarray"""
-        self.valid_tids = defaultdict(set)
-        """:type valid_tids: collections.defaultdict"""
-        self.no_bins = False
-        """:type no_bins: bool"""
-        self.attr_size = 0
-        """:type attr_size: int"""
-        self.gradual_patterns = None
+        self._valid_tids: defaultdict = defaultdict(set)
+        self._no_bins: bool = False
+        self._attr_size: int = 0
+        self._gradual_patterns = None
         """:type gradual_patterns: list | None"""
+        self._init_attributes()
 
-    def _get_attr_cols(self) -> np.ndarray:
-        """Description
+    def _init_attributes(self) -> None:
+        """Initializes the attributes of the data-gp object."""
 
-        Returns indices of all columns with non-datetime objects
+        def get_attr_cols() -> np.ndarray:
+            """Description
 
-        :return: ndarray
-        """
-        all_cols = np.arange(self.col_count)
-        attr_cols = np.setdiff1d(all_cols, self.time_cols)
-        return attr_cols
+            Returns indices of all columns with non-datetime objects
 
-    def _get_time_cols(self) -> np.ndarray:
-        """
-        Tests each column's objects for date-time values. Returns indices of all columns with date-time objects
+            :return: ndarray
+            """
+            all_cols = np.arange(self._col_count)
+            attr_cols = np.setdiff1d(all_cols, self._time_cols)
+            return attr_cols
 
-        :return: A ndarray object containing the indices of the time columns.
-        """
-        # Retrieve the first column only
-        time_cols = list()
-        n = self.col_count
-        for i in range(n):  # check every column/attribute for time format
-            row_data = str(self.data[0][i])
-            try:
-                time_ok, t_stamp = DataGP.test_time(row_data)
-                if time_ok:
-                    time_cols.append(i)
-            except ValueError:
-                continue
-        return np.array(time_cols)
+        def get_time_cols() -> np.ndarray:
+            """
+            Tests each column's objects for date-time values. Returns indices of all columns with date-time objects
 
-    def get_gi_bitmap(self, col) -> np.ndarray:
-        """
+            :return: A ndarray object containing the indices of the time columns.
+            """
+            # Retrieve the first column only
+            time_cols = list()
+            n = self._col_count
+            for i in range(n):  # check every column/attribute for time format
+                row_data = str(self._data[0][i])
+                try:
+                    time_ok, t_stamp = DataGP.test_time(row_data)
+                    if time_ok:
+                        time_cols.append(i)
+                except ValueError:
+                    continue
+            return np.array(time_cols)
 
-        Computes and returns the bitmap matrix corresponding to an attribute.
-
-        :param col: Specific attribute (or column)
-        :return: numpy (bitmap)
-        """
-        if col in self.time_cols:
-            raise Exception("Error: " + str(self.titles[col][1].decode()) + " is a date/time column!")
-        elif col >= self.col_count:
-            raise Exception("Error: Column does not exist!")
-        else:
-            attr_data = self.data.T
-            # n = d_set.row_count
-            col_data = np.array(attr_data[col], dtype=float)
-            with np.errstate(invalid='ignore'):
-                temp_pos = np.where(col_data < col_data[:, np.newaxis], 1, 0)
-            return temp_pos
+        self._row_count, self._col_count = self._data.shape
+        self._time_cols = get_time_cols()
+        self._attr_cols = get_attr_cols()
 
     def fit_bitmap(self, attr_data=None) -> None:
         """
@@ -132,16 +114,16 @@ class DataGP:
         # (check) implement parallel multiprocessing
         # 1. Transpose csv array data
         if attr_data is None:
-            attr_data = self.data.T
-            self.attr_size = self.row_count
+            attr_data = self._data.T
+            self._attr_size = self._row_count
         else:
-            self.attr_size = len(attr_data[self.attr_cols[0]])
+            self._attr_size = len(attr_data[self._attr_cols[0]])
 
         # 2. Construct and store 1-item_set valid bins
         # execute binary rank to calculate support of a pattern
-        n = self.attr_size
+        n = self._attr_size
         valid_bins = list()
-        for col in self.attr_cols:
+        for col in self._attr_cols:
             col_data = np.array(attr_data[col], dtype=float)
             incr = np.array((col, '+'), dtype='i, S1')
             decr = np.array((col, '-'), dtype='i, S1')
@@ -159,10 +141,10 @@ class DataGP:
                 if supp >= self.thd_supp:
                     valid_bins.append(np.array([incr.tolist(), temp_pos], dtype=object))
                     valid_bins.append(np.array([decr.tolist(), temp_pos.T], dtype=object))
-        self.valid_bins = np.array(valid_bins)
+        self._valid_bins = np.array(valid_bins)
         # print(self.valid_bins)
-        if len(self.valid_bins) < 3:
-            self.no_bins = True
+        if len(self._valid_bins) < 3:
+            self._no_bins = True
         gc.collect()
 
     def fit_tids(self) -> None:
@@ -174,8 +156,8 @@ class DataGP:
 
         """
         self.fit_bitmap()
-        n = self.row_count
-        for bin_obj in self.valid_bins:
+        n = self._row_count
+        for bin_obj in self._valid_bins:
             arr_ij = np.transpose(np.nonzero(bin_obj[1]))
             set_ij = {tuple(ij) for ij in arr_ij if ij[0] < ij[1]}
             int_gi = int(bin_obj[0][0]+1) if (bin_obj[0][1].decode() == '+') else (-1 * int(bin_obj[0][0]+1))
@@ -183,7 +165,7 @@ class DataGP:
 
             supp = float((tids_len*0.5) * (tids_len - 1)) / float(n * (n - 1.0) / 2.0)
             if supp >= self.thd_supp:
-                self.valid_tids[int_gi] = set_ij
+                self._valid_tids[int_gi] = set_ij
 
     @staticmethod
     def read(data_src) -> tuple[list, np.ndarray]:

@@ -14,28 +14,16 @@ try:
 except ImportError:
     from src.so4gp import DataGP, GI, ExtGP
 
+
 class GRAANK(DataGP):
-    """Description
-
-        Extracts gradual patterns (GPs) from a numeric data source using the GRAANK approach (proposed in a published
-        research paper by Anne Laurent).
-
-             A GP is a set of gradual items (GI) and its quality is measured by its computed support value. For example
-             given a data set with 3 columns (age, salary, cars) and 10 objects. A GP may take the form: {age+, salary-}
-             with a support of 0.8. This implies that 8 out of 10 objects have the values of column age 'increasing' and
-             column 'salary' decreasing.
-
-        This class extends class DataGP which is responsible for generating the GP bitmaps.
-
-        """
 
     def __init__(self, *args, **kwargs):
         """
         Extracts gradual patterns (GPs) from a numeric dataset using the GRAANK algorithm. The algorithm relies on the
-        APRIORI approach to generate GP candidates. This work was proposed by Anne Laurent
+        APRIORI approach for generating GP candidates. This work was proposed by Anne Laurent
         and published in: https://link.springer.com/chapter/10.1007/978-3-642-04957-6_33.
 
-             A GP is a set of gradual items (GI) and its quality is measured by its computed support value. For example
+             A GP is a set of gradual items (GI), and its quality is measured by its computed support value. For example,
              given a data set with 3 columns (age, salary, cars) and 10 objects. A GP may take the form: {age+, salary-}
              with a support of 0.8. This implies that 8 out of 10 objects have the values of column age 'increasing' and
              column 'salary' decreasing.
@@ -62,13 +50,13 @@ class GRAANK(DataGP):
                                 target_col: int | None = None, exclude_target: bool = False):
         """Description
 
-        Generates Apriori GP candidates (w.r.t target-feature/reference-column if provided). If user wishes to generate
-        candidates that do not contain the target-feature then they do so by specifying exclude_target parameter.
+        Generates Apriori GP candidates (w.r.t target-feature/reference-column if provided). If a user wishes to generate
+        candidates that do not contain the target-feature, then they do so by specifying the exclude_target parameter.
 
         :param gi_bins: GI together with bitmaps
-        :param ignore_sup: do not filter GPs based on minimum support threshold.
+        :param ignore_sup: do not filter GPs based on the minimum support threshold
         :param target_col: target feature's column index
-        :param exclude_target: only accept GP candidates that do not contain the target feature.
+        :param exclude_target: only accepts GP candidates that do not contain the target feature
         :return: list of extracted GPs and the invalid count.
         """
 
@@ -108,21 +96,21 @@ class GRAANK(DataGP):
                     gi_j = set(gi_bins[j][0])
                     gi_o = set(gi_bins[0][0])
 
-                # 2. Identify GP candidate (create its inverse)
+                # 2. Identify a GP candidate (create its inverse)
                 gp_cand = gi_i | gi_j
                 inv_gp_cand = {inv_arr(x) for x in gp_cand}
 
                 # 3. Apply target-feature search
-                # (ONLY proceed if target-feature is part of the GP candidate - exclude_target is False)
-                # (ONLY proceed if target-feature is NOT part of the GP candidate - exclude_target is True)
                 if target_col is not None:
                     has_tgt_col = np.any(np.array([(y[0] == target_col) for y in gp_cand], dtype=bool))
+                    # (ONLY proceed if target-feature is NOT part of the GP candidate - exclude_target is True)
                     if exclude_target and has_tgt_col:
                         continue
+                    # (ONLY proceed if target-feature is part of the GP candidate - exclude_target is False)
                     elif (not exclude_target) and (not has_tgt_col):
                         continue
 
-                # 4. Verify validity of the GP candidate through the following conditions
+                # 4. Verify the validity of the GP candidate through the following conditions
                 is_length_valid = (len(gp_cand) == len(gi_o) + 1)
                 is_unique_candidate = ((not (all_candidates != [] and gp_cand in all_candidates)) and
                                     (not (all_candidates != [] and inv_gp_cand in all_candidates)))
@@ -155,10 +143,10 @@ class GRAANK(DataGP):
         Uses apriori algorithm to find gradual pattern (GP) candidates. The candidates are validated if their computed
         support is greater than or equal to the minimum support threshold specified by the user.
 
-        :param ignore_support: do not filter extracted GPs using user-defined minimum support threshold.
-        :param apriori_level: maximum APRIORI level for generating candidates.
-        :param target_col: target feature's column index.
-        :param exclude_target: only accept GP candidates that do not contain the target feature.
+        :param ignore_support: Do not filter extracted GPs using a user-defined minimum support threshold.
+        :param apriori_level: Maximum APRIORI level for generating candidates.
+        :param target_col: Target feature's column index.
+        :param exclude_target: Only accept GP candidates that do not contain the target feature.
 
         :return: JSON object
         """
@@ -203,13 +191,13 @@ class GRAANK(DataGP):
         return out
 
     @staticmethod
-    def decompose_to_gp_component(pairwise_mat: np.ndarray):
+    def decompose_to_gp_component(pairwise_mat: np.ndarray) -> list[tuple[int, str]]:
         """
         A method that decomposes the pairwise matrix of a gradual item/pattern into a warping path. This path is the
         decomposed component of that gradual item/pattern.
 
-        :param pairwise_mat:
-        :return: ndarray of warping path.
+        :param pairwise_mat: The pairwise matrix of a gradual item/pattern.
+        :return: A ndarray of the warping path.
         """
 
         edge_lst = [(i, j) for i, row in enumerate(pairwise_mat) for j, val in enumerate(row) if val]

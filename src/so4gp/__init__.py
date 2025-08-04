@@ -39,7 +39,6 @@ SO4GP
 
 
 from .data_gp import DataGP
-from .gradual_patterns import ExtGP
 from .gradual_patterns import GI
 from .gradual_patterns import GP
 from .gradual_patterns import TGP

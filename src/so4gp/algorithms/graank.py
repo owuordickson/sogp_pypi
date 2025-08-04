@@ -10,9 +10,9 @@ import numpy as np
 
 try:
     from ..data_gp import DataGP
-    from ..gradual_patterns import GI, ExtGP
+    from ..gradual_patterns import GI, GP
 except ImportError:
-    from src.so4gp import DataGP, GI, ExtGP
+    from src.so4gp import DataGP, GI, GP
 
 
 class GRAANK(DataGP):
@@ -33,12 +33,13 @@ class GRAANK(DataGP):
         :param args: [required] data source path of Pandas DataFrame, [optional] minimum-support, [optional] eq
 
         >>> import so4gp as sgp
+        >>> from so4gp.algorithms import GRAANK
         >>> import pandas
         >>> import json
         >>> dummy_data = [[30, 3, 1, 10], [35, 2, 2, 8], [40, 4, 2, 7], [50, 1, 1, 6], [52, 7, 1, 2]]
         >>> dummy_df = pandas.DataFrame(dummy_data, columns=['Age', 'Salary', 'Cars', 'Expenses'])
         >>>
-        >>> mine_obj = sgp.GRAANK(data_source=dummy_df, min_sup=0.5, eq=False)
+        >>> mine_obj = GRAANK(data_source=dummy_df, min_sup=0.5, eq=False)
         >>> result_json = mine_obj.discover()
         >>> result = json.loads(result_json)
         >>> # print(result['Patterns'])
@@ -46,59 +47,63 @@ class GRAANK(DataGP):
         """
         super(GRAANK, self).__init__(*args, **kwargs)
 
-    def _gen_apriori_candidates(self, gi_bins: np.ndarray, ignore_sup: bool = False,
+    def _gen_apriori_candidates(self, gi_dict: dict, ignore_sup: bool = False,
                                 target_col: int | None = None, exclude_target: bool = False):
         """Description
 
         Generates Apriori GP candidates (w.r.t target-feature/reference-column if provided). If a user wishes to generate
         candidates that do not contain the target-feature, then they do so by specifying the exclude_target parameter.
 
-        :param gi_bins: GI together with bitmaps
-        :param ignore_sup: do not filter GPs based on the minimum support threshold
-        :param target_col: target feature's column index
-        :param exclude_target: only accepts GP candidates that do not contain the target feature
-        :return: list of extracted GPs and the invalid count.
+        :param gi_dict: List of GIs together with bitmap arrays.
+        :param ignore_sup: Do not filter GPs based on the minimum support threshold.
+        :param target_col: Target feature's column index.
+        :param exclude_target: Only accepts GP candidates that do not contain the target feature.
+        :return: List of extracted GPs and the invalid count.
         """
 
-        def inv_arr(g_item) -> tuple[int, str]:
+        def invert_symbol(gi_item: str) -> str:
             """Description
 
             Computes the inverse of a GI formatted as an array or tuple
 
-            :param g_item: gradual item (array/tuple)
-            :type g_item: (tuple, list) | np.ndarray
-
+            :param gi_item: gradual item as a string (e.g., '1+' or '1-')
             :return: inverted gradual item
             """
-            if g_item[1] == "+":
-                return tuple((g_item[0], "-"))
+            if gi_item.endswith("+"):
+                return gi_item.replace("+", "-")
+            elif gi_item.endswith("-"):
+                return gi_item.replace("-", "+")
             else:
-                return tuple((g_item[0], "+"))
+                return gi_item
 
         min_sup = self.thd_supp
         n = self.attr_size
 
+        if gi_dict is None:
+            return []
+
         invalid_count = 0
         res = []
         all_candidates = []
-        if len(gi_bins) < 2:
-            return []
 
-        for i in range(len(gi_bins) - 1):
-            for j in range(i + 1, len(gi_bins)):
+        gi_key_list = list(gi_dict.keys())
+        for i in range(len(gi_dict) - 1):
+            for j in range(i + 1, len(gi_dict)):
                 # 1. Fetch pairwise matrix
+                gi_str_i = gi_key_list[i]
+                gi_str_j = gi_key_list[j]
                 try:
-                    gi_i = {gi_bins[i][0]}
-                    gi_j = {gi_bins[j][0]}
-                    gi_o = {gi_bins[0][0]}
+                    gi_i = {gi_str_i}
+                    gi_j = {gi_str_j}
+                    gi_o = {gi_key_list[0]}
                 except TypeError:
-                    gi_i = set(gi_bins[i][0])
-                    gi_j = set(gi_bins[j][0])
-                    gi_o = set(gi_bins[0][0])
+                    gi_i = set(gi_str_i)
+                    gi_j = set(gi_str_j)
+                    gi_o = set(gi_key_list[0])
 
                 # 2. Identify a GP candidate (create its inverse)
                 gp_cand = gi_i | gi_j
-                inv_gp_cand = {inv_arr(x) for x in gp_cand}
+                inv_gp_cand = {invert_symbol(x) for x in gp_cand}
 
                 # 3. Apply target-feature search
                 if target_col is not None:
@@ -126,7 +131,7 @@ class GRAANK(DataGP):
                         else:
                             repeated_attr = k[0]
                     if test == 1:
-                        m = gi_bins[i][1] * gi_bins[j][1]
+                        m = gi_dict[gi_str_i] * gi_dict[gi_str_j]
                         sup = float(np.sum(m)) / float(n * (n - 1.0) / 2.0)
                         if sup > min_sup or ignore_sup:
                             res.append([gp_cand, m, sup])
@@ -153,34 +158,31 @@ class GRAANK(DataGP):
 
         self.fit_bitmap()
 
-        self.gradual_patterns = []
-        """:type gradual_patterns: list(so4gp.ExtGP)"""
+        self.gradual_patterns: list[GP] = []
         str_winner_gps = []
-        valid_bins = self.valid_bins
+        valid_bins_dict = self.valid_bins
 
         invalid_count = 0
         candidate_level = 1
-        while len(valid_bins) > 0:
-            valid_bins, inv_count = self._gen_apriori_candidates(valid_bins,
+        while len(valid_bins_dict) > 0:
+            valid_bins_dict, inv_count = self._gen_apriori_candidates(valid_bins_dict,
                                                                  ignore_sup=ignore_support,
                                                                  target_col=target_col,
                                                                  exclude_target=exclude_target)
             invalid_count += inv_count
-            for v_bin in valid_bins:
+            for gi_str, bin_mat in valid_bins_dict:
                 gi_arr = v_bin[0]
                 # bin_data = v_bin[1]
                 sup = v_bin[2]
                 # if not ignore_support:
-                self.gradual_patterns = ExtGP.remove_subsets(self.gradual_patterns, set(gi_arr))
+                self.gradual_patterns = GP.remove_subsets(self.gradual_patterns, set(gi_arr))
 
-                gp = ExtGP()
-                """:type gp: ExtGP"""
+                gp: GP = GP()
                 for obj in gi_arr:
-                    gi = GI(obj[0], obj[1].decode())
-                    """:type gi: GI"""
+                    gi: GI = GI(obj[0], obj[1].decode())
                     gp.add_gradual_item(gi)
-                gp.support(sup)
-                self.gradual_patterns.append(gp)
+                gp.support = sup
+                self.add_gradual_pattern(gp)
                 str_winner_gps.append(gp.print(self.titles))
             candidate_level += 1
             if (apriori_level is not None) and candidate_level >= apriori_level:

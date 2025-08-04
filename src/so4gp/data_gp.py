@@ -20,10 +20,9 @@ import csv
 import time
 import numpy as np
 import pandas as pd
-from collections import defaultdict
 from dateutil.parser import parse
 
-from .gradual_patterns import GP, ExtGP, TGP
+from .gradual_patterns import GP, TGP
 
 class DataGP:
 
@@ -54,13 +53,11 @@ class DataGP:
         self._col_count: int = 0
         self._time_cols: np.ndarray = np.array([])
         self._attr_cols: np.ndarray = np.array([])
-        self._valid_bins = np.array([])
-        """:type _valid_bins: numpy.ndarray"""
-        self._valid_tids: defaultdict = defaultdict(set)
-        self._no_bins: bool = False
+        self._valid_bins: dict | None = None
+        self._valid_tids: dict | None = None
         self._attr_size: int = 0
         self._gradual_patterns = None
-        """:type _gradual_patterns: list | None"""
+        """:type _gradual_patterns: list[GP] | None"""
         self._init_attributes()
 
     @property
@@ -92,16 +89,12 @@ class DataGP:
         return self._attr_cols
 
     @property
-    def valid_bins(self) -> np.ndarray:
+    def valid_bins(self) -> dict | None:
         return self._valid_bins
 
     @property
-    def valid_tids(self) -> defaultdict:
+    def valid_tids(self) -> dict | None:
         return self._valid_tids
-
-    @property
-    def no_bins(self) -> bool:
-        return self._no_bins
 
     @property
     def attr_size(self) -> int:
@@ -111,8 +104,14 @@ class DataGP:
     def gradual_patterns(self) -> list | None:
         return self._gradual_patterns
 
+    @gradual_patterns.setter
+    def gradual_patterns(self, patterns) -> None:
+        if not isinstance(patterns, list):
+            raise Exception("Patterns must be a list of gradual patterns (GP objects)")
+        self._gradual_patterns = patterns
+
     def add_gradual_pattern(self, pattern) -> None:
-        if not isinstance(pattern, (GP, ExtGP, TGP)):
+        if not isinstance(pattern, (GP, TGP)):
             raise Exception("Pattern must be of type GP, ExtGP, or TGP")
         self._gradual_patterns.append(pattern)
 
@@ -174,13 +173,10 @@ class DataGP:
         # 2. Construct and store 1-item_set valid bins
         # execute binary rank to calculate support of a pattern
         n = self._attr_size
-        valid_bins = list()
+        self._valid_bins = {}
         for col in self._attr_cols:
-            col_data = np.array(attr_data[col], dtype=float)
-            incr = np.array((col, '+'), dtype='i, S1')
-            decr = np.array((col, '-'), dtype='i, S1')
-
             # 2a. Generate a 1-itemset gradual items
+            col_data = np.array(attr_data[col], dtype=float)
             with np.errstate(invalid='ignore'):
                 if not self._include_equal_values:
                     temp_pos = np.array(col_data > col_data[:, np.newaxis])
@@ -191,12 +187,11 @@ class DataGP:
                 # 2b. Check support of each generated itemset
                 supp = float(np.sum(temp_pos)) / float(n * (n - 1.0) / 2.0)
                 if supp >= self._thd_supp:
-                    valid_bins.append(np.array([incr.tolist(), temp_pos], dtype=object))
-                    valid_bins.append(np.array([decr.tolist(), temp_pos.T], dtype=object))
-        self._valid_bins = np.array(valid_bins)
-        # print(self.valid_bins)
+                    self._valid_bins[f"{col}+"] = temp_pos
+                    self._valid_bins[f"{col}-"] = temp_pos.T
+        # print(self._valid_bins)
         if len(self._valid_bins) < 3:
-            self._no_bins = True
+            self._valid_bins = None
         gc.collect()
 
     def fit_tids(self) -> None:
@@ -208,16 +203,18 @@ class DataGP:
 
         """
         self.fit_bitmap()
-        n = self._row_count
-        for bin_obj in self._valid_bins:
-            arr_ij = np.transpose(np.nonzero(bin_obj[1]))
-            set_ij = {tuple(ij) for ij in arr_ij if ij[0] < ij[1]}
-            int_gi = int(bin_obj[0][0]+1) if (bin_obj[0][1].decode() == '+') else (-1 * int(bin_obj[0][0]+1))
-            tids_len = len(set_ij)
+        if self._valid_bins is None:
+            return
 
+        n = self._row_count
+        self._valid_tids = {}
+        for gi_str, bin_mat in self._valid_bins:
+            arr_ij = np.transpose(np.nonzero(bin_mat))
+            set_ij = {tuple(ij) for ij in arr_ij if ij[0] < ij[1]}
+            tids_len = len(set_ij)
             supp = float((tids_len*0.5) * (tids_len - 1)) / float(n * (n - 1.0) / 2.0)
             if supp >= self._thd_supp:
-                self._valid_tids[int_gi] = set_ij
+                self._valid_tids[gi_str] = set_ij
 
     @staticmethod
     def read(data_src) -> tuple[list, np.ndarray]:
@@ -245,8 +242,8 @@ class DataGP:
                 data_src.sort_index(inplace=True)
 
                 # Rename column names
-                vals = ['col_' + str(k) for k in np.arange(data_src.shape[1])]
-                data_src.columns = vals
+                header_vals = ['col_' + str(k) for k in np.arange(data_src.shape[1])]
+                data_src.columns = header_vals
             except ValueError:
                 pass
             except TypeError:
@@ -271,16 +268,14 @@ class DataGP:
                     # 2. Get table headers
                     keys = np.arange(len(raw_data[0]))
                     if raw_data[0][0].replace('.', '', 1).isdigit() or raw_data[0][0].isdigit():
-                        vals = ['col_' + str(k) for k in keys]
-                        header = np.array(vals, dtype='S')
+                        header_vals = ['col_' + str(k) for k in keys]
                     else:
                         if raw_data[0][1].replace('.', '', 1).isdigit() or raw_data[0][1].isdigit():
-                            vals = ['col_' + str(k) for k in keys]
-                            header = np.array(vals, dtype='S')
+                            header_vals = ['col_' + str(k) for k in keys]
                         else:
-                            header = np.array(raw_data[0], dtype='S')
+                            header_vals = raw_data[0]
                             del raw_data[0]
-                    d_frame = pd.DataFrame(raw_data, columns=header)
+                    d_frame = pd.DataFrame(raw_data, columns=header_vals)
                     return DataGP.clean_data(d_frame)
             except Exception as error:
                 raise Exception("Error: " + str(error))
@@ -346,10 +341,4 @@ class DataGP:
         # 3. Return titles and data
         if df.empty:
             raise Exception("Data set is empty after cleaning.")
-
-        keys = np.arange(df.shape[1])
-        values = np.array(df.columns, dtype='S')
-        titles = list(np.rec.fromarrays([keys, values], dtype=np.dtype([('key', int), ('value', bytearray)])))
-        # print("Data cleaned")
-        # print(type(titles))
-        return titles, df.values
+        return list(df.columns), df.values

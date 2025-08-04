@@ -12,9 +12,9 @@ from sklearn.cluster import KMeans
 
 try:
     from ..data_gp import DataGP
-    from ..gradual_patterns import GI, ExtGP
+    from ..gradual_patterns import GI, GP
 except ImportError:
-    from src.so4gp import DataGP, GI, ExtGP
+    from src.so4gp import DataGP, GI, GP
 
 class ClusterGP(DataGP):
     """Description of class CluDataGP (Clustering DataGP)

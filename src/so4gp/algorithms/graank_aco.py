@@ -11,9 +11,9 @@ import numpy as np
 
 try:
     from ..data_gp import DataGP
-    from ..gradual_patterns import GI, ExtGP
+    from ..gradual_patterns import GI, GP
 except ImportError:
-    from src.so4gp import DataGP, GI, ExtGP
+    from src.so4gp import DataGP, GI, GP
 
 class AntGRAANK(DataGP):
     """Description of class AntGRAANK

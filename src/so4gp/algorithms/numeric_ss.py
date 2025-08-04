@@ -9,9 +9,9 @@ import numpy as np
 from ypstruct import structure
 
 try:
-    from . import DataGP, GI, ExtGP
+    from . import DataGP, GI, GP
 except ImportError:
-    from src.so4gp import DataGP, GI, ExtGP
+    from src.so4gp import DataGP, GI, GP
 
 class NumericSS:
     """Description of class NumericSS (Numeric Search Space)
@@ -29,7 +29,7 @@ class NumericSS:
         pass
 
     @staticmethod
-    def decode_gp(attr_keys: list, position: float) -> ExtGP:
+    def decode_gp(attr_keys: list, position: float) -> GP:
         """Description
 
         Decodes a numeric value (position) into a GP
@@ -39,7 +39,7 @@ class NumericSS:
         :return: GP that is decoded from the position value
         """
 
-        temp_gp = ExtGP()
+        temp_gp = GP()
         ":type temp_gp: ExtGP"
         if position is None:
             return temp_gp

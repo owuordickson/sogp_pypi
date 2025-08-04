@@ -209,7 +209,7 @@ class TGrad(GRAANK):
                         gi = GI(obj[0], obj[1].decode())
                         """:type gi: GI"""
                         if gi.attribute_col == self.target_col:
-                            tgp.add_target_gradual_item(gi)
+                            tgp.target_gradual_item(gi)
                         else:
                             tgp.add_temporal_gradual_item(gi, t_lag)
                     tgp.support(sup)

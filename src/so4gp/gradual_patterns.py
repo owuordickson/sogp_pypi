@@ -15,6 +15,7 @@
 A collection of Gradual Pattern classes and methods.
 """
 import numpy as np
+from dataclasses import dataclass
 
 
 class GI:
@@ -114,10 +115,23 @@ class GI:
         Returns a GI in string format
         :return: string
         """
-        return str(self._attribute_col) + self._symbol
+        return f"{self._attribute_col}{self._symbol}"
+
+    @classmethod
+    def from_string(cls, gi_str: str) -> "GI":
+        """Creates a GI from a string Gradual Item of the format '1+'"""
+        if len(gi_str) != 2:
+            raise ValueError("Invalid GI string format. Expected format: '1+' or '1-'")
+        
+        try:
+            attr_col = int(gi_str[0])
+            symbol = gi_str[1]
+            return cls(attr_col, symbol)
+        except ValueError:
+            raise ValueError("Invalid attribute column number in GI string")
 
     @staticmethod
-    def swap_gi_symbol(gi_obj):
+    def swap_gi_symbol(gi_obj: "GI") -> "GI":
         """Description
 
         Inverts a GI symbol to the opposite variation (i.e., from - to +; or, from + to -)
@@ -130,7 +144,7 @@ class GI:
         return GI(gi_obj.attribute_col, sym)
 
     @staticmethod
-    def parse_gi(gi_str):
+    def parse_gi(gi_str: str) -> "GI":
         """
 
         Converts a stringified GI into normal GI.
@@ -182,20 +196,16 @@ class GP:
         return self._support
 
     @support.setter
-    def support(self, support):
+    def support(self, support: float):
         self._support = round(support, 3) if support <= 1 else support
 
     @gradual_items.setter
-    def gradual_items(self, items):
+    def gradual_items(self, items: list[GI]):
         if not isinstance(items, list):
             raise TypeError("Items must be a list of Gradual Items (GI) objects.")
+        self._gradual_items = items
 
-        if isinstance(items[0], GI):
-            self._gradual_items = items
-        else:
-            raise TypeError("Items must be a list of Gradual Items (GI) objects.")
-
-    def add_gradual_item(self, item) -> bool:
+    def add_gradual_item(self, item: GI) -> bool:
         """Description
 
         Adds a gradual item (GI) into the gradual pattern (GP)
@@ -209,7 +219,7 @@ class GP:
             return True
         return False
 
-    def add_items_from_list(self, lst_items) -> None:
+    def add_items_from_list(self, lst_items: list[str]) -> None:
         """
         Adds gradual items from a list of str or a list of sets.
         For example,
@@ -223,8 +233,6 @@ class GP:
         for str_gi in lst_items:
             if type(str_gi[1]) is str:
                 self.add_gradual_item(GI(int(str_gi[0]), str_gi[1]))
-            elif type(str_gi[1]) is bytes:
-                self.add_gradual_item(GI(int(str_gi[0]), str(str_gi[1].decode())))
 
     @property
     def as_list(self) -> list:
@@ -290,7 +298,7 @@ class GP:
             syms.append(gi[1])
         return attrs, syms
 
-    def find_index(self, gi) -> int:
+    def find_index(self, gi: GI) -> int:
         """Description
 
         Returns the index position of a gradual item in the gradual pattern
@@ -305,7 +313,7 @@ class GP:
                 return i
         return -1
 
-    def contains(self, gi) -> bool:
+    def contains(self, gi: GI) -> bool:
         """Description
 
         Checks if a gradual item (GI) is a member of a gradual pattern (GP)
@@ -320,7 +328,7 @@ class GP:
             return True
         return False
 
-    def contains_strict(self, gi) -> bool:
+    def contains_strict(self, gi: GI) -> bool:
         """Description
 
         Strictly checks if a gradual item (GI) is a member of a gradual pattern (GP)
@@ -336,7 +344,7 @@ class GP:
                 return True
         return False
 
-    def contains_attr(self, gi) -> bool:
+    def contains_attr(self, gi: GI) -> bool:
         """Description
 
         Checks is any gradual item (GI) in the gradual pattern (GP) is composed of the column
@@ -374,7 +382,6 @@ class GP:
             gi_dict.update({gi.as_string: 0})
         return gi_dict
 
-    # noinspection PyUnresolvedReferences
     def print(self, columns) -> list[list[str] | float]:
         """Description
 
@@ -388,36 +395,9 @@ class GP:
         pattern = list()
         for item in self._gradual_items:
             col_title = columns[item.attribute_col]
-            try:
-                col = str(col_title.value.decode())
-            except AttributeError:
-                col = str(col_title[1].decode())
-            pat = str(col + item.symbol)
+            pat = str(col_title + item.symbol)
             pattern.append(pat)  # (item.to_string())
         return [pattern, self._support]
-
-
-class ExtGP(GP):
-
-    def __init__(self):
-        """Description of class ExtGP (Extended Gradual Pattern)
-
-        A class that inherits class GP which is used to create more powerful GP objects that can be used in mining
-        approaches that implement swarm optimization techniques or cluster analysis or classification algorithms.
-
-        It adds the following attribute:
-            freq_count: frequency count of a particular GP object.
-
-        >>> import so4gp as sgp
-        >>> gradual_pattern = sgp.ExtGP()
-        >>> gradual_pattern.add_gradual_item(sgp.GI(0, "+"))
-        >>> gradual_pattern.add_gradual_item(sgp.GI(1, "-"))
-        >>> gradual_pattern.support = 0.5
-        >>> print(f"{gradual_pattern.to_string()}: {gradual_pattern.support}")
-
-        """
-        super(ExtGP, self).__init__()
-        self.freq_count: int = 0
 
     def validate_graank(self, d_gp):
         """
@@ -432,8 +412,8 @@ class ExtGP(GP):
         # pattern = [('2', "+"), ('4', "+")]
         min_supp = d_gp.thd_supp
         n = d_gp.attr_size
-        gen_pattern = ExtGP()
-        """type gen_pattern: ExtGP"""
+        gen_pattern = GP()
+        """type gen_pattern: GP"""
         bin_arr = np.array([])
 
         for gi in self.gradual_items:
@@ -468,41 +448,30 @@ class ExtGP(GP):
 
         :return: A valid GP or an empty GP
         """
+        if d_gp.valid_tids is None:
+            return self
+
         min_supp = d_gp.thd_supp
         n = d_gp.row_count
-        gen_pattern = ExtGP()
-        """type gen_pattern: ExtGP"""
+        gen_pattern = GP()
+        """type gen_pattern: GP"""
         temp_tids = None
         for gi in self.gradual_items:
-            gi_int = gi.as_integer
-            node = int(gi_int[0] + 1) * gi_int[1]
-            gi_int = (GI.swap_gi_symbol(gi)).as_integer
-            node_inv = int(gi_int[0] + 1) * gi_int[1]
-            for k, v in d_gp.valid_tids.items():
-                if (node == k) or (node_inv == k):
+            node = gi.to_string()
+            node_inv = GI.swap_gi_symbol(gi).to_string()
+            for gi_str, gi_tids in d_gp.valid_tids.items():
+                if (node == gi_str) or (node_inv == gi_str):
                     if temp_tids is None:
-                        temp_tids = v
+                        temp_tids = gi_tids
                         gen_pattern.add_gradual_item(gi)
                     else:
                         temp = temp_tids.copy()
-                        temp = temp.intersection(v)
+                        temp = temp.intersection(gi_tids)
                         supp = float(len(temp)) / float(n * (n - 1.0) / 2.0)
                         if supp >= min_supp:
                             temp_tids = temp.copy()
                             gen_pattern.add_gradual_item(gi)
                             gen_pattern.support = supp
-                """elif node_inv == k:
-                    if temp_tids is None:
-                        temp_tids = v
-                        gen_pattern.add_gradual_item(gi)
-                    else:
-                        temp = temp_tids.copy()
-                        temp = temp.intersection(v)
-                        supp = float(len(temp)) / float(n * (n - 1.0) / 2.0)
-                        if supp >= min_supp:
-                            temp_tids = temp.copy()
-                            gen_pattern.add_gradual_item(gi)
-                            gen_pattern.set_support(supp)"""
         if len(gen_pattern.gradual_items) <= 1:
             return self
         else:
@@ -583,109 +552,7 @@ class ExtGP(GP):
             result2 = set(gp.inv_pattern()).issubset(gi_arr)
             if not (result1 or result2):
                 mod_gp_list.append(gp)
-
         return mod_gp_list
-
-
-class TGP(ExtGP):
-
-    def __init__(self):
-        """
-        Description of class TGP (Temporal Gradual Pattern)
-
-        A class that inherits an existing GP class to create Temporal GP objects. A TGP is a gradual pattern with a
-        time-delay. It has a target gradual item (which is created from a user-defined attribute), and it is used as the
-        anchor for mining patterns from a dataset. The class has the following attributes:
-
-        target_gradual_item: the gradual item on which the pattern is based.
-
-        temporal_gradual_items: gradual items which occur after specific time delays.
-
-        >>> import so4gp as sgp
-        >>> t_gp = sgp.TGP()
-        >>> t_gp.add_target_gradual_item(sgp.GI(1, "+"))
-        >>> t_gp.temporal_gradual_items(sgp.GI(2, "-"), sgp.TimeDelay(7200, 0.8))
-        >>> t_gp.to_string()
-        """
-        super(TGP, self).__init__()
-        self.target_gradual_item = GI(-1, "")
-        """:type target_gradual_item: GI"""
-        self.temporal_gradual_items = list()
-        """:type temporal_gradual_items: list()"""
-
-    def add_target_gradual_item(self, item) -> bool:
-        """Description
-
-            Adds a target gradual item (fTGI) into the fuzzy temporal gradual pattern (fTGP)
-            :param item: gradual item
-            :type item: so4gp.GI
-
-            :return: void
-        """
-        if item.symbol == "-" or item.symbol == "+":
-            self.gradual_items.append(item)
-            self.target_gradual_item = item
-            return True
-        return False
-
-    def add_temporal_gradual_item(self, item, time_delay) -> bool:
-        """Description
-
-            Adds a fuzzy temporal gradual item (fTGI) into the fuzzy temporal gradual pattern (fTGP)
-            :param item: gradual item
-            :type item: so4gp.GI
-
-            :param time_delay: time delay
-            :type time_delay: TimeDelay
-
-            :return: void
-        """
-        if item.symbol == "-" or item.symbol == "+":
-            self.gradual_items.append(item)
-            self.temporal_gradual_items.append([item, time_delay])
-            return True
-        return False
-
-    def to_string(self) -> list:
-        """
-        Returns the Temporal-GP in string format as a list.
-        """
-        pattern = [self.target_gradual_item.to_string()]
-        for item, t_lag in self.temporal_gradual_items:
-            str_time = f"{t_lag.sign}{t_lag.formatted_time['value']} {t_lag.formatted_time['duration']}"
-            pattern.append(f"({item.to_string()}) {str_time}")
-        return pattern
-
-    # noinspection PyUnresolvedReferences
-    def print(self, columns) -> list[list[str] | float]:
-        """Description
-
-        A method that returns a fuzzy temporal gradual pattern (TGP) with actual column names
-
-        :param columns: Column names
-        :type columns: list[str]
-
-        :return: TGP with actual column names
-        """
-
-        target_gi = self.target_gradual_item
-        col_title = columns[target_gi.attribute_col]
-        try:
-            col = str(col_title.value.decode())
-        except AttributeError:
-            col = str(col_title[1].decode())
-        pattern = [f"{col}{target_gi.symbol}"]
-
-        for item, t_lag in self.temporal_gradual_items:
-            str_time = f"{t_lag.sign}{t_lag.formatted_time['value']} {t_lag.formatted_time['duration']}"
-            col_title = columns[item.attribute_col]
-            try:
-                col = str(col_title.value.decode())
-            except AttributeError:
-                col = str(col_title[1].decode())
-            pat = f"({col}{item.symbol}) {str_time}"
-            pattern.append(pat)
-        return [pattern, self.support]
 
 
 class TimeDelay:
@@ -714,65 +581,86 @@ class TimeDelay:
         :param supp: The true value of the time-delay value.
         :type supp: Float
         """
-        self.timestamp = tstamp
-        """type: timestamp: float"""
-        self.support = round(supp, 3)
-        """:type support: float"""
-        self.valid = False
-        """type: valid: bool"""
-        self.sign = self.delay_sign
-        """type: sign: str"""
-        self.formatted_time = {}
-        """type: formatted_time: dict"""
-        if tstamp != 0:
-            time_arr = self._format_time()
-            self.formatted_time = {'value': time_arr[0], 'duration': time_arr[1]}
-            self.valid = True
+        self._timestamp: float = tstamp
+        self._support: float = round(supp, 3)
+        self._valid: bool = False
+        self._sign: str = ""
+        self._formatted_time: dict = {}
+        self._init_parameters()
 
     @property
-    def delay_sign(self) -> str:
-        """
-        Checks and returns the sign of the time-delay value (later/before).
+    def timestamp(self) -> float:
+        return self._timestamp
 
-        :return: The sign of the time-delay value.
-        """
-        if self.timestamp < 0:
-            return "-"
-        else:
-            return "+"
+    @property
+    def support(self) -> float:
+        return self._support
 
-    def _format_time(self) -> list:
-        """
-        Formats the time-delay value as a Date in string format (i.e., seconds/minutes/hours/days/weeks/months/years).
+    @property
+    def valid(self) -> bool:
+        return self._valid
 
-        :return: The formatted time-delay as a list.
-        """
-        stamp_in_seconds = abs(self.timestamp)
-        years = stamp_in_seconds / 3.154e+7
-        months = stamp_in_seconds / 2.628e+6
-        weeks = stamp_in_seconds / 604800
-        days = stamp_in_seconds / 86400
-        hours = stamp_in_seconds / 3600
-        minutes = stamp_in_seconds / 60
-        if int(years) <= 0:
-            if int(months) <= 0:
-                if int(weeks) <= 0:
-                    if int(days) <= 0:
-                        if int(hours) <= 0:
-                            if int(minutes) <= 0:
-                                return [round(stamp_in_seconds, 0), "seconds"]
-                            else:
-                                return [round(minutes, 0), "minutes"]
-                        else:
-                            return [round(hours, 0), "hours"]
-                    else:
-                        return [round(days, 0), "days"]
-                else:
-                    return [round(weeks, 0), "weeks"]
+    @property
+    def sign(self) -> str:
+        return self._sign
+
+    @property
+    def formatted_time(self) -> dict:
+        return self._formatted_time
+
+    def _init_parameters(self):
+        """Initializes the class parameters."""
+
+        def delay_sign() -> str:
+            """
+            Checks and returns the sign of the time-delay value (later/before).
+
+            :return: The sign of the time-delay value.
+            """
+            if self._timestamp < 0:
+                return "-"
             else:
-                return [round(months, 0), "months"]
-        else:
-            return [round(years, 0), "years"]
+                return "+"
+
+        def format_time() -> list:
+            """
+            Formats the time-delay value as a Date in string format (i.e., seconds/minutes/hours/days/weeks/months/years).
+
+            :return: The formatted time-delay as a list.
+            """
+            stamp_in_seconds = abs(self._timestamp)
+            years = stamp_in_seconds / 3.154e+7
+            months = stamp_in_seconds / 2.628e+6
+            weeks = stamp_in_seconds / 604800
+            days = stamp_in_seconds / 86400
+            hours = stamp_in_seconds / 3600
+            minutes = stamp_in_seconds / 60
+            if int(years) <= 0:
+                if int(months) <= 0:
+                    if int(weeks) <= 0:
+                        if int(days) <= 0:
+                            if int(hours) <= 0:
+                                if int(minutes) <= 0:
+                                    return [round(stamp_in_seconds, 0), "seconds"]
+                                else:
+                                    return [round(minutes, 0), "minutes"]
+                            else:
+                                return [round(hours, 0), "hours"]
+                        else:
+                            return [round(days, 0), "days"]
+                    else:
+                        return [round(weeks, 0), "weeks"]
+                else:
+                    return [round(months, 0), "months"]
+            else:
+                return [round(years, 0), "years"]
+
+        self._sign: str = delay_sign()
+        self._formatted_time: dict = {}
+        if self._timestamp != 0:
+            time_arr = format_time()
+            self._formatted_time = {'value': time_arr[0], 'duration': time_arr[1]}
+            self._valid = True
 
     def to_string(self) -> str:
         """
@@ -780,9 +668,100 @@ class TimeDelay:
 
         :return: The time-delay as a string.
         """
-        if not self.formatted_time:
-            txt = ("~ " + self.sign + str(self.formatted_time['value']) + " " + str(self.formatted_time['duration'])
-                   + " : " + str(self.support))
+        if not self._formatted_time:
+            txt = ("~ " + self._sign + str(self._formatted_time['value']) + " " + str(self._formatted_time['duration'])
+                   + " : " + str(self._support))
         else:
             txt = "No time lag found!"
         return txt
+
+
+class TGP(GP):
+
+    @dataclass
+    class TemporalGI:
+        gradual_item: GI
+        time_delay: TimeDelay
+
+    def __init__(self):
+        """
+        Description of class TGP (Temporal Gradual Pattern)
+
+        A class that inherits an existing GP class to create Temporal GP objects. A TGP is a gradual pattern with a
+        time-delay. It has a target gradual item (which is created from a user-defined attribute), and it is used as the
+        anchor for mining patterns from a dataset. The class has the following attributes:
+
+        target_gradual_item: the gradual item on which the pattern is based.
+
+        temporal_gradual_items: gradual items which occur after specific time delays.
+
+        >>> import so4gp as sgp
+        >>> t_gp = sgp.TGP()
+        >>> t_gp.target_gradual_item = sgp.GI(1, "+")
+        >>> t_gp.temporal_gradual_items(sgp.GI(2, "-"), sgp.TimeDelay(7200, 0.8))
+        >>> t_gp.to_string()
+        """
+        super(TGP, self).__init__()
+        self._target_gradual_item: GI = GI(-1, "")
+        self._temporal_gradual_items: list[TGP.TemporalGI] = list()
+
+    @property
+    def target_gradual_item(self) -> GI:
+        return self._target_gradual_item
+
+    @target_gradual_item.setter
+    def target_gradual_item(self, item: GI) -> None:
+        """Adds a target gradual item (fTGI) into the fuzzy temporal gradual pattern (fTGP)"""
+        if not isinstance(item, GI):
+            raise TypeError("Target gradual item must be of type GI")
+        self._target_gradual_item = item
+
+    def add_temporal_gradual_item(self, item: GI, time_delay: TimeDelay):
+        """Description
+
+            Adds a fuzzy temporal gradual item (fTGI) into the fuzzy temporal gradual pattern (fTGP)
+            :param item: gradual item
+            :type item: so4gp.GI
+
+            :param time_delay: time delay
+            :type time_delay: TimeDelay
+
+            :return: void
+        """
+        if isinstance(item, GI) and isinstance(time_delay, TimeDelay) and item.symbol != "-":
+            temp_gi = TGP.TemporalGI(item, time_delay)
+            self._temporal_gradual_items.append(temp_gi)
+        else:
+            raise TypeError("Invalid arguments - require GI and TimeDelay objects")
+
+    def to_string(self) -> list:
+        """
+        Returns the Temporal-GP in string format as a list.
+        """
+        pattern = [self._target_gradual_item.to_string()]
+        for item, t_lag in self._temporal_gradual_items:
+            str_time = f"{t_lag.sign}{t_lag.formatted_time['value']} {t_lag.formatted_time['duration']}"
+            pattern.append(f"({item.to_string()}) {str_time}")
+        return pattern
+
+    def print(self, columns) -> list[list[str] | float]:
+        """Description
+
+        A method that returns a fuzzy temporal gradual pattern (TGP) with actual column names
+
+        :param columns: Column names
+        :type columns: list[str]
+
+        :return: TGP with actual column names
+        """
+
+        target_gi = self._target_gradual_item
+        col_title = columns[target_gi.attribute_col]
+        pattern = [f"{col_title}{target_gi.symbol}"]
+
+        for item, t_lag in self._temporal_gradual_items:
+            str_time = f"{t_lag.sign}{t_lag.formatted_time['value']} {t_lag.formatted_time['duration']}"
+            col_title = columns[item.attribute_col]
+            pat = f"({col_title}{item.symbol}) {str_time}"
+            pattern.append(pat)
+        return [pattern, self.support]

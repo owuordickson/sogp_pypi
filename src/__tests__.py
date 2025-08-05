@@ -1,5 +1,5 @@
 import pandas
-from so4gp.algorithms import GRAANK
+from so4gp.algorithms import GRAANK, AntGRAANK
 
 
 if __name__ == "__main__":
@@ -8,7 +8,7 @@ if __name__ == "__main__":
     dummy_df = pandas.DataFrame(dummy_data, columns=['Date', 'Age', 'Salary', 'Cars', 'Expenses'])
     #dummy_data = [[30, 3, 1, 10], [35, 2, 2, 8], [40, 4, 2, 7], [50, 1, 1, 6], [52, 7, 1, 2]]
     #dummy_df = pandas.DataFrame(dummy_data, columns=['Age', 'Salary', 'Cars', 'Expenses'])
-    mine_obj = GRAANK(dummy_df, min_sup=0.5, eq=False)
+    # mine_obj = GRAANK(dummy_df, min_sup=0.5, eq=False)
     # mine_obj = ClusterGP(dummy_df, 0.5, max_iter=3, e_prob=0.5)
     # mine_obj = AntGRAANK(dummy_df, 0.5, max_iter=3, e_factor=0.5)
     # result_json = mine_obj.discover(target_col=4)

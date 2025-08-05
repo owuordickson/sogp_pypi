@@ -412,20 +412,22 @@ class GP:
         # pattern = [('2', "+"), ('4', "+")]
         min_supp = d_gp.thd_supp
         n = d_gp.attr_size
-        gen_pattern = GP()
-        """type gen_pattern: GP"""
+        gi_dict = d_gp.valid_bins
+        gi_key_list = list(gi_dict.keys())
+
+        gen_pattern: GP = GP()
         bin_arr = np.array([])
 
         for gi in self.gradual_items:
-            arg = np.argwhere(np.isin(d_gp.valid_bins[:, 0], gi.as_array))
+            arg = np.argwhere(np.isin(np.array(gi_key_list), gi.to_string()))
             if len(arg) > 0:
                 i = arg[0][0]
-                valid_bin = d_gp.valid_bins[i]
+                valid_bin = gi_dict[gi_key_list[i]]
                 if bin_arr.size <= 0:
-                    bin_arr = np.array([valid_bin[1], valid_bin[1]])
+                    bin_arr = np.array([valid_bin, valid_bin])
                     gen_pattern.add_gradual_item(gi)
                 else:
-                    bin_arr[1] = valid_bin[1].copy()
+                    bin_arr[1] = valid_bin.copy()
                     temp_bin = np.multiply(bin_arr[0], bin_arr[1])
                     supp = float(np.sum(temp_bin)) / float(n * (n - 1.0) / 2.0)
                     if supp >= min_supp:

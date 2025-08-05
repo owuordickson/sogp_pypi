@@ -51,14 +51,10 @@ class AntGRAANK(DataGP):
 
         """
         super(AntGRAANK, self).__init__(*args, **kwargs)
-        self.evaporation_factor = e_factor
-        """:type evaporation_factor: float"""
-        self.max_iteration = max_iter
-        """type: max_iteration: int"""
-        self.distance_matrix = None
-        """:type distance_matrix: numpy.ndarray | None"""
-        self.attribute_keys = None
-        """:type attribute_keys: list | None"""
+        self._evaporation_factor: float = e_factor
+        self._max_iteration: int = max_iter
+        self._distance_matrix: np.ndarray | None = None
+        self._attribute_keys: list | None = None
 
     def _fit(self):
         """Description
@@ -66,26 +62,30 @@ class AntGRAANK(DataGP):
         Generates the distance matrix (d)
         :return: distance matrix (d) and attribute keys
         """
-        v_bins = self.valid_bins
+
+        self.fit_bitmap()
+        gi_dict = self.valid_bins
+
         # 1. Fetch valid bins group
-        attr_keys = [GI(x[0], x[1].decode()).as_string for x in v_bins[:, 0]]
+        gi_key_list = list(gi_dict.keys())
+        attr_keys = [GI.from_string(gi_str).to_string() for gi_str in gi_key_list]
 
         # 2. Initialize an empty d-matrix
         n = len(attr_keys)
         d = np.zeros((n, n), dtype=np.dtype('i8'))  # cumulative sum of all segments
         for i in range(n):
             for j in range(n):
-                if GI.parse_gi(attr_keys[i]).attribute_col == GI.parse_gi(attr_keys[j]).attribute_col:
+                if GI.from_string(attr_keys[i]).attribute_col == GI.from_string(attr_keys[j]).attribute_col:
                     # Ignore similar attributes (+ or/and -)
                     continue
                 else:
-                    bin_1 = v_bins[i][1]
-                    bin_2 = v_bins[j][1]
+                    bin_1 = gi_dict[attr_keys[i]]
+                    bin_2 = gi_dict[attr_keys[j]]
                     # Cumulative sum of all segments for 2x2 (all attributes) gradual items
                     d[i][j] += np.sum(np.multiply(bin_1, bin_2))
         # print(d)
-        self.distance_matrix = d
-        self.attribute_keys = attr_keys
+        self._distance_matrix = d
+        self._attribute_keys = attr_keys
         gc.collect()
 
     def _gen_aco_candidates(self, p_matrix):
@@ -96,7 +96,7 @@ class AntGRAANK(DataGP):
         :type p_matrix: np.ndarray
         :return: pheromone matrix (ndarray)
         """
-        v_matrix = self.distance_matrix
+        v_matrix = self._distance_matrix
         pattern: GP = GP()
 
         # 1. Generate gradual items with the highest pheromone and visibility
@@ -110,30 +110,26 @@ class AntGRAANK(DataGP):
             r = np.random.random_sample()
             try:
                 j = np.nonzero(cum_prob > r)[0][0]
-                gi = GI.parse_gi(self.attribute_keys[j])
-                """:type gi: GI"""
+                gi: GI = GI.from_string(self._attribute_keys[j])
                 if not pattern.contains_attr(gi):
                     pattern.add_gradual_item(gi)
             except IndexError:
                 continue
 
         # 2. Evaporate pheromones by factor e
-        p_matrix = (1 - self.evaporation_factor) * p_matrix
+        p_matrix = (1 - self._evaporation_factor) * p_matrix
         return pattern, p_matrix
 
-    def _update_pheromones(self, pattern, p_matrix):
+    def _update_pheromones(self, pattern: GP, p_matrix: np.ndarray):
         """Description
 
         Updates the pheromone level of the pheromone matrix
 
         :param pattern: pattern used to update values
-        :type pattern: so4gp.ExtGP
-
         :param p_matrix: an existing pheromone matrix
-        :type p_matrix: numpy.ndarray
         :return: updated pheromone matrix
         """
-        idx = [self.attribute_keys.index(x.as_string) for x in pattern.gradual_items]
+        idx = [self._attribute_keys.index(x.to_string()) for x in pattern.gradual_items]
         for n in range(len(idx)):
             for m in range(n + 1, len(idx)):
                 i = idx[n]
@@ -154,9 +150,8 @@ class AntGRAANK(DataGP):
         # 0. Initialize and prepare data set
         # d_set = DataGP(f_path, min_supp)
         # """:type d_set: DataGP"""
-        self.fit_bitmap()
         self._fit()  # distance matrix (d) & attributes corresponding to d
-        d = self.distance_matrix
+        d = self._distance_matrix
 
         a = self.attr_size
         self.gradual_patterns = list()  # subsets
@@ -179,7 +174,7 @@ class AntGRAANK(DataGP):
         invalid_count = 0
         # 4. Iterations for ACO
         # while repeated < 1:
-        while counter < self.max_iteration:
+        while counter < self._max_iteration:
             rand_gp, pheromones = self._gen_aco_candidates(pheromones)
             if len(rand_gp.gradual_items) > 1:
                 # print(rand_gp.get_pattern())
@@ -191,8 +186,7 @@ class AntGRAANK(DataGP):
                     is_sub = rand_gp.check_am(self.gradual_patterns, subset=True)
                     if is_super or is_sub:
                         continue
-                    gen_gp = rand_gp.validate_graank(self)
-                    """:type gen_gp: ExtGP"""
+                    gen_gp: GP = rand_gp.validate_graank(self)
                     is_present = gen_gp.is_duplicate(self.gradual_patterns, loser_gps)
                     is_sub = gen_gp.check_am(self.gradual_patterns, subset=True)
                     if is_present or is_sub:
@@ -212,7 +206,7 @@ class AntGRAANK(DataGP):
             else:
                 invalid_count += 1
             it_count += 1
-            if self.max_iteration == 1:
+            if self._max_iteration == 1:
                 counter = repeated
             else:
                 counter = it_count

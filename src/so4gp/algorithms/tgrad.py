@@ -46,17 +46,38 @@ class TGrad(GRAANK):
         """
 
         super(TGrad, self).__init__(*args, **kwargs)
-        self.target_col: int = target_col
-        self.min_rep: float = min_rep
-        self.max_step: int = self.row_count - int(min_rep * self.row_count)
-        self.full_attr_data: np.ndarray = self.data.copy().T
+        self._target_col: int = target_col
+        self._min_rep: float = min_rep
+        self._max_step: int = self.row_count - int(min_rep * self.row_count)
+        self._full_attr_data: np.ndarray = self.data.copy().T
         if len(self.time_cols) > 0:
             print("Dataset Ok")
-            self.time_ok: bool = True
+            self._time_ok: bool = True
         else:
             print("Dataset Error")
-            self.time_ok: bool = False
+            self._time_ok: bool = False
             raise Exception('No date-time datasets found')
+
+    @property
+    def target_col(self):
+        return self._target_col
+
+    @property
+    def min_rep(self):
+        return self._min_rep
+
+    @property
+    def max_step(self):
+        return self._max_step
+
+    @property
+    def full_attr_data(self):
+        return self._full_attr_data
+
+    @min_rep.setter
+    def min_rep(self, value):
+        if 0 < value <= 1:
+            self._min_rep = value
 
     def discover_tgp(self, parallel: bool = False, num_cores: int = 1):
         """
@@ -74,14 +95,14 @@ class TGrad(GRAANK):
         # 1. Mine FTGPs
         if parallel:
             # implement parallel multi-processing
-            steps = range(self.max_step)
+            steps = range(self._max_step)
             pool = mp.Pool(num_cores)
             patterns = pool.map(self.transform_and_mine, steps)
             pool.close()
             pool.join()
         else:
             patterns = list()
-            for step in range(self.max_step):
+            for step in range(self._max_step):
                 t_gps = self.transform_and_mine(step + 1)  # because for-loop it is not inclusive from range: 0 - max_step
                 if t_gps:
                     patterns.append(t_gps)
@@ -106,7 +127,7 @@ class TGrad(GRAANK):
         :return: List of TGPs
         """
         # NB: Restructure dataset based on target/reference col
-        if self.time_ok:
+        if self._time_ok:
             # 1. Calculate the time difference using a step
             ok, time_diffs = self.get_time_diffs(step)
             if not ok:
@@ -114,7 +135,7 @@ class TGrad(GRAANK):
                       + " or row " + str(time_diffs[1]) + " is not valid."
                 raise Exception(msg)
             else:
-                tgt_col = self.target_col
+                tgt_col = self._target_col
                 if tgt_col in self.time_cols:
                     msg = "Target column is a 'date-time' attribute"
                     raise Exception(msg)
@@ -130,10 +151,10 @@ class TGrad(GRAANK):
                         # Transform the datasets using (row) n+step
                         if (col_index == tgt_col) or (col_index in self.time_cols):
                             # date-time column OR target column
-                            temp_row = self.full_attr_data[col_index][0: (n - step)]
+                            temp_row = self._full_attr_data[col_index][0: (n - step)]
                         else:
                             # other attributes
-                            temp_row = self.full_attr_data[col_index][step: n]
+                            temp_row = self._full_attr_data[col_index][step: n]
 
                         delayed_attr_data = temp_row if (delayed_attr_data is None) \
                             else np.vstack((delayed_attr_data, temp_row))
@@ -179,7 +200,7 @@ class TGrad(GRAANK):
 
         invalid_count = 0
         while len(valid_bins) > 0:
-            valid_bins, inv_count = self._gen_apriori_candidates(valid_bins, target_col=self.target_col)
+            valid_bins, inv_count = self._gen_apriori_candidates(valid_bins, target_col=self._target_col)
             invalid_count += inv_count
             for v_bin in valid_bins:
                 gi_arr = v_bin[0]
@@ -195,7 +216,7 @@ class TGrad(GRAANK):
                     tgp: TGP = TGP()
                     for obj in gi_arr:
                         gi: GI = GI(obj[0], obj[1].decode())
-                        if gi.attribute_col == self.target_col:
+                        if gi.attribute_col == self._target_col:
                             tgp.target_gradual_item = gi
                         else:
                             tgp.add_temporal_gradual_item(gi, t_lag)
@@ -362,9 +383,9 @@ class TGrad(GRAANK):
             for obj in gi_arr:
                 # Ignore target-col and remove time-cols and target-col from the count
                 col = int(obj[0])
-                if (col != self.target_col) and (col < self.target_col):
+                if (col != self._target_col) and (col < self._target_col):
                     selected_cols.append(col - (len(self.time_cols)))
-                elif (col != self.target_col) and (col > self.target_col):
+                elif (col != self._target_col) and (col > self._target_col):
                     selected_cols.append(col - (len(self.time_cols) + 1))
             selected_cols = np.array(selected_cols, dtype=int)
             t_lag_arr = time_data[np.ix_(selected_cols, selected_rows)]

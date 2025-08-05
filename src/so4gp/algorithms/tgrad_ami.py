@@ -49,9 +49,21 @@ class TGradAMI(TGrad):
         """
 
         super(TGradAMI, self).__init__(*args, **kwargs)
-        self.error_margin: float = min_error
-        self.feature_cols: np.ndarray = np.setdiff1d(self.attr_cols, self.target_col)
-        self.mi_error: float = 0
+        self._error_margin: float = min_error
+        self._feature_cols: np.ndarray = np.setdiff1d(self.attr_cols, self.target_col)
+        self._mi_error: float = 0
+
+    @property
+    def error_margin(self):
+        return self._error_margin
+
+    @property
+    def mi_error(self):
+        return self._mi_error
+
+    @property
+    def feature_cols(self):
+        return self._feature_cols
 
     def find_best_mutual_info(self):
         """
@@ -68,7 +80,7 @@ class TGradAMI(TGrad):
 
         # 1. Compute MI for original dataset w.r.t. target-col
         y = np.array(self.full_attr_data[self.target_col], dtype=float).T
-        x_data = np.array(self.full_attr_data[self.feature_cols], dtype=float).T
+        x_data = np.array(self.full_attr_data[self._feature_cols], dtype=float).T
         init_mi_info = np.array(mutual_info_regression(x_data, y), dtype=float)
 
         # 2. Compute all the MI for every time-delay and compute error
@@ -77,22 +89,22 @@ class TGradAMI(TGrad):
             # Compute MI
             attr_data, _ = self.transform_and_mine(step, return_patterns=False)
             y = np.array(attr_data[self.target_col], dtype=float).T
-            x_data = np.array(attr_data[self.feature_cols], dtype=float).T
+            x_data = np.array(attr_data[self._feature_cols], dtype=float).T
             try:
                 mi_vals = np.array(mutual_info_regression(x_data, y), dtype=float)
             except ValueError:
-                optimal_dict = {int(self.feature_cols[i]): step for i in range(len(self.feature_cols))}
-                self.mi_error = -1
+                optimal_dict = {int(self._feature_cols[i]): step for i in range(len(self._feature_cols))}
+                self._mi_error = -1
                 self.min_rep = round(((self.row_count - step) / self.row_count), 5)
                 return optimal_dict, step
 
             # Compute MI error
             squared_diff = np.square(np.subtract(mi_vals, init_mi_info))
             mse_arr = np.sqrt(squared_diff)
-            is_mi_preserved = np.all(mse_arr <= self.error_margin)
+            is_mi_preserved = np.all(mse_arr <= self._error_margin)
             if is_mi_preserved:
-                optimal_dict = {int(self.feature_cols[i]): step for i in range(len(self.feature_cols))}
-                self.mi_error = round(np.min(mse_arr), 5)
+                optimal_dict = {int(self._feature_cols[i]): step for i in range(len(self._feature_cols))}
+                self._mi_error = round(np.min(mse_arr), 5)
                 self.min_rep = round(((self.row_count - step) / self.row_count), 5)
                 return optimal_dict, step
             mi_list.append(mi_vals)
@@ -109,9 +121,9 @@ class TGradAMI(TGrad):
         max_step = int(np.max(optimal_steps_arr) + 1)
 
         # 5. Integrate feature indices with the computed steps
-        optimal_dict = {int(self.feature_cols[i]): int(optimal_steps_arr[i] + 1) for i in range(len(self.feature_cols))}
+        optimal_dict = {int(self._feature_cols[i]): int(optimal_steps_arr[i] + 1) for i in range(len(self._feature_cols))}
 
-        self.mi_error = round(np.min(mse_arr), 5)
+        self._mi_error = round(np.min(mse_arr), 5)
         self.min_rep = round(((self.row_count - max_step) / self.row_count), 5)
         return optimal_dict, max_step
 

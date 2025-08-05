@@ -36,13 +36,13 @@ class AntGRAANK(DataGP):
         :param max_iter: [optional] maximum_iteration, default is 1
         :param e_factor: [optional] evaporation factor, default is 0.5
 
-        >>> import so4gp as sgp
+        >>> from so4gp.algorithms as AntGRAANK
         >>> import pandas
         >>> import json
         >>> dummy_data = [[30, 3, 1, 10], [35, 2, 2, 8], [40, 4, 2, 7], [50, 1, 1, 6], [52, 7, 1, 2]]
         >>> dummy_df = pandas.DataFrame(dummy_data, columns=['Age', 'Salary', 'Cars', 'Expenses'])
         >>>
-        >>> mine_obj = sgp.AntGRAANK(dummy_df, 0.5, max_iter=3, e_factor=0.5)
+        >>> mine_obj = AntGRAANK(dummy_df, 0.5, max_iter=3, e_factor=0.5)
         >>> result_json = mine_obj.discover()
         >>> result = json.loads(result_json)
         >>> # print(result['Patterns'])

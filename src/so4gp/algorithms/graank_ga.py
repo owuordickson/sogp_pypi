@@ -6,16 +6,14 @@
 
 
 import json
-import random
 import numpy as np
-from ypstruct import structure
 
 try:
     from ..data_gp import DataGP
-    from ..gradual_patterns import GI
+    from ..gradual_patterns import GI, GP
     from .numeric_ss import NumericSS
 except ImportError:
-    from src.so4gp import DataGP, GI
+    from src.so4gp import DataGP, GI, GP
     from src.so4gp.algorithms import NumericSS
 
 class GeneticGRAANK(DataGP):
@@ -53,13 +51,13 @@ class GeneticGRAANK(DataGP):
         :param sigma: [optional] mutation sigma ratio, default is 0.9
         :type sigma: float
 
-        >>> import so4gp as sgp
+        >>> from so4gp.algorithms as GeneticGRAANK
         >>> import pandas
         >>> import json
         >>> dummy_data = [[30, 3, 1, 10], [35, 2, 2, 8], [40, 4, 2, 7], [50, 1, 1, 6], [52, 7, 1, 2]]
         >>> dummy_df = pandas.DataFrame(dummy_data, columns=['Age', 'Salary', 'Cars', 'Expenses'])
         >>>
-        >>> mine_obj = sgp.GeneticGRAANK(dummy_df, 0.5, max_iter=3, n_pop=10)
+        >>> mine_obj = GeneticGRAANK(dummy_df, 0.5, max_iter=3, n_pop=10)
         >>> result_json = mine_obj.discover()
         >>> result = json.loads(result_json)
         >>> # print(result['Patterns'])
@@ -68,20 +66,14 @@ class GeneticGRAANK(DataGP):
             "Iterations": 2}
         """
         super(GeneticGRAANK, self).__init__(*args, **kwargs)
-        self.max_iteration = max_iter
-        """type: max_iteration: int"""
-        self.n_pop = n_pop
-        """type: n_pop: int"""
-        self.pc = pc
-        """type: pc: float"""
-        self.gamma = gamma
-        """type: gamma: float"""
-        self.mu = mu
-        """type: mu: float"""
-        self.sigma = sigma
-        """type: sigma: float"""
+        self._max_iteration: int = max_iter
+        self._parent_pop: int = n_pop
+        self._children_pop: float = pc
+        self._gamma: float = gamma
+        self._mu: float = mu
+        self._sigma: float = sigma
 
-    def _crossover(self, p1: structure, p2: structure):
+    def _crossover(self, p1: NumericSS.Candidate, p2: NumericSS.Candidate) -> tuple[NumericSS.Candidate, NumericSS.Candidate]:
         """
         Crosses over the genes of 2 parents (an individual with a specific position and cost) to generate 2
         different offsprings.
@@ -90,14 +82,14 @@ class GeneticGRAANK(DataGP):
         :param p2: The parent 2 individuals
         :return: Two offsprings (children)
         """
-        c1 = p1.deepcopy()
-        c2 = p2.deepcopy()
-        alpha = np.random.uniform(0, self.gamma, 1)
+        c1 = NumericSS.Candidate()
+        c2 = NumericSS.Candidate()
+        alpha = np.random.uniform(0, self._gamma, 1)
         c1.position = alpha * p1.position + (1 - alpha) * p2.position
         c2.position = alpha * p2.position + (1 - alpha) * p1.position
         return c1, c2
 
-    def _mutate(self, x: structure):
+    def _mutate(self, x: NumericSS.Candidate):
         """
 
         Mutates an individual's position to create a new and different individual.
@@ -105,14 +97,14 @@ class GeneticGRAANK(DataGP):
         :param x: The existing individual
         :return: A new individual
         """
-        y = x.deepcopy()
+        y = NumericSS.Candidate(position=x.position, cost=x.cost)
         str_x = str(int(y.position))
-        flag = np.random.rand(*(len(str_x),)) <= self.mu
+        flag = np.random.rand(*(len(str_x),)) <= self._mu
         ind = np.argwhere(flag)
         str_y = "0"
         for i in ind:
             val = float(str_x[i[0]])
-            val += self.sigma * np.random.uniform(0, 1, 1)
+            val += self._sigma * np.random.uniform(0, 1, 1)
             if i[0] == 0:
                 str_y = "".join(("", "{}".format(int(val)), str_x[1:]))
             else:
@@ -130,154 +122,83 @@ class GeneticGRAANK(DataGP):
         :return: JSON object
         """
 
+        def evaluate_offsprings(child):
+            NumericSS.apply_bound(child, s_space.var_min, s_space.var_max)
+            # Evaluate Offspring
+            child.cost = NumericSS.cost_function(child.position, self.valid_bins)
+            if child.cost < s_space.best_sol.cost:
+                s_space.best_sol = NumericSS.Candidate(position=child.position, cost=child.cost)
+            s_space.eval_count += 1
+
         # Prepare data set
         self.fit_bitmap()
-        attr_keys = [GI(x[0], x[1].decode()).as_string for x in self.valid_bins[:, 0]]
-
         if self.valid_bins is None:
             return []
 
-        # Problem Information
-        # cost_function
+        # Initialize search space
+        s_space = NumericSS.initialize_search_space(self.valid_bins, self._parent_pop, self._max_iteration)
+        if s_space is None:
+            return []
 
-        # Parameters
-        # pc: Proportion of children (if it's 1, then nc == npop
-        it_count = 0
-        eval_count = 0
-        counter = 0
-        var_min = 0
-        var_max = int(''.join(['1'] * len(attr_keys)), 2)
-
-        nc = int(np.round(self.pc * self.n_pop / 2) * 2)  # Number of children np.round is used to get an even number
-
-        # Empty Individual Template
-        empty_individual = structure()
-        empty_individual.position = None
-        empty_individual.cost = None
-
-        # Initialize Population
-        pop = empty_individual.repeat(self.n_pop)
-        for i in range(self.n_pop):
-            pop[i].position = random.randrange(var_min, var_max)
-            pop[i].cost = 1  # cost_function(pop[i].position, attr_keys, d_set)
-            # if pop[i].cost < best_sol.cost:
-            #    best_sol = pop[i].deepcopy()
-
-        # Best Solution Ever Found
-        best_sol = empty_individual.deepcopy()
-        best_sol.position = pop[0].position
-        best_sol.cost = NumericSS.cost_function(best_sol.position, attr_keys, self)
-
-        # Best Cost of Iteration
-        best_costs = np.empty(self.max_iteration)
-        best_patterns = list()
-        str_best_gps = list()
-        str_iter = ''
-        str_eval = ''
-
-        invalid_count = 0
+        num_children = int(np.round(self._children_pop * self._parent_pop / 2) * 2)  # Number of children np.round is used to get an even number
         repeated = 0
-
-        while counter < self.max_iteration:
+        while s_space.counter < self._max_iteration:
             # while eval_count < max_evaluations:
             # while repeated < 1:
 
             c_pop = []  # Children population
-            for _ in range(nc // 2):
+            for _ in range(num_children // 2):
                 # Select Parents
-                q = np.random.permutation(self.n_pop)
-                p1 = pop[q[0]]
-                p2 = pop[q[1]]
+                q = np.random.permutation(self._parent_pop)
+                p1 = s_space.pop[q[0]]
+                p2 = s_space.pop[q[1]]
 
                 # a. Perform Crossover
                 c1, c2 = self._crossover(p1, p2)
-
-                # Apply Bound
-                NumericSS.apply_bound(c1, var_min, var_max)
-                NumericSS.apply_bound(c2, var_min, var_max)
-
-                # Evaluate First Offspring
-                c1.cost = NumericSS.cost_function(c1.position, attr_keys, self)
-                if c1.cost == 1:
-                    invalid_count += 1
-                if c1.cost < best_sol.cost:
-                    best_sol = c1.deepcopy()
-                eval_count += 1
-                str_eval += "{}: {} \n".format(eval_count, best_sol.cost)
-
-                # Evaluate Second Offspring
-                c2.cost = NumericSS.cost_function(c2.position, attr_keys, self)
-                if c1.cost == 1:
-                    invalid_count += 1
-                if c2.cost < best_sol.cost:
-                    best_sol = c2.deepcopy()
-                eval_count += 1
-                str_eval += "{}: {} \n".format(eval_count, best_sol.cost)
+                evaluate_offsprings(c1)
+                evaluate_offsprings(c2)
 
                 # b. Perform Mutation
                 c1 = self._mutate(c1)
                 c2 = self._mutate(c2)
-
-                # Apply Bound
-                NumericSS.apply_bound(c1, var_min, var_max)
-                NumericSS.apply_bound(c2, var_min, var_max)
-
-                # Evaluate First Offspring
-                c1.cost = NumericSS.cost_function(c1.position, attr_keys, self)
-                if c1.cost == 1:
-                    invalid_count += 1
-                if c1.cost < best_sol.cost:
-                    best_sol = c1.deepcopy()
-                eval_count += 1
-                str_eval += "{}: {} \n".format(eval_count, best_sol.cost)
-
-                # Evaluate Second Offspring
-                c2.cost = NumericSS.cost_function(c2.position, attr_keys, self)
-                if c1.cost == 1:
-                    invalid_count += 1
-                if c2.cost < best_sol.cost:
-                    best_sol = c2.deepcopy()
-                eval_count += 1
-                str_eval += "{}: {} \n".format(eval_count, best_sol.cost)
+                evaluate_offsprings(c1)
+                evaluate_offsprings(c2)
 
                 # c. Add Offsprings to c_pop
                 c_pop.append(c1)
                 c_pop.append(c2)
 
             # Merge, Sort and Select
-            pop += c_pop
-            pop = sorted(pop, key=lambda x: x.cost)
-            pop = pop[0:self.n_pop]
+            s_space.pop += c_pop
+            s_space.pop = sorted(s_space.pop, key=lambda x: x.cost)
+            s_space.pop = s_space.pop[0:self._parent_pop]
 
-            best_gp = NumericSS.decode_gp(attr_keys, best_sol.position).validate_graank(self)
-            """:type best_gp: ExtGP"""
-            is_present = best_gp.is_duplicate(best_patterns)
-            is_sub = best_gp.check_am(best_patterns, subset=True)
+            best_gp: GP = NumericSS.decode_gp(s_space.best_sol.position, self.valid_bins).validate_graank(self)
+            is_present = best_gp.is_duplicate(s_space.best_patterns)
+            is_sub = best_gp.check_am(s_space.best_patterns, subset=True)
             if is_present or is_sub:
                 repeated += 1
             else:
                 if best_gp.support >= self.thd_supp:
-                    best_patterns.append(best_gp)
-                    str_best_gps.append(best_gp.print(self.titles))
+                    s_space.best_patterns.append(best_gp)
+                    s_space.str_best_gps.append(best_gp.print(self.titles))
                 # else:
                 #    best_sol.cost = 1
 
             try:
-                # Show Iteration Information
                 # Store Best Cost
-                best_costs[it_count] = best_sol.cost
-                str_iter += "{}: {} \n".format(it_count, best_sol.cost)
+                s_space.best_costs[s_space.iter_count] = s_space.best_sol.cost
             except IndexError:
                 pass
-            it_count += 1
+            s_space.iter_count += 1
 
-            if self.max_iteration == 1:
-                counter = repeated
+            if self._max_iteration == 1:
+                s_space.counter = repeated
             else:
-                counter = it_count
+                s_space.counter = s_space.iter_count
         # Output
-        out = json.dumps({"Algorithm": "GA-GRAANK", "Best Patterns": str_best_gps, "Invalid Count": invalid_count,
-                          "Iterations": it_count})
+        out = json.dumps({"Algorithm": "GA-GRAANK", "Best Patterns": s_space.str_best_gps,
+                          "Invalid Count": s_space.invalid_count, "Iterations": s_space.iter_count})
         """:type out: object"""
-        self.gradual_patterns = best_patterns
+        self.gradual_patterns = s_space.best_patterns
         return out

@@ -5,8 +5,9 @@
 # repository for complete details.
 
 
+import random
 import numpy as np
-from ypstruct import structure
+from dataclasses import dataclass
 
 try:
     from . import DataGP, GI, GP
@@ -15,55 +16,121 @@ except ImportError:
 
 class NumericSS:
 
+    @dataclass
+    class Candidate:
+        position: float|None=None
+        cost: float|None=None
+
+    @dataclass
+    class SearchSpace:
+        var_min: int
+        var_max: int
+        iter_count: int
+        eval_count: int
+        counter: int
+        invalid_count: int
+        best_sol: "NumericSS.Candidate"
+        best_costs: np.ndarray
+        best_patterns: list[GP]
+        str_best_gps: list
+        pop: list["NumericSS.Candidate"]
+
     def __init__(self):
         pass
 
     @staticmethod
-    def decode_gp(attr_keys: list, position: float) -> GP:
+    def initialize_search_space(valid_bins_dict: dict | None, total_pop: int, max_iter: int):
+        """Create a population of candidate solutions."""
+        if valid_bins_dict is None:
+            return None
+
+        gi_key_list = list(valid_bins_dict.keys())
+        attr_keys = [GI.from_string(gi_str).to_string() for gi_str in gi_key_list]
+
+        # Empty Individual Template
+        empty_candidate = NumericSS.Candidate (
+            position=None,
+            cost=None
+        )
+
+        # Initialize Population
+        var_min = 0
+        var_max = int(''.join(['1'] * len(attr_keys)), 2)
+        pop = [empty_candidate] * total_pop
+        for i in range(total_pop):
+            pop[i].position = random.randrange(var_min, var_max)
+            pop[i].cost = 1
+
+        # Initialize best candidate
+        best_candidate = NumericSS.Candidate(
+            position=pop[0].position,
+            cost = NumericSS.cost_function(pop[0].position, valid_bins_dict)
+        )
+
+        # Initialize SearchSpace parameters
+        search_space = NumericSS.SearchSpace(
+            iter_count=0,
+            eval_count=0,
+            counter=0,
+            invalid_count=0,
+            var_min=var_min,
+            var_max=var_max,
+            best_sol=best_candidate,
+            best_costs=np.empty(max_iter),
+            best_patterns=[],
+            str_best_gps=[],
+            pop=pop,
+        )
+        return search_space
+
+    @staticmethod
+    def decode_gp(position: float, valid_bins_dict: dict) -> GP:
         """Description
 
         Decodes a numeric value (position) into a GP
 
-        :param attr_keys: list of attribute keys
         :param position: a value in the numeric search space
+        :param valid_bins_dict: a dictionary of valid bins
         :return: GP that is decoded from the position value
         """
 
-        temp_gp = GP()
-        ":type temp_gp: ExtGP"
+        temp_gp: GP = GP()
         if position is None:
             return temp_gp
 
+        gi_key_list = list(valid_bins_dict.keys())
+        attr_keys = [GI.from_string(gi_str).to_string() for gi_str in gi_key_list]
         bin_str = bin(int(position))[2:]
         bin_arr = np.array(list(bin_str), dtype=int)
 
         for i in range(bin_arr.size):
             bin_val = bin_arr[i]
             if bin_val == 1:
-                gi = GI.parse_gi(attr_keys[i])
+                gi = GI.from_string(attr_keys[i])
                 if not temp_gp.contains_attr(gi):
                     temp_gp.add_gradual_item(gi)
         return temp_gp
 
     @staticmethod
-    def cost_function(position: float, attr_keys: list, d_set: DataGP) -> float:
+    def cost_function(position: float, valid_bins_dict: dict) -> float:
         """Description
 
         Computes the fitness of a GP
 
         :param position: a value in the numeric search space
-        :param attr_keys: list of attribute keys
-        :param d_set: a DataGP object
+        :param valid_bins_dict: a dictionary of valid bins
         :return: a floating point value that represents the fitness of the position
         """
 
-        pattern = NumericSS.decode_gp(attr_keys, position)
+        gi_key_list = list(valid_bins_dict.keys())
+        pattern = NumericSS.decode_gp(position, valid_bins_dict)
+
         temp_bin = np.array([])
         for gi in pattern.gradual_items:
-            arg = np.argwhere(np.isin(d_set.valid_bins[:, 0], gi.as_array))
+            arg = np.argwhere(np.isin(np.array(gi_key_list), gi.to_string()))
             if len(arg) > 0:
                 i = arg[0][0]
-                valid_bin = d_set.valid_bins[i]
+                valid_bin = valid_bins_dict[gi_key_list[i]]
                 if temp_bin.size <= 0:
                     temp_bin = valid_bin[1].copy()
                 else:
@@ -76,11 +143,11 @@ class NumericSS:
         return cost
 
     @staticmethod
-    def apply_bound(x: structure, var_min: int, var_max: int) -> None:
+    def apply_bound(x: "NumericSS.Candidate", var_min: int, var_max: int) -> None:
         """
         Modifies x (a numeric value) if it exceeds the lower/upper bound of the numeric search space.
 
-        :param x: A value in the numeric search space
+        :param x: A candidate in the numeric search space
         :param var_min: The lower-bound value
         :param var_max: The upper-bound value
         :return: None

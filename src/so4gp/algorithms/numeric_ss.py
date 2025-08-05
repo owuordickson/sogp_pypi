@@ -143,23 +143,18 @@ class NumericSS:
         return cost
 
     @staticmethod
-    def apply_bound(x: "NumericSS.Candidate", var_min: int, var_max: int) -> None:
-        """
-        Modifies x (a numeric value) if it exceeds the lower/upper bound of the numeric search space.
-
-        :param x: A candidate in the numeric search space
-        :param var_min: The lower-bound value
-        :param var_max: The upper-bound value
-        :return: None
-        """
-
-        x.position = np.maximum(x.position, var_min)
-        x.position = np.minimum(x.position, var_max)
-
-    @staticmethod
     def evaluate_candidate(candidate: "NumericSS.Candidate", s_space: "NumericSS.SearchSpace", valid_bins_dict: dict)-> "NumericSS.SearchSpace":
         """"""
-        NumericSS.apply_bound(candidate, s_space.var_min, s_space.var_max)
+
+        def apply_bound() -> None:
+            """
+            Modifies x (a numeric value) if it exceeds the lower/upper bound of the numeric search space.
+            :return: None
+            """
+            candidate.position = np.maximum(candidate.position, s_space.var_min)
+            candidate.position = np.minimum(candidate.position, s_space.var_max)
+
+        apply_bound()
         candidate.cost = NumericSS.cost_function(candidate.position, valid_bins_dict)
         if candidate.cost == 1:
             s_space.invalid_count += 1

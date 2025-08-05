@@ -42,13 +42,13 @@ class ParticleGRAANK(DataGP):
         :param coeff_p: [optional] personal coefficient, default is 0.01
         :param coeff_g: [optional] global coefficient, default is 0.9
 
-        >>> import so4gp as sgp
+        >>> from so4gp.algorithms import ParticleGRAANK
         >>> import pandas
         >>> import json
         >>> dummy_data = [[30, 3, 1, 10], [35, 2, 2, 8], [40, 4, 2, 7], [50, 1, 1, 6], [52, 7, 1, 2]]
         >>> dummy_df = pandas.DataFrame(dummy_data, columns=['Age', 'Salary', 'Cars', 'Expenses'])
         >>>
-        >>> mine_obj = sgp.ParticleGRAANK(dummy_df, 0.5, max_iter=3, n_particle=10)
+        >>> mine_obj = ParticleGRAANK(dummy_df, 0.5, max_iter=3, n_particle=10)
         >>> result_json = mine_obj.discover()
         >>> result = json.loads(result_json)
         >>> # print(result['Patterns'])
@@ -56,16 +56,11 @@ class ParticleGRAANK(DataGP):
         {"Algorithm": "PSO-GRAANK", "Best Patterns": [], "Invalid Count": 12, "Iterations": 2}
         """
         super(ParticleGRAANK, self).__init__(*args, **kwargs)
-        self.max_iteration = max_iter
-        """type: max_iteration: int"""
-        self.n_particles = n_particle
-        """type: n_particles: int"""
-        self.velocity = vel
-        """type: velocity: float"""
-        self.coeff_p = coeff_p
-        """type: coeff_p: float"""
-        self.coeff_g = coeff_g
-        """type: coeff_g: float"""
+        self._max_iteration: int = max_iter
+        self._n_particles: int = n_particle
+        self._velocity: float = vel
+        self._coeff_p: float = coeff_p
+        self._coeff_g: float = coeff_g
 
     def discover(self):
         """Description
@@ -78,110 +73,54 @@ class ParticleGRAANK(DataGP):
 
         # Prepare data set
         self.fit_bitmap()
-
-        # self.target = 1
-        # self.target_error = 1e-6
-        attr_keys = [GI(x[0], x[1].decode()).as_string for x in self.valid_bins[:, 0]]
-
+        
         if self.valid_bins is None:
             return []
 
-        it_count = 0
-        eval_count = 0
-        counter = 0
-        var_min = 0
-        var_max = int(''.join(['1'] * len(attr_keys)), 2)
+        # Initialize search space
+        s_space = NumericSS.initialize_search_space(self.valid_bins, self._n_particles, self._max_iteration)
+        if s_space is None:
+            return []
 
-        # Empty particle template
-        empty_particle = structure()
-        empty_particle.position = None
-        empty_particle.fitness = None
-
-        # Initialize Population
-        particle_pop = empty_particle.repeat(self.n_particles)
-        for i in range(self.n_particles):
-            particle_pop[i].position = random.randrange(var_min, var_max)
-            particle_pop[i].fitness = 1
-
-        pbest_pop = particle_pop.copy()
+        pbest_pop = s_space.pop.copy()
         gbest_particle = pbest_pop[0]
-
-        # Best particle (ever found)
-        best_particle = empty_particle.deepcopy()
-        best_particle.position = gbest_particle.position
-        best_particle.fitness = NumericSS.cost_function(best_particle.position, attr_keys, self)
-
-        velocity_vector = np.ones(self.n_particles)
-        best_fitness_arr = np.empty(self.max_iteration)
-        best_patterns = []
-        str_best_gps = list()
-        str_iter = ''
-        str_eval = ''
-
-        invalid_count = 0
+        velocity_vector = np.ones(self._n_particles)
         repeated = 0
-
-        while counter < self.max_iteration:
+        while s_space.counter < self._max_iteration:
             # while eval_count < max_evaluations:
             # while repeated < 1:
-            for i in range(self.n_particles):
-                # UPDATED
-                if particle_pop[i].position < var_min or particle_pop[i].position > var_max:
-                    particle_pop[i].fitness = 1
+            for i in range(self._n_particles):
+                if s_space.pop[i].position < s_space.var_min or s_space.pop[i].position > s_space.var_max:
+                    s_space.pop[i].cost = 1
                 else:
-                    particle_pop[i].fitness = NumericSS.cost_function(particle_pop[i].position, attr_keys, self)
-                    if particle_pop[i].fitness == 1:
-                        invalid_count += 1
-                    eval_count += 1
-                    str_eval += "{}: {} \n".format(eval_count, particle_pop[i].fitness)
+                    s_space.pop[i].cost = NumericSS.cost_function(s_space.pop[i].position, self.valid_bins)
+                    if s_space.pop[i].cost == 1:
+                        s_space.invalid_count += 1
+                    s_space.eval_count += 1
 
-                if pbest_pop[i].fitness > particle_pop[i].fitness:
-                    pbest_pop[i].fitness = particle_pop[i].fitness
-                    pbest_pop[i].position = particle_pop[i].position
+                if pbest_pop[i].cost > s_space.pop[i].cost:
+                    pbest_pop[i].cost = s_space.pop[i].cost
+                    pbest_pop[i].position = s_space.pop[i].position
 
-                if gbest_particle.fitness > particle_pop[i].fitness:
-                    gbest_particle.fitness = particle_pop[i].fitness
-                    gbest_particle.position = particle_pop[i].position
+                if gbest_particle.cost > s_space.pop[i].cost:
+                    gbest_particle.cost = s_space.pop[i].cost
+                    gbest_particle.position = s_space.pop[i].position
             # if abs(gbest_fitness_value - self.target) < self.target_error:
             #    break
-            if best_particle.fitness > gbest_particle.fitness:
-                best_particle = gbest_particle.deepcopy()
+            if s_space.best_sol.cost > gbest_particle.cost:
+                s_space.best_sol = NumericSS.Candidate(position=gbest_particle.position, cost=gbest_particle.cost)
 
-            for i in range(self.n_particles):
-                new_velocity = (self.velocity * velocity_vector[i]) + \
-                               (self.coeff_p * random.random()) * (pbest_pop[i].position - particle_pop[i].position) + \
-                               (self.coeff_g * random.random()) * (gbest_particle.position - particle_pop[i].position)
-                particle_pop[i].position = particle_pop[i].position + new_velocity
+            for i in range(self._n_particles):
+                new_velocity = (self._velocity * velocity_vector[i]) + \
+                               (self._coeff_p * random.random()) * (pbest_pop[i].position - s_space.pop[i].position) + \
+                               (self._coeff_g * random.random()) * (gbest_particle.position - s_space.pop[i].position)
+                s_space.pop[i].position = s_space.pop[i].position + new_velocity
 
-            best_gp = NumericSS.decode_gp(attr_keys, best_particle.position).validate_graank(self)
-            """:type best_gp: ExtGP"""
-            is_present = best_gp.is_duplicate(best_patterns)
-            is_sub = best_gp.check_am(best_patterns, subset=True)
-            if is_present or is_sub:
-                repeated += 1
-            else:
-                if best_gp.support >= self.thd_supp:
-                    best_patterns.append(best_gp)
-                    str_best_gps.append(best_gp.print(self.titles))
-                # else:
-                #    best_particle.fitness = 1
-
-            try:
-                # Show Iteration Information
-                best_fitness_arr[it_count] = best_particle.fitness
-                str_iter += "{}: {} \n".format(it_count, best_particle.fitness)
-            except IndexError:
-                pass
-            it_count += 1
-
-            if self.max_iteration == 1:
-                counter = repeated
-            else:
-                counter = it_count
+            _, repeated = NumericSS.evaluate_gradual_pattern(self._max_iteration, repeated, s_space, self)
+            
         # Output
-        out = json.dumps({"Algorithm": "PSO-GRAANK", "Best Patterns": str_best_gps, "Invalid Count": invalid_count,
-                          "Iterations": it_count})
+        out = json.dumps({"Algorithm": "PSO-GRAANK", "Best Patterns": s_space.str_best_gps, 
+                          "Invalid Count": s_space.invalid_count, "Iterations": s_space.iter_count})
         """:type out: object"""
-        self.gradual_patterns = best_patterns
-
+        self.gradual_patterns = s_space.best_patterns
         return out

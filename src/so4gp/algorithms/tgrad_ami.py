@@ -49,12 +49,9 @@ class TGradAMI(TGrad):
         """
 
         super(TGradAMI, self).__init__(*args, **kwargs)
-        self.error_margin = min_error
-        """:type error_margin: float"""
-        self.feature_cols = np.setdiff1d(self.attr_cols, self.target_col)
-        """:type feature_cols: numpy.ndarray"""
-        self.mi_error = 0
-        """:type mi_error: float"""
+        self.error_margin: float = min_error
+        self.feature_cols: np.ndarray = np.setdiff1d(self.attr_cols, self.target_col)
+        self.mi_error: float = 0
 
     def find_best_mutual_info(self):
         """
@@ -85,7 +82,6 @@ class TGradAMI(TGrad):
                 mi_vals = np.array(mutual_info_regression(x_data, y), dtype=float)
             except ValueError:
                 optimal_dict = {int(self.feature_cols[i]): step for i in range(len(self.feature_cols))}
-                """:type optimal_dict: dict"""
                 self.mi_error = -1
                 self.min_rep = round(((self.row_count - step) / self.row_count), 5)
                 return optimal_dict, step
@@ -96,7 +92,6 @@ class TGradAMI(TGrad):
             is_mi_preserved = np.all(mse_arr <= self.error_margin)
             if is_mi_preserved:
                 optimal_dict = {int(self.feature_cols[i]): step for i in range(len(self.feature_cols))}
-                """:type optimal_dict: dict"""
                 self.mi_error = round(np.min(mse_arr), 5)
                 self.min_rep = round(((self.row_count - step) / self.row_count), 5)
                 return optimal_dict, step
@@ -112,11 +107,9 @@ class TGradAMI(TGrad):
         # mse_arr[mse_arr < self.error_margin] = -1
         optimal_steps_arr = np.argmin(mse_arr, axis=0)
         max_step = int(np.max(optimal_steps_arr) + 1)
-        """:type max_step: int"""
 
         # 5. Integrate feature indices with the computed steps
         optimal_dict = {int(self.feature_cols[i]): int(optimal_steps_arr[i] + 1) for i in range(len(self.feature_cols))}
-        """:type optimal_dict: dict"""  # {col: steps}
 
         self.mi_error = round(np.min(mse_arr), 5)
         self.min_rep = round(((self.row_count - max_step) / self.row_count), 5)
@@ -132,8 +125,7 @@ class TGradAMI(TGrad):
         :return: Combined transformed dataset with corresponding time-delay values.
         """
 
-        delayed_data = None
-        """:type delayed_data: numpy.ndarray | None"""
+        delayed_data: np.ndarray|None = None
         time_data = []
         n = self.row_count
         k = (n - max_step)  # Number of rows created by the largest step-delay
@@ -165,7 +157,6 @@ class TGradAMI(TGrad):
                 else np.vstack((delayed_data, temp_row))
 
         time_data = np.array(time_data)
-        """:type time_data: numpy.ndarray"""
         return delayed_data, time_data
 
     def discover_tgp(self, use_clustering: bool = False, eval_mode: bool = False):
@@ -179,8 +170,7 @@ class TGradAMI(TGrad):
         :return: List of (FTGPs as JSON object) or (FTGPs and evaluation data as a Python dict) when executed in evaluation mode.
         """
 
-        self.gradual_patterns = []
-        """:type: gradual_patterns: list(so4gp.TGP)"""
+        self.gradual_patterns: list[TGP] = []
         str_gps = []
 
         # 1. Compute and find the lowest mutual information
@@ -193,10 +183,8 @@ class TGradAMI(TGrad):
         if eval_mode:
             list_tgp, gp_components = self.extract_gradual_components(time_delay_data=time_data, attr_data=delayed_data,
                                                                    clustering_method=use_clustering)
-            """:type t_gps: list"""
         else:
-            list_tgp = self._mine(time_delay_data=time_data, attr_data=delayed_data, clustering_method=use_clustering)
-            """:type t_gps: list"""
+            list_tgp: list = self._mine(time_delay_data=time_data, attr_data=delayed_data, clustering_method=use_clustering)
             gp_components = None
 
         # 4. Organize FTGPs into a single list
@@ -244,10 +232,8 @@ class TGradAMI(TGrad):
 
         self.fit_bitmap(attr_data)
         valid_bins = self.valid_bins
-        gradual_patterns = []
-        """:type gradual_patterns: list"""
-        gp_components = {}
-        """:type gp_components: dict"""
+        gradual_patterns: list = []
+        gp_components: dict = {}
 
         if clustering_method:
             # Build the main triangular MF using the clustering algorithm

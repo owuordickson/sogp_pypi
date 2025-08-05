@@ -46,22 +46,16 @@ class TGrad(GRAANK):
         """
 
         super(TGrad, self).__init__(*args, **kwargs)
-        self.target_col = target_col
-        """:type: target_col: int"""
-        self.min_rep = min_rep
-        """:type: min_rep: float"""
-        self.max_step = self.row_count - int(min_rep * self.row_count)
-        """:type: max_step: int"""
-        self.full_attr_data = self.data.copy().T
-        """:type: full_attr_data: numpy.ndarray"""
+        self.target_col: int = target_col
+        self.min_rep: float = min_rep
+        self.max_step: int = self.row_count - int(min_rep * self.row_count)
+        self.full_attr_data: np.ndarray = self.data.copy().T
         if len(self.time_cols) > 0:
             print("Dataset Ok")
-            self.time_ok = True
-            """:type: time_ok: bool"""
+            self.time_ok: bool = True
         else:
             print("Dataset Error")
-            self.time_ok = False
-            """:type: time_ok: bool"""
+            self.time_ok: bool = False
             raise Exception('No date-time datasets found')
 
     def discover_tgp(self, parallel: bool = False, num_cores: int = 1):
@@ -74,8 +68,7 @@ class TGrad(GRAANK):
         :return: List of FTGPs as JSON object
         """
 
-        self.gradual_patterns = []
-        """:type: gradual_patterns: list(so4gp.TGP)"""
+        self.gradual_patterns: list[TGP] = []
         str_gps = []
 
         # 1. Mine FTGPs
@@ -175,7 +168,6 @@ class TGrad(GRAANK):
         self.fit_bitmap(attr_data)
 
         gradual_patterns = []
-        """:type gradual_patterns: list"""
         valid_bins = self.valid_bins
 
         if clustering_method:
@@ -200,11 +192,9 @@ class TGrad(GRAANK):
                     t_lag = self.get_fuzzy_time_lag(bin_data, time_delay_data, gi_arr, tri_mf_data)
 
                 if t_lag.valid:
-                    tgp = TGP()
-                    """:type gp: TGP"""
+                    tgp: TGP = TGP()
                     for obj in gi_arr:
-                        gi = GI(obj[0], obj[1].decode())
-                        """:type gi: GI"""
+                        gi: GI = GI(obj[0], obj[1].decode())
                         if gi.attribute_col == self.target_col:
                             tgp.target_gradual_item = gi
                         else:
@@ -261,6 +251,107 @@ class TGrad(GRAANK):
         :return: TimeDelay object.
         """
 
+        def approx_time_slide_calculate(time_lag_arr: np.ndarray):
+            """
+
+            A method that selects the most appropriate time-delay value from a list of possible values.
+
+            :param time_lag_arr: An array of all the possible time-delay values.
+            :return: The approximated TimeDelay object.
+            """
+
+            if len(time_lag_arr) <= 0:
+                # if time_lags is blank, return nothing
+                return TimeDelay()
+            else:
+                time_lag_arr = np.absolute(np.array(time_lag_arr))
+                min_a = np.min(time_lag_arr)
+                max_c = np.max(time_lag_arr)
+                count = time_lag_arr.size + 3
+                tot_boundaries = np.linspace(min_a / 2, max_c + 1, num=count)
+
+                highest_sup = 0
+                center = time_lag_arr[0]
+                size = len(tot_boundaries)
+                for i in range(0, size, 2):
+                    if (i + 3) <= size:
+                        boundaries = tot_boundaries[i:i + 3:1]
+                    else:
+                        boundaries = tot_boundaries[size - 3:size:1]
+                    memberships = fuzzy.membership.trimf(time_lag_arr, boundaries)
+
+                    # Compute Support
+                    sup_count = np.count_nonzero(memberships > 0)
+                    total = memberships.size
+                    curr_sup = sup_count / total
+                    # curr_sup = calculate_support(memberships)
+
+                    if curr_sup > highest_sup:
+                        highest_sup = curr_sup
+                        center = boundaries[1]
+                    if curr_sup >= 0.5:
+                        # print(boundaries[1])
+                        return TimeDelay(int(boundaries[1]), curr_sup)
+                return TimeDelay(center, highest_sup)
+
+        def approx_time_hill_climbing(x_train: np.ndarray, initial_bias: float = 0, step_size: float = 0.9, max_iterations: int = 10):
+            """
+            A method that uses Hill-climbing algorithm to approximate the best time-delay value given a fuzzy triangular
+            membership function.
+
+            :param x_train: Initial time-delay values as an array.
+            :param initial_bias: (hyperparameter) initial bias value for the hill-climbing algorithm.
+            :param step_size: (hyperparameter) step size for the hill-climbing algorithm.
+            :param max_iterations: (hyperparameter) maximum number of iterations for the hill-climbing algorithm.
+            :return: Best position to move the triangular MF with its mean-squared-error.
+            """
+
+            def hill_climbing_cost_function(min_membership: float = 0):
+                """
+                Computes the logistic regression cost function for a fuzzy set created from a
+                triangular membership function.
+
+                :param min_membership: The minimum accepted value to allow membership in a fuzzy set.
+                :return: Cost function values.
+                """
+                # 1. Generate fuzzy data set using MF from x_data
+                memberships = np.where(y_train <= b,
+                                       (y_train - a) / (b - a),
+                                       (c - y_train) / (c - b))
+
+                # 2. Generate y_train based on the given criteria (x>minimum_membership)
+                y_hat = np.where(memberships >= min_membership, 1, 0)
+
+                # 3. Compute loss_val
+                hat_count = np.count_nonzero(y_hat)
+                true_count = len(y_hat)
+                loss_val: float = (((true_count - hat_count) / true_count) ** 2) ** 0.5
+                # loss_val = abs(true_count - hat_count)
+                return loss_val
+
+            # 1. Normalize x_train
+            x_train = np.array(x_train, dtype=float)
+
+            # 2. Perform hill climbing to find the optimal bias
+            bias = initial_bias
+            y_train = x_train + bias
+            best_mse = hill_climbing_cost_function()
+            for iteration in range(max_iterations):
+                # a. Generate a new candidate bias by perturbing the current bias
+                new_bias = bias + step_size * np.random.randn()
+
+                # b. Compute the predictions and the MSE with the new bias
+                y_train = x_train + new_bias
+                new_mse = hill_climbing_cost_function()
+
+                # c. If the new MSE is lower, update the bias
+                if new_mse < best_mse:
+                    bias = new_bias
+                    best_mse = new_mse
+
+            # Make predictions using the optimal bias
+            return bias, best_mse
+
         # 1. Get Indices
         indices = np.argwhere(bin_data == 1)
 
@@ -283,7 +374,7 @@ class TGrad(GRAANK):
                 if int(row) in selected_rows:
                     time_lags.append(stamp_diff)
             t_lag_arr = np.array(time_lags)
-            best_time_lag = TGrad.approx_time_slide_calculate(t_lag_arr)
+            best_time_lag = approx_time_slide_calculate(t_lag_arr)
             return best_time_lag
 
         # 3. Approximate TimeDelay value
@@ -295,7 +386,7 @@ class TGrad(GRAANK):
             fuzzy_set = []
             for t_lags in t_lag_arr:
                 init_bias = abs(b - np.median(t_lags))
-                slide_val, loss = TGrad.approx_time_hill_climbing(tri_mf_data, t_lags, initial_bias=init_bias)
+                slide_val, loss = approx_time_hill_climbing(t_lags, initial_bias=init_bias)
                 tstamp = int(b - slide_val)
                 sup = float(1 - loss)
                 fuzzy_set.append([tstamp, float(loss)])
@@ -305,7 +396,7 @@ class TGrad(GRAANK):
         else:
             # 3a. Learn the best MF through slide-descent/sliding
             for t_lags in t_lag_arr:
-                time_lag = TGrad.approx_time_slide_calculate(t_lags)
+                time_lag = approx_time_slide_calculate(t_lags)
                 if time_lag.support >= best_time_lag.support:
                     best_time_lag = time_lag
         return best_time_lag
@@ -382,112 +473,3 @@ class TGrad(GRAANK):
             b = b + shift_by
             c = c + shift_by
         return a, b, c
-
-    @staticmethod
-    def approx_time_slide_calculate(time_lags: np.ndarray):
-        """
-
-        A method that selects the most appropriate time-delay value from a list of possible values.
-
-        :param time_lags: An array of all the possible time-delay values.
-        :return: The approximated TimeDelay object.
-        """
-
-        if len(time_lags) <= 0:
-            # if time_lags is blank, return nothing
-            return TimeDelay()
-        else:
-            time_lags = np.absolute(np.array(time_lags))
-            min_a = np.min(time_lags)
-            max_c = np.max(time_lags)
-            count = time_lags.size + 3
-            tot_boundaries = np.linspace(min_a / 2, max_c + 1, num=count)
-
-            sup1 = 0
-            center = time_lags[0]
-            size = len(tot_boundaries)
-            for i in range(0, size, 2):
-                if (i + 3) <= size:
-                    boundaries = tot_boundaries[i:i + 3:1]
-                else:
-                    boundaries = tot_boundaries[size - 3:size:1]
-                memberships = fuzzy.membership.trimf(time_lags, boundaries)
-
-                # Compute Support
-                sup_count = np.count_nonzero(memberships > 0)
-                total = memberships.size
-                sup = sup_count / total
-                # sup = calculate_support(memberships)
-
-                if sup > sup1:
-                    sup1 = sup
-                    center = boundaries[1]
-                if sup >= 0.5:
-                    # print(boundaries[1])
-                    return TimeDelay(int(boundaries[1]), sup)
-            return TimeDelay(center, sup1)
-
-    @staticmethod
-    def approx_time_hill_climbing(tri_mf: np.ndarray, x_train: np.ndarray, initial_bias: float = 0,
-                                  step_size: float = 0.9, max_iterations: int = 10):
-        """
-        A method that uses Hill-climbing algorithm to approximate the best time-delay value given a fuzzy triangular
-        membership function.
-
-        :param tri_mf: Fuzzy triangular membership function boundaries (a, b, c) as an array.
-        :param x_train: Initial time-delay values as an array.
-        :param initial_bias: (hyperparameter) initial bias value for the hill-climbing algorithm.
-        :param step_size: (hyperparameter) step size for the hill-climbing algorithm.
-        :param max_iterations: (hyperparameter) maximum number of iterations for the hill-climbing algorithm.
-        :return: Best position to move the triangular MF with its mean-squared-error.
-        """
-
-        def hill_climbing_cost_function(min_membership: float = 0):
-            """
-            Computes the logistic regression cost function for a fuzzy set created from a
-            triangular membership function.
-
-            :param min_membership: The minimum accepted value to allow membership in a fuzzy set.
-            :return: Cost function values.
-            """
-
-            a, b, c = tri_mf[0], tri_mf[1], tri_mf[2]
-
-            # 1. Generate fuzzy data set using MF from x_data
-            memberships = np.where(y_train <= b,
-                                   (y_train - a) / (b - a),
-                                   (c - y_train) / (c - b))
-
-            # 2. Generate y_train based on the given criteria (x>minimum_membership)
-            y_hat = np.where(memberships >= min_membership, 1, 0)
-
-            # 3. Compute loss
-            hat_count = np.count_nonzero(y_hat)
-            true_count = len(y_hat)
-            loss = (((true_count - hat_count) / true_count) ** 2) ** 0.5
-            """:type loss: float"""
-            # loss = abs(true_count - hat_count)
-            return loss
-
-        # 1. Normalize x_train
-        x_train = np.array(x_train, dtype=float)
-
-        # 2. Perform hill climbing to find the optimal bias
-        bias = initial_bias
-        y_train = x_train + bias
-        best_mse = hill_climbing_cost_function()
-        for iteration in range(max_iterations):
-            # a. Generate a new candidate bias by perturbing the current bias
-            new_bias = bias + step_size * np.random.randn()
-
-            # b. Compute the predictions and the MSE with the new bias
-            y_train = x_train + new_bias
-            new_mse = hill_climbing_cost_function()
-
-            # c. If the new MSE is lower, update the bias
-            if new_mse < best_mse:
-                bias = new_bias
-                best_mse = new_mse
-
-        # Make predictions using the optimal bias
-        return bias, best_mse

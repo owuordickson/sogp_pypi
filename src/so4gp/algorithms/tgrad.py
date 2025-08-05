@@ -9,6 +9,8 @@ import json
 import numpy as np
 import skfuzzy as fuzzy
 import multiprocessing as mp
+from sklearn.cluster import KMeans
+from sklearn.preprocessing import MinMaxScaler
 
 try:
     from ..data_gp import DataGP
@@ -30,13 +32,13 @@ class TGrad(GRAANK):
         :param target_col: [required] Target column.
         :param min_rep: [optional] minimum representativity value.
 
-        >>> import so4gp as sgp
+        >>> import so4gp.algorithms import TGrad
         >>> import pandas
         >>> import json
         >>> dummy_data = [["2021-03", 30, 3, 1, 10], ["2021-04", 35, 2, 2, 8], ["2021-05", 40, 4, 2, 7], ["2021-06", 50, 1, 1, 6], ["2021-07", 52, 7, 1, 2]]
         >>> dummy_df = pandas.DataFrame(dummy_data, columns=['Date', 'Age', 'Salary', 'Cars', 'Expenses'])
         >>>
-        >>> mine_obj = sgp.TGrad(dummy_df, min_sup=0.5, target_col=1, min_rep=0.5)
+        >>> mine_obj = TGrad(dummy_df, min_sup=0.5, target_col=1, min_rep=0.5)
         >>> result_json = mine_obj.discover_tgp(parallel=True)
         >>> result = json.loads(result_json)
         >>> # print(result['Patterns'])
@@ -178,7 +180,7 @@ class TGrad(GRAANK):
 
         if clustering_method:
             # Build the main triangular MF using the clustering algorithm
-            a, b, c = TGradAMI.build_mf_w_clusters(time_delay_data)
+            a, b, c = TGrad.build_mf_w_clusters(time_delay_data)
             tri_mf_data = np.array([a, b, c])
         else:
             tri_mf_data = None
@@ -204,7 +206,7 @@ class TGrad(GRAANK):
                         gi = GI(obj[0], obj[1].decode())
                         """:type gi: GI"""
                         if gi.attribute_col == self.target_col:
-                            tgp.target_gradual_item(gi)
+                            tgp.target_gradual_item = gi
                         else:
                             tgp.add_temporal_gradual_item(gi, t_lag)
                     tgp.support = sup
@@ -285,8 +287,7 @@ class TGrad(GRAANK):
             return best_time_lag
 
         # 3. Approximate TimeDelay value
-        best_time_lag = TimeDelay(-1, 0)
-        """:type best_time_lag: so4gp.TimeDelay"""
+        best_time_lag: TimeDelay = TimeDelay(-1, 0)
         if tri_mf_data is not None:
             # 3b. Learn the best MF through KMeans and Hill-Climbing
             a, b, c = tri_mf_data
@@ -294,7 +295,7 @@ class TGrad(GRAANK):
             fuzzy_set = []
             for t_lags in t_lag_arr:
                 init_bias = abs(b - np.median(t_lags))
-                slide_val, loss = TGradAMI.approx_time_hill_climbing(tri_mf_data, t_lags, initial_bias=init_bias)
+                slide_val, loss = TGrad.approx_time_hill_climbing(tri_mf_data, t_lags, initial_bias=init_bias)
                 tstamp = int(b - slide_val)
                 sup = float(1 - loss)
                 fuzzy_set.append([tstamp, float(loss)])
@@ -328,24 +329,59 @@ class TGrad(GRAANK):
             return False
 
     @staticmethod
-    def triangular_mf(x: float, a: float, b: float, c: float):
+    def build_mf_w_clusters(time_data: np.ndarray):
+        """
+        A method that builds the boundaries of a fuzzy Triangular membership function (MF) using Singular Value
+        Decomposition (to estimate the number of centers) and KMeans algorithm to group time data according to the
+        identified centers. We then use the largest cluster to build the MF.
+
+        :param time_data: Time-delay values as an array.
+        :return: The boundary values of the triangular membership function.
         """
 
-        A method that implements the fuzzy triangular membership function and computes the membership degree of value w.r.t
-        the MF.
+        # 1. Reshape into 1-column dataset
+        time_data = time_data.reshape(-1, 1)
 
-        :param x: Value to be tested.
-        :param a: Left-side/minimum boundary of the triangular membership function.
-        :param b: Center value of the triangular membership function.
-        :param c: Maximum boundary value of the triangular membership function.
-        :return: Membership degree of value x.
-        """
-        if a <= x <= b:
-            return (x - a) / (b - a)
-        elif b <= x <= c:
-            return (c - x) / (c - b)
-        else:
-            return 0
+        # 2. Standardize data
+        scaler = MinMaxScaler()
+        data_scaled = scaler.fit_transform(time_data)
+
+        # 3. Apply SVD
+        u, s, vt = np.linalg.svd(data_scaled, full_matrices=False)
+
+        # 4. Plot singular values to help determine the number of clusters
+        # Based on the plot, choose the number of clusters (e.g., 3 clusters)
+        num_clusters = int(s[0])
+
+        # 5. Perform k-means clustering
+        kmeans = KMeans(n_clusters=num_clusters)
+        kmeans.fit(data_scaled)
+
+        # 6. Get cluster centers
+        centers = kmeans.cluster_centers_.flatten()
+
+        # 7. Define membership functions to ensure membership > 0.5
+        largest_mf = [0, 0, 0]
+        for center in centers:
+            half_width = 0.5 / 2  # since the membership value should be > 0.5
+            a = center - half_width
+            b = center
+            c = center + half_width
+            if abs(c - a) > abs(largest_mf[2] - largest_mf[0]):
+                largest_mf = [a, b, c]
+
+        # 8. Reverse the scaling
+        a = scaler.inverse_transform([[largest_mf[0]]])[0, 0]
+        b = scaler.inverse_transform([[largest_mf[1]]])[0, 0]
+        c = scaler.inverse_transform([[largest_mf[2]]])[0, 0]
+
+        # 9. Shift to remove negative MF (we do not want negative timestamps)
+        if a < 0:
+            shift_by = abs(a)
+            a = a + shift_by
+            b = b + shift_by
+            c = c + shift_by
+        return a, b, c
 
     @staticmethod
     def approx_time_slide_calculate(time_lags: np.ndarray):
@@ -390,3 +426,68 @@ class TGrad(GRAANK):
                     # print(boundaries[1])
                     return TimeDelay(int(boundaries[1]), sup)
             return TimeDelay(center, sup1)
+
+    @staticmethod
+    def approx_time_hill_climbing(tri_mf: np.ndarray, x_train: np.ndarray, initial_bias: float = 0,
+                                  step_size: float = 0.9, max_iterations: int = 10):
+        """
+        A method that uses Hill-climbing algorithm to approximate the best time-delay value given a fuzzy triangular
+        membership function.
+
+        :param tri_mf: Fuzzy triangular membership function boundaries (a, b, c) as an array.
+        :param x_train: Initial time-delay values as an array.
+        :param initial_bias: (hyperparameter) initial bias value for the hill-climbing algorithm.
+        :param step_size: (hyperparameter) step size for the hill-climbing algorithm.
+        :param max_iterations: (hyperparameter) maximum number of iterations for the hill-climbing algorithm.
+        :return: Best position to move the triangular MF with its mean-squared-error.
+        """
+
+        def hill_climbing_cost_function(min_membership: float = 0):
+            """
+            Computes the logistic regression cost function for a fuzzy set created from a
+            triangular membership function.
+
+            :param min_membership: The minimum accepted value to allow membership in a fuzzy set.
+            :return: Cost function values.
+            """
+
+            a, b, c = tri_mf[0], tri_mf[1], tri_mf[2]
+
+            # 1. Generate fuzzy data set using MF from x_data
+            memberships = np.where(y_train <= b,
+                                   (y_train - a) / (b - a),
+                                   (c - y_train) / (c - b))
+
+            # 2. Generate y_train based on the given criteria (x>minimum_membership)
+            y_hat = np.where(memberships >= min_membership, 1, 0)
+
+            # 3. Compute loss
+            hat_count = np.count_nonzero(y_hat)
+            true_count = len(y_hat)
+            loss = (((true_count - hat_count) / true_count) ** 2) ** 0.5
+            """:type loss: float"""
+            # loss = abs(true_count - hat_count)
+            return loss
+
+        # 1. Normalize x_train
+        x_train = np.array(x_train, dtype=float)
+
+        # 2. Perform hill climbing to find the optimal bias
+        bias = initial_bias
+        y_train = x_train + bias
+        best_mse = hill_climbing_cost_function()
+        for iteration in range(max_iterations):
+            # a. Generate a new candidate bias by perturbing the current bias
+            new_bias = bias + step_size * np.random.randn()
+
+            # b. Compute the predictions and the MSE with the new bias
+            y_train = x_train + new_bias
+            new_mse = hill_climbing_cost_function()
+
+            # c. If the new MSE is lower, update the bias
+            if new_mse < best_mse:
+                bias = new_bias
+                best_mse = new_mse
+
+        # Make predictions using the optimal bias
+        return bias, best_mse

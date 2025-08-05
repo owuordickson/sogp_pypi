@@ -7,15 +7,13 @@
 
 import json
 import random
-import numpy as np
-from ypstruct import structure
 
 try:
     from ..data_gp import DataGP
-    from ..gradual_patterns import GI
+    from ..gradual_patterns import GI, GP
     from .numeric_ss import NumericSS
 except ImportError:
-    from src.so4gp import DataGP, GI
+    from src.so4gp import DataGP, GI, GP
     from src.so4gp.algorithms import NumericSS
 
 
@@ -53,12 +51,9 @@ class HillClimbingGRAANK(DataGP):
         {"Algorithm": "LS-GRAANK", "Best Patterns": [[["Age+", "Expenses-"], 1.0]], "Invalid Count": 2, "Iterations": 2}
         """
         super(HillClimbingGRAANK, self).__init__(*args, **kwargs)
-        self.step_size = step_size
-        """type: step_size: float"""
-        self.max_iteration = max_iter
-        """type: max_iteration: int"""
-        self.n_var = 1
-        """:type n_var: int"""
+        self._step_size: float = step_size
+        self._max_iteration: int = max_iter
+        self._n_var: int = 1
 
     def discover(self):
         """Description
@@ -70,85 +65,57 @@ class HillClimbingGRAANK(DataGP):
         """
         # Prepare data set
         self.fit_bitmap()
-        attr_keys = [GI(x[0], x[1].decode()).as_string for x in self.valid_bins[:, 0]]
-
         if self.valid_bins is None:
             return []
 
-        # Parameters
-        it_count = 0
-        var_min = 0
-        counter = 0
-        var_max = int(''.join(['1'] * len(attr_keys)), 2)
-        eval_count = 0
-
-        # Empty Individual Template
-        best_sol = structure()
-        candidate = structure()
-
-        # generate an initial point
-        best_sol.position = None
-        # candidate.position = None
-        if best_sol.position is None:
-            best_sol.position = np.random.uniform(var_min, var_max, self.n_var)
-        # evaluate the initial point
-        NumericSS.apply_bound(best_sol, var_min, var_max)
-        best_sol.cost = NumericSS.cost_function(best_sol.position, attr_keys, self)
-
-        # Best Cost of Iteration
-        best_costs = np.empty(self.max_iteration)
-        best_patterns = []
-        str_best_gps = list()
-        str_iter = ''
-        str_eval = ''
-
-        invalid_count = 0
-        repeated = 0
-
+        # Initialize search space
+        s_space = NumericSS.initialize_search_space(self.valid_bins, 1, self._max_iteration)
+        if s_space is None:
+            return []
+        
         # run the hill climb
-        while counter < self.max_iteration:
+        repeated = 0
+        candidate = NumericSS.Candidate()
+        while s_space.counter < self._max_iteration:
             # while eval_count < max_evaluations:
             # take a step
             candidate.position = None
             if candidate.position is None:
-                candidate.position = best_sol.position + (random.randrange(var_min, var_max) * self.step_size)
-            NumericSS.apply_bound(candidate, var_min, var_max)
-            candidate.cost = NumericSS.cost_function(candidate.position, attr_keys, self)
+                candidate.position = s_space.best_sol.position + (random.randrange(s_space.var_min, s_space.var_max) * self._step_size)
+            NumericSS.apply_bound(candidate, s_space.var_min, s_space.var_max)
+            candidate.cost = NumericSS.cost_function(candidate.position, self.valid_bins)
             if candidate.cost == 1:
-                invalid_count += 1
+                s_space.invalid_count += 1
 
-            if candidate.cost < best_sol.cost:
-                best_sol = candidate.deepcopy()
-            eval_count += 1
-            str_eval += "{}: {} \n".format(eval_count, best_sol.cost)
+            if candidate.cost < s_space.best_sol.cost:
+                s_space.best_sol = NumericSS.Candidate(position=candidate.position, cost=candidate.cost)
+            s_space.eval_count += 1
 
-            best_gp = NumericSS.decode_gp(attr_keys, best_sol.position).validate_graank(self)
-            """:type best_gp: ExtGP"""
-            is_present = best_gp.is_duplicate(best_patterns)
-            is_sub = best_gp.check_am(best_patterns, subset=True)
+            best_gp: GP = NumericSS.decode_gp(s_space.best_sol.position, self.valid_bins).validate_graank(self)
+            is_present = best_gp.is_duplicate(s_space.best_patterns)
+            is_sub = best_gp.check_am(s_space.best_patterns, subset=True)
             if is_present or is_sub:
                 repeated += 1
             else:
                 if best_gp.support >= self.thd_supp:
-                    best_patterns.append(best_gp)
-                    str_best_gps.append(best_gp.print(self.titles))
+                    s_space.best_patterns.append(best_gp)
+                    s_space.str_best_gps.append(best_gp.print(self.titles))
 
             try:
                 # Show Iteration Information
                 # Store Best Cost
-                best_costs[it_count] = best_sol.cost
-                str_iter += "{}: {} \n".format(it_count, best_sol.cost)
+                s_space.best_costs[s_space.iter_count] = s_space.best_sol.cost
             except IndexError:
                 pass
-            it_count += 1
+            s_space.iter_count += 1
 
-            if self.max_iteration == 1:
-                counter = repeated
+            if self._max_iteration == 1:
+                s_space.counter = repeated
             else:
-                counter = it_count
+                s_space.counter = s_space.iter_count
         # Output
-        out = json.dumps({"Algorithm": "LS-GRAANK", "Best Patterns": str_best_gps, "Invalid Count": invalid_count,
-                          "Iterations": it_count})
+        out = json.dumps({"Algorithm": "LS-GRAANK", "Best Patterns": s_space.str_best_gps, "Invalid Count": s_space.invalid_count,
+                          "Iterations": s_space.iter_count})
         """:type out: object"""
-        self.gradual_patterns = best_patterns
+        self.gradual_patterns = s_space.best_patterns
         return out

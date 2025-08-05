@@ -126,6 +126,8 @@ class GeneticGRAANK(DataGP):
             NumericSS.apply_bound(child, s_space.var_min, s_space.var_max)
             # Evaluate Offspring
             child.cost = NumericSS.cost_function(child.position, self.valid_bins)
+            if child.cost == 1:
+                s_space.invalid_count += 1
             if child.cost < s_space.best_sol.cost:
                 s_space.best_sol = NumericSS.Candidate(position=child.position, cost=child.cost)
             s_space.eval_count += 1

@@ -155,3 +155,43 @@ class NumericSS:
 
         x.position = np.maximum(x.position, var_min)
         x.position = np.minimum(x.position, var_max)
+
+    @staticmethod
+    def evaluate_candidate(candidate: "NumericSS.Candidate", s_space: "NumericSS.SearchSpace", valid_bins_dict: dict)-> "NumericSS.SearchSpace":
+        """"""
+        NumericSS.apply_bound(candidate, s_space.var_min, s_space.var_max)
+        # Evaluate Offspring
+        candidate.cost = NumericSS.cost_function(candidate.position, valid_bins_dict)
+        if candidate.cost == 1:
+            s_space.invalid_count += 1
+        if candidate.cost < s_space.best_sol.cost:
+            s_space.best_sol = NumericSS.Candidate(position=candidate.position, cost=candidate.cost)
+        s_space.eval_count += 1
+        return s_space
+
+    @staticmethod
+    def evaluate_gradual_pattern(max_iter: int, repeat_count: int, s_space: "NumericSS.SearchSpace", data_gp: DataGP) -> tuple["NumericSS.SearchSpace", int]:
+        """"""
+        best_gp: GP = NumericSS.decode_gp(s_space.best_sol.position, data_gp.valid_bins).validate_graank(data_gp)
+        is_present = best_gp.is_duplicate(s_space.best_patterns)
+        is_sub = best_gp.check_am(s_space.best_patterns, subset=True)
+        if is_present or is_sub:
+            repeat_count += 1
+        else:
+            if best_gp.support >= data_gp.thd_supp:
+                s_space.best_patterns.append(best_gp)
+                s_space.str_best_gps.append(best_gp.print(data_gp.titles))
+
+        try:
+            # Show Iteration Information
+            # Store Best Cost
+            s_space.best_costs[s_space.iter_count] = s_space.best_sol.cost
+        except IndexError:
+            pass
+        s_space.iter_count += 1
+
+        if max_iter == 1:
+            s_space.counter = repeat_count
+        else:
+            s_space.counter = s_space.iter_count
+        return s_space, repeat_count

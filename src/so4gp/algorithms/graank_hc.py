@@ -82,37 +82,13 @@ class HillClimbingGRAANK(DataGP):
             candidate.position = None
             if candidate.position is None:
                 candidate.position = s_space.best_sol.position + (random.randrange(s_space.var_min, s_space.var_max) * self._step_size)
-            NumericSS.apply_bound(candidate, s_space.var_min, s_space.var_max)
-            candidate.cost = NumericSS.cost_function(candidate.position, self.valid_bins)
-            if candidate.cost == 1:
-                s_space.invalid_count += 1
 
-            if candidate.cost < s_space.best_sol.cost:
-                s_space.best_sol = NumericSS.Candidate(position=candidate.position, cost=candidate.cost)
-            s_space.eval_count += 1
+            # Evaluate candidate
+            NumericSS.evaluate_candidate(candidate, s_space, self.valid_bins)
 
-            best_gp: GP = NumericSS.decode_gp(s_space.best_sol.position, self.valid_bins).validate_graank(self)
-            is_present = best_gp.is_duplicate(s_space.best_patterns)
-            is_sub = best_gp.check_am(s_space.best_patterns, subset=True)
-            if is_present or is_sub:
-                repeated += 1
-            else:
-                if best_gp.support >= self.thd_supp:
-                    s_space.best_patterns.append(best_gp)
-                    s_space.str_best_gps.append(best_gp.print(self.titles))
+            # Evaluate GP
+            _, repeated = NumericSS.evaluate_gradual_pattern(self._max_iteration, repeated, s_space, self)
 
-            try:
-                # Show Iteration Information
-                # Store Best Cost
-                s_space.best_costs[s_space.iter_count] = s_space.best_sol.cost
-            except IndexError:
-                pass
-            s_space.iter_count += 1
-
-            if self._max_iteration == 1:
-                s_space.counter = repeated
-            else:
-                s_space.counter = s_space.iter_count
         # Output
         out = json.dumps({"Algorithm": "LS-GRAANK", "Best Patterns": s_space.str_best_gps, "Invalid Count": s_space.invalid_count,
                           "Iterations": s_space.iter_count})

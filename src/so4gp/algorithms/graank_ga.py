@@ -122,16 +122,6 @@ class GeneticGRAANK(DataGP):
         :return: JSON object
         """
 
-        def evaluate_offsprings(child):
-            NumericSS.apply_bound(child, s_space.var_min, s_space.var_max)
-            # Evaluate Offspring
-            child.cost = NumericSS.cost_function(child.position, self.valid_bins)
-            if child.cost == 1:
-                s_space.invalid_count += 1
-            if child.cost < s_space.best_sol.cost:
-                s_space.best_sol = NumericSS.Candidate(position=child.position, cost=child.cost)
-            s_space.eval_count += 1
-
         # Prepare data set
         self.fit_bitmap()
         if self.valid_bins is None:
@@ -157,14 +147,14 @@ class GeneticGRAANK(DataGP):
 
                 # a. Perform Crossover
                 c1, c2 = self._crossover(p1, p2)
-                evaluate_offsprings(c1)
-                evaluate_offsprings(c2)
+                NumericSS.evaluate_candidate(c1, s_space, self.valid_bins)
+                NumericSS.evaluate_candidate(c2, s_space, self.valid_bins)
 
                 # b. Perform Mutation
                 c1 = self._mutate(c1)
                 c2 = self._mutate(c2)
-                evaluate_offsprings(c1)
-                evaluate_offsprings(c2)
+                NumericSS.evaluate_candidate(c1, s_space, self.valid_bins)
+                NumericSS.evaluate_candidate(c2, s_space, self.valid_bins)
 
                 # c. Add Offsprings to c_pop
                 c_pop.append(c1)
@@ -175,29 +165,9 @@ class GeneticGRAANK(DataGP):
             s_space.pop = sorted(s_space.pop, key=lambda x: x.cost)
             s_space.pop = s_space.pop[0:self._parent_pop]
 
-            best_gp: GP = NumericSS.decode_gp(s_space.best_sol.position, self.valid_bins).validate_graank(self)
-            is_present = best_gp.is_duplicate(s_space.best_patterns)
-            is_sub = best_gp.check_am(s_space.best_patterns, subset=True)
-            if is_present or is_sub:
-                repeated += 1
-            else:
-                if best_gp.support >= self.thd_supp:
-                    s_space.best_patterns.append(best_gp)
-                    s_space.str_best_gps.append(best_gp.print(self.titles))
-                # else:
-                #    best_sol.cost = 1
+            # Evaluate GP
+            _, repeated = NumericSS.evaluate_gradual_pattern(self._max_iteration, repeated, s_space, self)
 
-            try:
-                # Store Best Cost
-                s_space.best_costs[s_space.iter_count] = s_space.best_sol.cost
-            except IndexError:
-                pass
-            s_space.iter_count += 1
-
-            if self._max_iteration == 1:
-                s_space.counter = repeated
-            else:
-                s_space.counter = s_space.iter_count
         # Output
         out = json.dumps({"Algorithm": "GA-GRAANK", "Best Patterns": s_space.str_best_gps,
                           "Invalid Count": s_space.invalid_count, "Iterations": s_space.iter_count})

@@ -22,11 +22,11 @@ class TGrad(GRAANK):
 
     def __init__(self, *args, target_col: int, min_rep: float = 0.5, **kwargs):
         """
-        TGrad is an algorithm that is used to extract temporal gradual patterns from numeric datasets. An algorithm for
-    mining temporal gradual patterns using fuzzy membership functions. It uses technique published
+        TGrad is an algorithm used to extract temporal gradual patterns from numeric datasets. An algorithm for
+    mining temporal gradual patterns using fuzzy membership functions. It uses a technique published
     in: https://ieeexplore.ieee.org/abstract/document/8858883.
 
-        :param args: [required] data source path of Pandas DataFrame, [optional] minimum-support, [optional] eq
+        :param args: [required] a data source path of Pandas DataFrame, [optional] minimum-support, [optional] eq
         :param target_col: [required] Target column.
         :param min_rep: [optional] minimum representativity value.
 
@@ -67,9 +67,9 @@ class TGrad(GRAANK):
 
         Applies fuzzy-logic, data transformation and gradual pattern mining to mine for Fuzzy Temporal Gradual Patterns.
 
-        :param parallel: allow multiprocessing.
-        :param num_cores: number of CPU cores for algorithm to use.
-        :return: list of FTGPs as JSON object
+        :param parallel: Allow multiprocessing.
+        :param num_cores: Number of CPU cores for the algorithm to use.
+        :return: List of FTGPs as JSON object
         """
 
         self.gradual_patterns = []
@@ -87,7 +87,7 @@ class TGrad(GRAANK):
         else:
             patterns = list()
             for step in range(self.max_step):
-                t_gps = self.transform_and_mine(step + 1)  # because for-loop is not inclusive from range: 0 - max_step
+                t_gps = self.transform_and_mine(step + 1)  # because for-loop it is not inclusive from range: 0 - max_step
                 if t_gps:
                     patterns.append(t_gps)
 
@@ -106,13 +106,13 @@ class TGrad(GRAANK):
         """
         A method that: (1) transforms data according to a step value and, (2) mines the transformed data for FTGPs.
 
-        :param step: data transformation step.
-        :param return_patterns: allow method to mine TGPs.
-        :return: list of TGPs
+        :param step: Data transformation step.
+        :param return_patterns: Allow method to mine TGPs.
+        :return: List of TGPs
         """
         # NB: Restructure dataset based on target/reference col
         if self.time_ok:
-            # 1. Calculate time difference using step
+            # 1. Calculate the time difference using a step
             ok, time_diffs = self.get_time_diffs(step)
             if not ok:
                 msg = "Error: Time in row " + str(time_diffs[0]) \
@@ -164,10 +164,10 @@ class TGrad(GRAANK):
         Uses apriori algorithm to find GP candidates based on the target-attribute. The candidates are validated if
         their computed support is greater than or equal to the minimum support threshold specified by the user.
 
-        :param time_delay_data: time-delay values
+        :param time_delay_data: Time-delay values
         :param attr_data: the transformed data.
-        :param clustering_method: find and approximate best time-delay value using KMeans and Hill-climbing approach.
-        :return: temporal-GPs as a list.
+        :param clustering_method: Find and approximate the best time-delay value using KMeans and Hill-climbing approach.
+        :return: Temporal-GPs as a list.
         """
 
         self.fit_bitmap(attr_data)
@@ -177,7 +177,7 @@ class TGrad(GRAANK):
         valid_bins = self.valid_bins
 
         if clustering_method:
-            # Build the main triangular MF using clustering algorithm
+            # Build the main triangular MF using the clustering algorithm
             a, b, c = TGradAMI.build_mf_w_clusters(time_delay_data)
             tri_mf_data = np.array([a, b, c])
         else:
@@ -207,7 +207,7 @@ class TGrad(GRAANK):
                             tgp.target_gradual_item(gi)
                         else:
                             tgp.add_temporal_gradual_item(gi, t_lag)
-                    tgp.support(sup)
+                    tgp.support = sup
                     gradual_patterns.append(tgp)
         return gradual_patterns
 
@@ -216,8 +216,8 @@ class TGrad(GRAANK):
 
         A method that computes the difference between 2 timestamps separated by a specific transformation step.
 
-        :param step: data transformation step.
-        :return: dict of time delay values
+        :param step: Data transformation step.
+        :return: Dict of time delay values
         """
         size = self.row_count
         time_diffs = {}  # {row: time-lag}
@@ -247,14 +247,14 @@ class TGrad(GRAANK):
     def get_fuzzy_time_lag(self, bin_data: np.ndarray, time_data: np.ndarray | dict, gi_arr: set = None, tri_mf_data: np.ndarray | None = None):
         """
 
-        A method that uses fuzzy membership function to select the most accurate time-delay value. We implement two
-        methods: (1) uses classical slide and re-calculate dynamic programming to find best time-delay value and,
+        A method that uses a fuzzy membership function to select the most accurate time-delay value. We implement two
+        methods: (1) uses classical slide and re-calculate dynamic programming to find the best time-delay value and,
         (2) uses metaheuristic hill-climbing to find the best time-delay value.
 
-        :param bin_data: gradual item pairwise matrix.
-        :param time_data: time-delay values.
-        :param gi_arr: gradual item object.
-        :param tri_mf_data: The a,b,c values of the triangular MF. Used to find and approximate best time-delay value
+        :param bin_data: Gradual item pairwise matrix.
+        :param time_data: Time-delay values.
+        :param gi_arr: Gradual item object.
+        :param tri_mf_data: The 'a,b,c' values of the triangular MF. Used to find and approximate the best time-delay value
         using KMeans and Hill-climbing approach.
         :return: TimeDelay object.
         """
@@ -267,7 +267,7 @@ class TGrad(GRAANK):
         if gi_arr is not None:
             selected_cols = []
             for obj in gi_arr:
-                # Ignore target-col and, remove time-cols and target-col from count
+                # Ignore target-col and remove time-cols and target-col from the count
                 col = int(obj[0])
                 if (col != self.target_col) and (col < self.target_col):
                     selected_cols.append(col - (len(self.time_cols)))
@@ -334,11 +334,11 @@ class TGrad(GRAANK):
         A method that implements the fuzzy triangular membership function and computes the membership degree of value w.r.t
         the MF.
 
-        :param x: value to be tested.
-        :param a: left-side/minimum boundary of the triangular membership function.
-        :param b: center value of the triangular membership function.
-        :param c: maximum boundary value of the triangular membership function.
-        :return: membership degree of value x.
+        :param x: Value to be tested.
+        :param a: Left-side/minimum boundary of the triangular membership function.
+        :param b: Center value of the triangular membership function.
+        :param c: Maximum boundary value of the triangular membership function.
+        :return: Membership degree of value x.
         """
         if a <= x <= b:
             return (x - a) / (b - a)
@@ -353,12 +353,12 @@ class TGrad(GRAANK):
 
         A method that selects the most appropriate time-delay value from a list of possible values.
 
-        :param time_lags: an array of all the possible time-delay values.
-        :return: the approximated TimeDelay object.
+        :param time_lags: An array of all the possible time-delay values.
+        :return: The approximated TimeDelay object.
         """
 
         if len(time_lags) <= 0:
-            # if time_lags is blank return nothing
+            # if time_lags is blank, return nothing
             return TimeDelay()
         else:
             time_lags = np.absolute(np.array(time_lags))

@@ -1,5 +1,5 @@
 import pandas
-from so4gp.algorithms import GRAANK, AntGRAANK, GeneticGRAANK, HillClimbingGRAANK
+from so4gp.algorithms import GRAANK, AntGRAANK, GeneticGRAANK, HillClimbingGRAANK, RandomGRAANK
 
 if __name__ == "__main__":
 
@@ -11,7 +11,8 @@ if __name__ == "__main__":
     # mine_obj = ClusterGP(dummy_df, 0.5, max_iter=3, e_prob=0.5)
     # mine_obj = AntGRAANK(dummy_df, 0.5, max_iter=3, e_factor=0.5)
     #mine_obj = GeneticGRAANK(dummy_df, 0.5, max_iter=20)
-    mine_obj = HillClimbingGRAANK(dummy_df, 0.5, max_iter=20)
+    # mine_obj = HillClimbingGRAANK(dummy_df, 0.5, max_iter=20)
+    mine_obj = RandomGRAANK(dummy_df, 0.5, max_iter=20)
     # result_json = mine_obj.discover(target_col=4)
     result_json = mine_obj.discover()
     print(result_json)

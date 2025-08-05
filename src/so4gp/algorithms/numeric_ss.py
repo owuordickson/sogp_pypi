@@ -160,7 +160,6 @@ class NumericSS:
     def evaluate_candidate(candidate: "NumericSS.Candidate", s_space: "NumericSS.SearchSpace", valid_bins_dict: dict)-> "NumericSS.SearchSpace":
         """"""
         NumericSS.apply_bound(candidate, s_space.var_min, s_space.var_max)
-        # Evaluate Offspring
         candidate.cost = NumericSS.cost_function(candidate.position, valid_bins_dict)
         if candidate.cost == 1:
             s_space.invalid_count += 1

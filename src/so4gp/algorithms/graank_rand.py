@@ -7,8 +7,6 @@
 
 import json
 import random
-import numpy as np
-from ypstruct import structure
 
 try:
     from ..data_gp import DataGP
@@ -37,13 +35,13 @@ class RandomGRAANK(DataGP):
         :param args: [required] a data source path of Pandas DataFrame, [optional] minimum-support, [optional] eq
         :param max_iter: [optional] maximum_iteration, default is 1
 
-        >>> import so4gp as sgp
+        >>> from so4gp.algorithms as RandomGRAANK
         >>> import pandas
         >>> import json
         >>> dummy_data = [[30, 3, 1, 10], [35, 2, 2, 8], [40, 4, 2, 7], [50, 1, 1, 6], [52, 7, 1, 2]]
         >>> dummy_df = pandas.DataFrame(dummy_data, columns=['Age', 'Salary', 'Cars', 'Expenses'])
         >>>
-        >>> mine_obj = sgp.RandomGRAANK(dummy_df, 0.5, max_iter=3)
+        >>> mine_obj = RandomGRAANK(dummy_df, 0.5, max_iter=3)
         >>> result_json = mine_obj.discover()
         >>> result = json.loads(result_json)
         >>> # print(result['Patterns'])
@@ -52,10 +50,8 @@ class RandomGRAANK(DataGP):
             "Iterations": 3}
         """
         super(RandomGRAANK, self).__init__(*args, **kwargs)
-        self.max_iteration = max_iter
-        """type: max_iteration: int"""
-        self.n_var = 1
-        """:type n_var: int"""
+        self._max_iteration: int = max_iter
+        self._n_var: int = 1
 
     def discover(self):
         """Description
@@ -67,80 +63,30 @@ class RandomGRAANK(DataGP):
         """
         # Prepare data set
         self.fit_bitmap()
-        attr_keys = [GI(x[0], x[1].decode()).as_string for x in self.valid_bins[:, 0]]
-
         if self.valid_bins is None:
             return []
 
-        # Parameters
-        it_count = 0
-        counter = 0
-        var_min = 0
-        var_max = int(''.join(['1'] * len(attr_keys)), 2)
-        eval_count = 0
+        # Initialize search space
+        s_space = NumericSS.initialize_search_space(self.valid_bins, 1, self._max_iteration)
+        if s_space is None:
+            return []
 
-        # Empty Individual Template
-        candidate = structure()
-        candidate.position = None
-        candidate.cost = float('inf')
-
-        # INITIALIZE
-        best_sol = candidate.deepcopy()
-        best_sol.position = np.random.uniform(var_min, var_max, self.n_var)
-        best_sol.cost = NumericSS.cost_function(best_sol.position, attr_keys, self)
-
-        # Best Cost of Iteration
-        best_costs = np.empty(self.max_iteration)
-        best_patterns = []
-        str_best_gps = list()
-        str_iter = ''
-        str_eval = ''
-
+        # run the hill climb
         repeated = 0
-        invalid_count = 0
-
-        while counter < self.max_iteration:
+        candidate = NumericSS.Candidate()
+        while s_space.counter < self._max_iteration:
             # while eval_count < max_evaluations:
-            candidate.position = ((var_min + random.random()) * (var_max - var_min))
-            NumericSS.apply_bound(candidate, var_min, var_max)
-            candidate.cost = NumericSS.cost_function(candidate.position, attr_keys, self)
-            if candidate.cost == 1:
-                invalid_count += 1
+            candidate.position = ((s_space.var_min + random.random()) * (s_space.var_max - s_space.var_min))
 
-            if candidate.cost < best_sol.cost:
-                best_sol = candidate.deepcopy()
-            eval_count += 1
-            str_eval += "{}: {} \n".format(eval_count, best_sol.cost)
+            # Evaluate candidate
+            NumericSS.evaluate_candidate(candidate, s_space, self.valid_bins)
 
-            best_gp = NumericSS.decode_gp(attr_keys, best_sol.position).validate_graank(self)
-            """:type best_gp: ExtGP"""
-            is_present = best_gp.is_duplicate(best_patterns)
-            is_sub = best_gp.check_am(best_patterns, subset=True)
-            if is_present or is_sub:
-                repeated += 1
-            else:
-                if best_gp.support >= self.thd_supp:
-                    best_patterns.append(best_gp)
-                    str_best_gps.append(best_gp.print(self.titles))
-                # else:
-                #    best_sol.cost = 1
+            # Evaluate GP
+            _, repeated = NumericSS.evaluate_gradual_pattern(self._max_iteration, repeated, s_space, self)
 
-            try:
-                # Show Iteration Information
-                # Store Best Cost
-                best_costs[it_count] = best_sol.cost
-                str_iter += "{}: {} \n".format(it_count, best_sol.cost)
-            except IndexError:
-                pass
-            it_count += 1
-
-            if self.max_iteration == 1:
-                counter = repeated
-            else:
-                counter = it_count
         # Output
-        out = json.dumps({"Algorithm": "RS-GRAANK", "Best Patterns": str_best_gps, "Invalid Count": invalid_count,
-                          "Iterations": it_count})
+        out = json.dumps({"Algorithm": "RS-GRAANK", "Best Patterns": s_space.str_best_gps,
+                          "Invalid Count": s_space.invalid_count, "Iterations": s_space.iter_count})
         """:type out: object"""
-        self.gradual_patterns = best_patterns
+        self.gradual_patterns = s_space.best_patterns
         return out

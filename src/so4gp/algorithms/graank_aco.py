@@ -9,9 +9,9 @@ import json
 import numpy as np
 try:
     from ..data_gp import DataGP
-    from ..gradual_patterns import GI, GP
+    from ..gradual_patterns import GI, GP, PairwiseMatrix
 except ImportError:
-    from src.so4gp import DataGP, GI, GP
+    from src.so4gp import DataGP, GI, GP, PairwiseMatrix
 
 class AntGRAANK(DataGP):
 
@@ -79,7 +79,7 @@ class AntGRAANK(DataGP):
                     # Ignore similar attributes (+ or/and -)
                     continue
                 else:
-                    res_pw_mat: DataGP.PairwiseMatrix = DataGP.perform_and(gi_dict[attr_keys[i]], gi_dict[attr_keys[j]], n)
+                    res_pw_mat: PairwiseMatrix = GP.perform_and(gi_dict[attr_keys[i]], gi_dict[attr_keys[j]], n)
                     # Cumulative sum of all segments for 2x2 (all attributes) gradual items
                     d[i][j] += np.sum(res_pw_mat.bin_mat)
         # print(d)

@@ -18,6 +18,12 @@ import numpy as np
 from dataclasses import dataclass
 
 
+@dataclass
+class PairwiseMatrix:
+    bin_mat: np.ndarray
+    support: float
+
+
 class GI:
 
     def __init__(self, attr_col, symbol):
@@ -399,7 +405,7 @@ class GP:
             pattern.append(pat)  # (item.to_string())
         return [pattern, self._support]
 
-    def validate_graank(self, d_gp):
+    def validate_graank(self, d_gp) -> "GP":
         """
         Validates a candidate gradual pattern (GP) based on support computation. A GP is invalid if its support value is
         less than the minimum support threshold set by the user. It uses a breath-first approach to compute support.
@@ -412,34 +418,24 @@ class GP:
         # pattern = [('2', "+"), ('4', "+")]
         min_supp = d_gp.thd_supp
         n = d_gp.attr_size
-        gi_dict = d_gp.valid_bins
+        gi_dict = d_gp.valid_bins.copy()
         gi_key_list = list(gi_dict.keys())
 
         gen_pattern: GP = GP()
-        #bin_arr = np.array([])
-        bin_dict_1 = None
-
+        pw_mat_1: PairwiseMatrix|None = None
         for gi in self.gradual_items:
             arg = np.argwhere(np.isin(np.array(gi_key_list), gi.to_string()))
             if len(arg) > 0:
                 i = arg[0][0]
-                valid_bin = gi_dict[gi_key_list[i]].bin_mat
-                # if bin_arr.size <= 0:
-                if bin_dict_1 is None:
-                    #bin_arr = np.array([valid_bin, valid_bin])
-                    bin_dict_1 = gi_dict[gi_key_list[i]].copy()
+                if pw_mat_1 is None:
+                    pw_mat_1 = gi_dict[gi_key_list[i]]
                     gen_pattern.add_gradual_item(gi)
                 else:
-                    #bin_arr[1] = valid_bin.copy()
-                    #temp_bin = np.multiply(bin_arr[0], bin_arr[1])
-                    #supp = float(np.sum(temp_bin)) / float(n * (n - 1.0) / 2.0)
-                    bin_dict_2 = gi_dict[gi_key_list[i]].copy()
-                    res_pw_mat = DataGP.perform_and(bin_dict_1, bin_dict_2, n)
+                    pw_mat_2 = gi_dict[gi_key_list[i]]
+                    res_pw_mat = GP.perform_and(pw_mat_1, pw_mat_2, n)
                     if res_pw_mat.support >= min_supp:
-                        #bin_arr[0] = temp_bin.copy()
-                        bin_dict_1 = res_pw_mat
+                        pw_mat_1 = PairwiseMatrix(bin_mat=res_pw_mat.bin_mat.copy(), support=res_pw_mat.support)
                         gen_pattern.add_gradual_item(gi)
-                        # gen_pattern.support = supp
                         gen_pattern.support = res_pw_mat.support
         if len(gen_pattern.gradual_items) <= 1:
             return self
@@ -550,6 +546,18 @@ class GP:
             if not (result1 or result2):
                 mod_gp_list.append(gp)
         return mod_gp_list
+
+    @staticmethod
+    def perform_and(bin_data_1: "PairwiseMatrix", bin_data_2: "PairwiseMatrix", dim: int) -> "PairwiseMatrix":
+        """
+        Perform logical AND operation on two bitmaps.
+        :param bin_data_1: Bitmap 1
+        :param bin_data_2: bitmap 2
+        :param dim: dimension of the bitmaps
+        """
+        bin_mat = bin_data_1.bin_mat * bin_data_2.bin_mat
+        sup = float(np.sum(bin_mat)) / float(dim * (dim - 1.0) / 2.0)
+        return PairwiseMatrix(bin_mat=bin_mat, support=sup)
 
 
 class TimeDelay:

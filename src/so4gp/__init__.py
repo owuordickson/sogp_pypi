@@ -43,6 +43,7 @@ from .gradual_patterns import GI
 from .gradual_patterns import GP
 from .gradual_patterns import TGP
 from .gradual_patterns import TimeDelay
+from .gradual_patterns import PairwiseMatrix
 
 from .utils import analyze_gps
 from .utils import gradual_decompose

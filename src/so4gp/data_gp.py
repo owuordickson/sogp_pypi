@@ -20,17 +20,14 @@ import csv
 import time
 import numpy as np
 import pandas as pd
-from dataclasses import dataclass
 from dateutil.parser import parse
 
-from .gradual_patterns import GP, TGP
+try:
+    from .gradual_patterns import GP, TGP, PairwiseMatrix
+except ImportError:
+    from src.so4gp import GP, TGP, PairwiseMatrix
 
 class DataGP:
-
-    @dataclass
-    class PairwiseMatrix:
-        bin_mat: np.ndarray
-        support: float
 
     def __init__(self, data_source, min_sup=0.5, eq=False) -> None:
         """Description of class DataGP
@@ -193,8 +190,8 @@ class DataGP:
                 # 2b. Check support of each generated itemset
                 supp = float(np.sum(temp_pos)) / float(n * (n - 1.0) / 2.0)
                 if supp >= self._thd_supp:
-                    self._valid_bins[f"{col}+"] = DataGP.PairwiseMatrix(bin_mat=temp_pos, support=supp)
-                    self._valid_bins[f"{col}-"] = DataGP.PairwiseMatrix(bin_mat=temp_pos.T, support=supp)
+                    self._valid_bins[f"{col}+"] = PairwiseMatrix(bin_mat=temp_pos, support=supp)
+                    self._valid_bins[f"{col}-"] = PairwiseMatrix(bin_mat=temp_pos.T, support=supp)
         # print(self._valid_bins)
         if len(self._valid_bins) < 3:
             self._valid_bins = None
@@ -348,15 +345,3 @@ class DataGP:
         if df.empty:
             raise Exception("Data set is empty after cleaning.")
         return list(df.columns), df.values
-
-    @staticmethod
-    def perform_and(bin_data_1: "DataGP.PairwiseMatrix", bin_data_2: "DataGP.PairwiseMatrix", dim: int) -> "DataGP.PairwiseMatrix":
-        """
-        Perform logical AND operation on two bitmaps.
-        :param bin_data_1: Bitmap 1
-        :param bin_data_2: bitmap 2
-        :param dim: dimension of the bitmaps
-        """
-        bin_mat = bin_data_1.bin_mat * bin_data_2.bin_mat
-        sup = float(np.sum(bin_mat)) / float(dim * (dim - 1.0) / 2.0)
-        return DataGP.PairwiseMatrix(bin_mat=bin_mat, support=sup)

@@ -10,9 +10,9 @@ import numpy as np
 from dataclasses import dataclass
 
 try:
-    from . import DataGP, GI, GP
+    from . import DataGP, GI, GP, PairwiseMatrix
 except ImportError:
-    from src.so4gp import DataGP, GI, GP
+    from src.so4gp import DataGP, GI, GP, PairwiseMatrix
 
 class NumericSS:
 
@@ -125,17 +125,17 @@ class NumericSS:
         gi_key_list = list(valid_bins_dict.keys())
         pattern = NumericSS.decode_gp(position, valid_bins_dict)
 
-        temp_bin = np.array([])
+        pw_mat: PairwiseMatrix|None = None
         for gi in pattern.gradual_items:
             arg = np.argwhere(np.isin(np.array(gi_key_list), gi.to_string()))
             if len(arg) > 0:
                 i = arg[0][0]
-                valid_bin = valid_bins_dict[gi_key_list[i]]
-                if temp_bin.size <= 0:
-                    temp_bin = valid_bin[1].copy()
+                bin_dict = valid_bins_dict[gi_key_list[i]]
+                if pw_mat is None:
+                    pw_mat = PairwiseMatrix(bin_mat=bin_dict.bin_mat, support=bin_dict.support)
                 else:
-                    temp_bin = np.multiply(temp_bin, valid_bin[1])
-        bin_sum = np.sum(temp_bin)
+                    pw_mat = GP.perform_and(pw_mat, bin_dict, -1)
+        bin_sum = np.sum(pw_mat.bin_mat) if pw_mat is not None else 0
         if bin_sum > 0:
             cost = (1 / bin_sum)
         else:
@@ -166,7 +166,9 @@ class NumericSS:
     @staticmethod
     def evaluate_gradual_pattern(max_iter: int, repeat_count: int, s_space: "NumericSS.SearchSpace", data_gp: DataGP) -> tuple["NumericSS.SearchSpace", int]:
         """"""
-        best_gp: GP = NumericSS.decode_gp(s_space.best_sol.position, data_gp.valid_bins).validate_graank(data_gp)
+        dim = data_gp.attr_size
+        best_gp: GP = NumericSS.decode_gp(s_space.best_sol.position, data_gp.valid_bins)
+        best_gp.support = float(1 / s_space.best_sol.cost) / float(dim * (dim - 1.0) / 2.0)
         is_present = best_gp.is_duplicate(s_space.best_patterns)
         is_sub = best_gp.check_am(s_space.best_patterns, subset=True)
         if is_present or is_sub:

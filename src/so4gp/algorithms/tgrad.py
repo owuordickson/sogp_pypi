@@ -110,6 +110,7 @@ class TGrad(GRAANK):
         # 2. Organize FTGPs into a single list
         for lst_obj in patterns:
             if lst_obj:
+                print(lst_obj)
                 for tgp in lst_obj:
                     self.gradual_patterns.append(tgp)
                     str_gps.append(tgp.print(self.titles))

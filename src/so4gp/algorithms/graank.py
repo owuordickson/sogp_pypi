@@ -10,9 +10,9 @@ import numpy as np
 
 try:
     from ..data_gp import DataGP
-    from ..gradual_patterns import GI, GP
+    from ..gradual_patterns import GI, GP, PairwiseMatrix
 except ImportError:
-    from src.so4gp import DataGP, GI, GP
+    from src.so4gp import DataGP, GI, GP, PairwiseMatrix
 
 
 class GRAANK(DataGP):
@@ -131,7 +131,7 @@ class GRAANK(DataGP):
                         else:
                             repeated_attr = k[0]
                     if test == 1:
-                        res_pw_mat: DataGP.PairwiseMatrix = DataGP.perform_and(gi_dict[gi_str_i], gi_dict[gi_str_j], n)
+                        res_pw_mat: PairwiseMatrix = GP.perform_and(gi_dict[gi_str_i], gi_dict[gi_str_j], n)
                         if res_pw_mat.support > min_sup or ignore_sup:
                             # res_dict.append([gp_cand, bin_mat, sup])
                             res_dict[tuple(gp_cand)] = res_pw_mat

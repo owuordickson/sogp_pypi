@@ -79,10 +79,9 @@ class AntGRAANK(DataGP):
                     # Ignore similar attributes (+ or/and -)
                     continue
                 else:
-                    bin_1 = gi_dict[attr_keys[i]].bin_mat
-                    bin_2 = gi_dict[attr_keys[j]].bin_mat
+                    res_pw_mat: DataGP.PairwiseMatrix = DataGP.perform_and(gi_dict[attr_keys[i]], gi_dict[attr_keys[j]], n)
                     # Cumulative sum of all segments for 2x2 (all attributes) gradual items
-                    d[i][j] += np.sum(np.multiply(bin_1, bin_2))
+                    d[i][j] += np.sum(res_pw_mat.bin_mat)
         # print(d)
         self._distance_matrix = d
         self._attribute_keys = attr_keys

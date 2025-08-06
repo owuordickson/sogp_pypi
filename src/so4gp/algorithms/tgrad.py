@@ -228,7 +228,7 @@ class TGrad(GRAANK):
                         else:
                             tgp.add_temporal_gradual_item(gi, t_lag)
                     tgp.support = gi_data.support
-                    t_gps.append(tgp)
+                    t_gps.append(tgp)  # PROBLEM: DO NOT APPEND -- MODIFY remove_subsets
                     if decompose:
                         gp_components[f"{tgp.to_string()}"] = GRAANK.decompose_to_gp_component(gi_data.bin_mat)
         return t_gps, gp_components if decompose else t_gps

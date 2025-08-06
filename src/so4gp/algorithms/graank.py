@@ -131,11 +131,10 @@ class GRAANK(DataGP):
                         else:
                             repeated_attr = k[0]
                     if test == 1:
-                        bin_mat = gi_dict[gi_str_i].bin_mat * gi_dict[gi_str_j].bin_mat
-                        sup = float(np.sum(bin_mat)) / float(n * (n - 1.0) / 2.0)
-                        if sup > min_sup or ignore_sup:
+                        res_pw_mat: DataGP.PairwiseMatrix = DataGP.perform_and(gi_dict[gi_str_i], gi_dict[gi_str_j], n)
+                        if res_pw_mat.support > min_sup or ignore_sup:
                             # res_dict.append([gp_cand, bin_mat, sup])
-                            res_dict[tuple(gp_cand)] = DataGP.PairwiseMatrix(bin_mat=bin_mat, support=sup)
+                            res_dict[tuple(gp_cand)] = res_pw_mat
                         else:
                             invalid_count += 1
                     all_candidates.append(gp_cand)
@@ -160,7 +159,6 @@ class GRAANK(DataGP):
         self.fit_bitmap()
         valid_bins_dict = self.valid_bins.copy()
 
-        n = self.attr_size
         str_winner_gps = []
         self.gradual_patterns: list[GP] = []
 

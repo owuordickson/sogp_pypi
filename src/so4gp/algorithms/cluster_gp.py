@@ -316,10 +316,10 @@ class ClusterGP(DataGP):
 
         A function that estimates the frequency support of a GP based on its score vector.
 
-        :param score_vectors: score vector (ndarray)
+        :param score_vectors: Score vector (ndarray)
         :type score_vectors: list
 
-        :return: estimated support (float)
+        :return: Estimated support (float)
         """
 
         # Estimate support - use different score-vectors to construct pairs

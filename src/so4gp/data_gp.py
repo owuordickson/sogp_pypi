@@ -350,8 +350,13 @@ class DataGP:
         return list(df.columns), df.values
 
     @staticmethod
-    def perform_AND(bin_data_1: "DataGP.PairwiseMatrix", bin_data_2: "DataGP.PairwiseMatrix") -> "DataGP.PairwiseMatrix":
-        """Perform AND operation on two bitmaps."""
-        pass
-        #bin_mat = gi_dict[gi_str_i].bin_mat * gi_dict[gi_str_j].bin_mat
-        #sup = float(np.sum(bin_mat)) / float(n * (n - 1.0) / 2.0)
+    def perform_and(bin_data_1: "DataGP.PairwiseMatrix", bin_data_2: "DataGP.PairwiseMatrix", dim: int) -> "DataGP.PairwiseMatrix":
+        """
+        Perform logical AND operation on two bitmaps.
+        :param bin_data_1: Bitmap 1
+        :param bin_data_2: bitmap 2
+        :param dim: dimension of the bitmaps
+        """
+        bin_mat = bin_data_1.bin_mat * bin_data_2.bin_mat
+        sup = float(np.sum(bin_mat)) / float(dim * (dim - 1.0) / 2.0)
+        return DataGP.PairwiseMatrix(bin_mat=bin_mat, support=sup)

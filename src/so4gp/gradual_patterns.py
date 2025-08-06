@@ -416,24 +416,31 @@ class GP:
         gi_key_list = list(gi_dict.keys())
 
         gen_pattern: GP = GP()
-        bin_arr = np.array([])
+        #bin_arr = np.array([])
+        bin_dict_1 = None
 
         for gi in self.gradual_items:
             arg = np.argwhere(np.isin(np.array(gi_key_list), gi.to_string()))
             if len(arg) > 0:
                 i = arg[0][0]
                 valid_bin = gi_dict[gi_key_list[i]].bin_mat
-                if bin_arr.size <= 0:
-                    bin_arr = np.array([valid_bin, valid_bin])
+                # if bin_arr.size <= 0:
+                if bin_dict_1 is None:
+                    #bin_arr = np.array([valid_bin, valid_bin])
+                    bin_dict_1 = gi_dict[gi_key_list[i]].copy()
                     gen_pattern.add_gradual_item(gi)
                 else:
-                    bin_arr[1] = valid_bin.copy()
-                    temp_bin = np.multiply(bin_arr[0], bin_arr[1])
-                    supp = float(np.sum(temp_bin)) / float(n * (n - 1.0) / 2.0)
-                    if supp >= min_supp:
-                        bin_arr[0] = temp_bin.copy()
+                    #bin_arr[1] = valid_bin.copy()
+                    #temp_bin = np.multiply(bin_arr[0], bin_arr[1])
+                    #supp = float(np.sum(temp_bin)) / float(n * (n - 1.0) / 2.0)
+                    bin_dict_2 = gi_dict[gi_key_list[i]].copy()
+                    res_pw_mat = DataGP.perform_and(bin_dict_1, bin_dict_2, n)
+                    if res_pw_mat.support >= min_supp:
+                        #bin_arr[0] = temp_bin.copy()
+                        bin_dict_1 = res_pw_mat
                         gen_pattern.add_gradual_item(gi)
-                        gen_pattern.support = supp
+                        # gen_pattern.support = supp
+                        gen_pattern.support = res_pw_mat.support
         if len(gen_pattern.gradual_items) <= 1:
             return self
         else:

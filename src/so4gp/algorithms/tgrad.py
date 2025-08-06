@@ -174,7 +174,7 @@ class TGrad(GRAANK):
             msg = "Fatal Error: Time format in column could not be processed"
             raise Exception(msg)
 
-    def _mine(self, time_delay_data: np.ndarray | dict = None, attr_data: np.ndarray = None, clustering_method: bool = False):
+    def _mine(self, time_delay_data: np.ndarray | dict = None, attr_data: np.ndarray = None, clustering_method: bool = False, decompose: bool = False) -> list[TGP] | tuple[list[TGP], dict]:
         """
 
         Uses apriori algorithm to find GP candidates based on the target-attribute. The candidates are validated if
@@ -192,8 +192,9 @@ class TGrad(GRAANK):
         except ZeroDivisionError:
             return []
 
-        gradual_patterns = []
+        t_gps = []
         valid_bins_dict = self.valid_bins.copy()
+        gp_components: dict = {}
 
         if clustering_method:
             # Build the main triangular MF using the clustering algorithm
@@ -202,12 +203,17 @@ class TGrad(GRAANK):
         else:
             tri_mf_data = None
 
+        if decompose:
+            for gi_str, gi_data in valid_bins_dict.items():
+                gi = GI.from_string(gi_str)
+                gp_components[gi.to_string()] = GRAANK.decompose_to_gp_component(gi_data.bin_mat)
+
         invalid_count = 0
         while len(valid_bins_dict) > 0:
             valid_bins_dict, inv_count = self._gen_apriori_candidates(valid_bins_dict, target_col=self._target_col)
             invalid_count += inv_count
             for gp_set, gi_data in valid_bins_dict.items():
-                gradual_patterns = TGP.remove_subsets(gradual_patterns, set(gp_set))
+                # gradual_patterns = TGP.remove_subsets(gradual_patterns, set(gp_set))
                 if type(self) is TGrad:
                     t_lag = self.get_fuzzy_time_lag(gi_data.bin_mat, time_delay_data, gi_arr=None, tri_mf_data=tri_mf_data)
                 else:
@@ -222,8 +228,10 @@ class TGrad(GRAANK):
                         else:
                             tgp.add_temporal_gradual_item(gi, t_lag)
                     tgp.support = gi_data.support
-                    gradual_patterns.append(tgp)
-        return gradual_patterns
+                    t_gps.append(tgp)
+                    if decompose:
+                        gp_components[f"{tgp.to_string()}"] = GRAANK.decompose_to_gp_component(gi_data.bin_mat)
+        return t_gps, gp_components if decompose else t_gps
 
     def get_time_diffs(self, step: int):  # optimized
         """

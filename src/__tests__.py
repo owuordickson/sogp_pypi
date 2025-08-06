@@ -20,7 +20,7 @@ if __name__ == "__main__":
     # result_json = mine_obj.discover(target_col=4)  # GRAANK
     # result_json = mine_obj.discover()
     # result_json = mine_obj.discover_tgp(parallel=False)  # TGrad
-    result_json = mine_obj.discover_tgp(use_clustering=True, eval_mode=True)  # TGradAMI
+    result_json = mine_obj.discover_tgp(use_clustering=True, eval_mode=False)  # TGradAMI
     print(result_json)
 
     #from so4gp.utils import gradual_decompose

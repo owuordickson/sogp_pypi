@@ -193,14 +193,14 @@ class TGradAMI(TGrad):
 
         # 3. Discover temporal-GPs from time-delayed data
         if eval_mode:
-            list_tgp, gp_components = self.extract_gradual_components(time_delay_data=time_data, attr_data=delayed_data,
-                                                                   clustering_method=use_clustering)
+            list_tgp, gp_components = self._mine(time_delay_data=time_data, attr_data=delayed_data, clustering_method=use_clustering, decompose=True)
         else:
             list_tgp: list = self._mine(time_delay_data=time_data, attr_data=delayed_data, clustering_method=use_clustering)
             gp_components = None
 
         # 4. Organize FTGPs into a single list
         if list_tgp:
+            print(list_tgp)
             for tgp in list_tgp:
                 self.gradual_patterns.append(tgp)
                 str_gps.append(tgp.print(self.titles))
@@ -228,53 +228,3 @@ class TGradAMI(TGrad):
             out = json.dumps({"Algorithm": "TGradAMI", "Patterns": str_gps})
             """:type out: object"""
             return out
-
-    def extract_gradual_components(self, time_delay_data: np.ndarray | dict = None, attr_data: np.ndarray = None,
-                                   clustering_method: bool = False):
-        """
-        A method that decomposes a multi-variate timeseries dataset into gradual components. The gradual components are
-        warping paths represented as arrays. It also returns the mined fuzzy-temporal gradual patterns (FTGPs).
-
-        :param time_delay_data: Time-delay values as an array.
-        :param attr_data: The transformed data.
-        :param clustering_method: Find and approximate the best time-delay value using KMeans and Hill-climbing approach.
-        :return: Temporal-GPs as a list and gradual components as a Python dict object.
-        """
-
-        self.fit_bitmap(attr_data)
-        valid_bins_dict = self.valid_bins.copy()
-        gradual_patterns: list = []
-        gp_components: dict = {}
-
-        if clustering_method:
-            # Build the main triangular MF using the clustering algorithm
-            a, b, c = TGrad.build_mf_w_clusters(time_delay_data)
-            tri_mf_data = np.array([a, b, c])
-        else:
-            tri_mf_data = None
-
-        for gi_str, gi_data in valid_bins_dict.items():
-            gi = GI.from_string(gi_str)
-            gp_components[gi.to_string()] = GRAANK.decompose_to_gp_component(gi_data.bin_mat)
-
-        invalid_count = 0
-        while len(valid_bins_dict) > 0:
-            valid_bins_dict, inv_count = self._gen_apriori_candidates(valid_bins_dict, target_col=self._target_col)
-            invalid_count += inv_count
-            for gp_set, gi_data in valid_bins_dict.items():
-                gradual_patterns = TGP.remove_subsets(gradual_patterns, set(gp_set))
-                t_lag = self.get_fuzzy_time_lag(gi_data.bin_mat, time_delay_data, gp_set, tri_mf_data)
-
-                if t_lag.valid:
-                    tgp: TGP = TGP()
-                    for gi_str in gp_set:
-                        gi: GI = GI.from_string(gi_str)
-                        if gi.attribute_col == self._target_col:
-                            tgp.target_gradual_item = gi
-                        else:
-                            tgp.add_temporal_gradual_item(gi, t_lag)
-                    tgp.support = gi_data.support
-                    gradual_patterns.append(tgp)
-                    gp_components[f"{tgp.to_string()}"] = GRAANK.decompose_to_gp_component(gi_data.bin_mat)
-
-        return gradual_patterns, gp_components

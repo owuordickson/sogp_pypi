@@ -210,11 +210,10 @@ class TGradAMI(TGrad):
             title_row = []
             time_title = []
             # print(eval_data)
-            for txt in self.titles:
-                col = int(txt[0])
-                title_row.append(str(txt[1].decode()))
+            for col, txt in enumerate(self.titles):
+                title_row.append(txt)
                 if (col != self.target_col) and (col not in self.time_cols):
-                    time_title.append(str(txt[1].decode()))
+                    time_title.append(txt)
             eval_dict = {
                 'Algorithm': 'TGradAMI',
                 'Patterns': str_gps,
@@ -243,7 +242,7 @@ class TGradAMI(TGrad):
         """
 
         self.fit_bitmap(attr_data)
-        valid_bins = self.valid_bins
+        valid_bins_dict = self.valid_bins.copy()
         gradual_patterns: list = []
         gp_components: dict = {}
 
@@ -254,34 +253,28 @@ class TGradAMI(TGrad):
         else:
             tri_mf_data = None
 
-        for pairwise_obj in valid_bins:
-            pairwise_mat = pairwise_obj[1]
-            attr_col = pairwise_obj[0][0]
-            attr_name = pairwise_obj[0][1].decode()
-            gi = GI(attr_col, attr_name)
-            gp_components[gi.to_string()] = GRAANK.decompose_to_gp_component(pairwise_mat)
+        for gi_str, gi_data in valid_bins_dict.items():
+            gi = GI.from_string(gi_str)
+            gp_components[gi.to_string()] = GRAANK.decompose_to_gp_component(gi_data.bin_mat)
 
         invalid_count = 0
-        while len(valid_bins) > 0:
-            valid_bins, inv_count = self._gen_apriori_candidates(valid_bins, target_col=self.target_col)
+        while len(valid_bins_dict) > 0:
+            valid_bins_dict, inv_count = self._gen_apriori_candidates(valid_bins_dict, target_col=self._target_col)
             invalid_count += inv_count
-            for v_bin in valid_bins:
-                gi_arr = v_bin[0]
-                bin_data = v_bin[1]
-                sup = v_bin[2]
-                gradual_patterns = TGP.remove_subsets(gradual_patterns, set(gi_arr))
-                t_lag = self.get_fuzzy_time_lag(bin_data, time_delay_data, gi_arr, tri_mf_data)
+            for gp_set, gi_data in valid_bins_dict.items():
+                gradual_patterns = TGP.remove_subsets(gradual_patterns, set(gp_set))
+                t_lag = self.get_fuzzy_time_lag(gi_data.bin_mat, time_delay_data, gp_set, tri_mf_data)
 
                 if t_lag.valid:
-                    tgp = TGP()
-                    for obj in gi_arr:
-                        gi = GI(obj[0], obj[1].decode())
-                        if gi.attribute_col == self.target_col:
+                    tgp: TGP = TGP()
+                    for gi_str in gp_set:
+                        gi: GI = GI.from_string(gi_str)
+                        if gi.attribute_col == self._target_col:
                             tgp.target_gradual_item = gi
                         else:
                             tgp.add_temporal_gradual_item(gi, t_lag)
-                    tgp.support = sup
+                    tgp.support = gi_data.support
                     gradual_patterns.append(tgp)
-                    gp_components[f"{tgp.to_string()}"] = GRAANK.decompose_to_gp_component(bin_data)
+                    gp_components[f"{tgp.to_string()}"] = GRAANK.decompose_to_gp_component(gi_data.bin_mat)
 
         return gradual_patterns, gp_components

@@ -107,7 +107,7 @@ class GRAANK(DataGP):
 
                 # 3. Apply target-feature search
                 if target_col is not None:
-                    has_tgt_col = np.any(np.array([(y[0] == target_col) for y in gp_cand], dtype=bool))
+                    has_tgt_col = np.any(np.array([(GI.from_string(gi_str).attribute_col == target_col) for gi_str in gp_cand], dtype=bool))
                     # (ONLY proceed if target-feature is NOT part of the GP candidate - exclude_target is True)
                     if exclude_target and has_tgt_col:
                         continue
@@ -131,11 +131,11 @@ class GRAANK(DataGP):
                         else:
                             repeated_attr = k[0]
                     if test == 1:
-                        bin_mat = gi_dict[gi_str_i] * gi_dict[gi_str_j]
+                        bin_mat = gi_dict[gi_str_i].bin_mat * gi_dict[gi_str_j].bin_mat
                         sup = float(np.sum(bin_mat)) / float(n * (n - 1.0) / 2.0)
                         if sup > min_sup or ignore_sup:
                             # res_dict.append([gp_cand, bin_mat, sup])
-                            res_dict[tuple(gp_cand)] = bin_mat
+                            res_dict[tuple(gp_cand)] = DataGP.PairwiseMatrix(bin_mat=bin_mat, support=sup)
                         else:
                             invalid_count += 1
                     all_candidates.append(gp_cand)
@@ -172,16 +172,15 @@ class GRAANK(DataGP):
                                                                  target_col=target_col,
                                                                  exclude_target=exclude_target)
             invalid_count += inv_count
-            for gp_set, bin_mat in valid_bins_dict.items():
+            for gp_set, gi_data in valid_bins_dict.items():
                 # if not ignore_support:
                 self.gradual_patterns = GP.remove_subsets(self.gradual_patterns, set(gp_set))
-                sup = float(np.sum(bin_mat)) / float(n * (n - 1.0) / 2.0)
 
                 gp: GP = GP()
                 for gi_str in gp_set:
                     gi: GI = GI.from_string(gi_str)
                     gp.add_gradual_item(gi)
-                gp.support = sup
+                gp.support = gi_data.support
                 self.add_gradual_pattern(gp)
                 str_winner_gps.append(gp.print(self.titles))
             candidate_level += 1

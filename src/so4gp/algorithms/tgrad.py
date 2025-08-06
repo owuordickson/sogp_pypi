@@ -186,10 +186,14 @@ class TGrad(GRAANK):
         :return: Temporal-GPs as a list.
         """
 
-        self.fit_bitmap(attr_data)
+        try:
+            # If min-rep is too low
+            self.fit_bitmap(attr_data)
+        except ZeroDivisionError:
+            return []
 
         gradual_patterns = []
-        valid_bins = self.valid_bins
+        valid_bins_dict = self.valid_bins.copy()
 
         if clustering_method:
             # Build the main triangular MF using the clustering algorithm
@@ -199,28 +203,25 @@ class TGrad(GRAANK):
             tri_mf_data = None
 
         invalid_count = 0
-        while len(valid_bins) > 0:
-            valid_bins, inv_count = self._gen_apriori_candidates(valid_bins, target_col=self._target_col)
+        while len(valid_bins_dict) > 0:
+            valid_bins_dict, inv_count = self._gen_apriori_candidates(valid_bins_dict, target_col=self._target_col)
             invalid_count += inv_count
-            for v_bin in valid_bins:
-                gi_arr = v_bin[0]
-                bin_data = v_bin[1]
-                sup = v_bin[2]
-                gradual_patterns = TGP.remove_subsets(gradual_patterns, set(gi_arr))
+            for gp_set, gi_data in valid_bins_dict.items():
+                gradual_patterns = TGP.remove_subsets(gradual_patterns, set(gp_set))
                 if type(self) is TGrad:
-                    t_lag = self.get_fuzzy_time_lag(bin_data, time_delay_data, gi_arr=None, tri_mf_data=tri_mf_data)
+                    t_lag = self.get_fuzzy_time_lag(gi_data.bin_mat, time_delay_data, gi_arr=None, tri_mf_data=tri_mf_data)
                 else:
-                    t_lag = self.get_fuzzy_time_lag(bin_data, time_delay_data, gi_arr, tri_mf_data)
+                    t_lag = self.get_fuzzy_time_lag(gi_data.bin_mat, time_delay_data, gp_set, tri_mf_data)
 
                 if t_lag.valid:
                     tgp: TGP = TGP()
-                    for obj in gi_arr:
-                        gi: GI = GI(obj[0], obj[1].decode())
+                    for gi_str in gp_set:
+                        gi: GI = GI.from_string(gi_str)
                         if gi.attribute_col == self._target_col:
                             tgp.target_gradual_item = gi
                         else:
                             tgp.add_temporal_gradual_item(gi, t_lag)
-                    tgp.support = sup
+                    tgp.support = gi_data.support
                     gradual_patterns.append(tgp)
         return gradual_patterns
 
@@ -257,7 +258,7 @@ class TGrad(GRAANK):
                 time_diffs[int(i)] = float(abs(time_diff))
         return True, time_diffs
 
-    def get_fuzzy_time_lag(self, bin_data: np.ndarray, time_data: np.ndarray | dict, gi_arr: set = None, tri_mf_data: np.ndarray | None = None):
+    def get_fuzzy_time_lag(self, bin_data: np.ndarray, time_data: np.ndarray | dict, gi_arr: set = None, tri_mf_data: np.ndarray | None = None) -> TimeDelay:
         """
 
         A method that uses a fuzzy membership function to select the most accurate time-delay value. We implement two
@@ -272,7 +273,7 @@ class TGrad(GRAANK):
         :return: TimeDelay object.
         """
 
-        def approx_time_slide_calculate(time_lag_arr: np.ndarray):
+        def approx_time_slide_calculate(time_lag_arr: np.ndarray) -> TimeDelay:
             """
 
             A method that selects the most appropriate time-delay value from a list of possible values.
@@ -380,9 +381,9 @@ class TGrad(GRAANK):
         selected_rows = np.unique(indices.flatten())
         if gi_arr is not None:
             selected_cols = []
-            for obj in gi_arr:
+            for gi_str in gi_arr:
                 # Ignore target-col and remove time-cols and target-col from the count
-                col = int(obj[0])
+                col = GI.from_string(gi_str).attribute_col
                 if (col != self._target_col) and (col < self._target_col):
                     selected_cols.append(col - (len(self.time_cols)))
                 elif (col != self._target_col) and (col > self._target_col):

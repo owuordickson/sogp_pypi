@@ -20,11 +20,17 @@ import csv
 import time
 import numpy as np
 import pandas as pd
+from dataclasses import dataclass
 from dateutil.parser import parse
 
 from .gradual_patterns import GP, TGP
 
 class DataGP:
+
+    @dataclass
+    class PairwiseMatrix:
+        bin_mat: np.ndarray
+        support: float
 
     def __init__(self, data_source, min_sup=0.5, eq=False) -> None:
         """Description of class DataGP
@@ -110,11 +116,6 @@ class DataGP:
             raise Exception("Patterns must be a list of gradual patterns (GP objects)")
         self._gradual_patterns = patterns
 
-    def add_gradual_pattern(self, pattern) -> None:
-        if not isinstance(pattern, (GP, TGP)):
-            raise Exception("Pattern must be of type GP, ExtGP, or TGP")
-        self._gradual_patterns.append(pattern)
-
     def _init_attributes(self) -> None:
         """Initializes the attributes of the data-gp object."""
 
@@ -152,6 +153,11 @@ class DataGP:
         self._time_cols = get_time_cols()
         self._attr_cols = get_attr_cols()
 
+    def add_gradual_pattern(self, pattern) -> None:
+        if not isinstance(pattern, (GP, TGP)):
+            raise Exception("Pattern must be of type GP, ExtGP, or TGP")
+        self._gradual_patterns.append(pattern)
+
     def fit_bitmap(self, attr_data=None) -> None:
         """
 
@@ -187,8 +193,8 @@ class DataGP:
                 # 2b. Check support of each generated itemset
                 supp = float(np.sum(temp_pos)) / float(n * (n - 1.0) / 2.0)
                 if supp >= self._thd_supp:
-                    self._valid_bins[f"{col}+"] = temp_pos
-                    self._valid_bins[f"{col}-"] = temp_pos.T
+                    self._valid_bins[f"{col}+"] = DataGP.PairwiseMatrix(bin_mat=temp_pos, support=supp)
+                    self._valid_bins[f"{col}-"] = DataGP.PairwiseMatrix(bin_mat=temp_pos.T, support=supp)
         # print(self._valid_bins)
         if len(self._valid_bins) < 3:
             self._valid_bins = None
@@ -208,8 +214,8 @@ class DataGP:
 
         n = self._row_count
         self._valid_tids = {}
-        for gi_str, bin_mat in self._valid_bins:
-            arr_ij = np.transpose(np.nonzero(bin_mat))
+        for gi_str, gi_data in self._valid_bins.items():
+            arr_ij = np.transpose(np.nonzero(gi_data.bin_mat))
             set_ij = {tuple(ij) for ij in arr_ij if ij[0] < ij[1]}
             tids_len = len(set_ij)
             supp = float((tids_len*0.5) * (tids_len - 1)) / float(n * (n - 1.0) / 2.0)
@@ -342,3 +348,10 @@ class DataGP:
         if df.empty:
             raise Exception("Data set is empty after cleaning.")
         return list(df.columns), df.values
+
+    @staticmethod
+    def perform_AND(bin_data_1: "DataGP.PairwiseMatrix", bin_data_2: "DataGP.PairwiseMatrix") -> "DataGP.PairwiseMatrix":
+        """Perform AND operation on two bitmaps."""
+        pass
+        #bin_mat = gi_dict[gi_str_i].bin_mat * gi_dict[gi_str_j].bin_mat
+        #sup = float(np.sum(bin_mat)) / float(n * (n - 1.0) / 2.0)

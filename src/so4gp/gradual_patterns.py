@@ -422,7 +422,7 @@ class GP:
             arg = np.argwhere(np.isin(np.array(gi_key_list), gi.to_string()))
             if len(arg) > 0:
                 i = arg[0][0]
-                valid_bin = gi_dict[gi_key_list[i]]
+                valid_bin = gi_dict[gi_key_list[i]].bin_mat
                 if bin_arr.size <= 0:
                     bin_arr = np.array([valid_bin, valid_bin])
                     gen_pattern.add_gradual_item(gi)
@@ -511,7 +511,7 @@ class GP:
 
         :param valid_gps: list of GPs
         :param invalid_gps: list of GPs
-        :return: True if pattern is a list, False otherwise
+        :return: True if a pattern is a list, False otherwise
         """
         if invalid_gps is None:
             pass
@@ -692,7 +692,7 @@ class TGP(GP):
         >>> t_gp.to_string()
         """
         super(TGP, self).__init__()
-        self._target_gradual_item: GI = GI(-1, "")
+        self._target_gradual_item: GI|None = None
         self._temporal_gradual_items: list[TGP.TemporalGI] = list()
 
     @property
@@ -718,8 +718,8 @@ class TGP(GP):
 
             :return: void
         """
-        if isinstance(item, GI) and isinstance(time_delay, TimeDelay) and item.symbol != "-":
-            temp_gi = TGP.TemporalGI(item, time_delay)
+        if isinstance(item, GI) and isinstance(time_delay, TimeDelay):
+            temp_gi = TGP.TemporalGI(gradual_item=item, time_delay=time_delay)
             self._temporal_gradual_items.append(temp_gi)
         else:
             raise TypeError("Invalid arguments - require GI and TimeDelay objects")
@@ -729,9 +729,11 @@ class TGP(GP):
         Returns the Temporal-GP in string format as a list.
         """
         pattern = [self._target_gradual_item.to_string()]
-        for item, t_lag in self._temporal_gradual_items:
+        for temp_gi in self._temporal_gradual_items:
+            gi = temp_gi.gradual_item
+            t_lag = temp_gi.time_delay
             str_time = f"{t_lag.sign}{t_lag.formatted_time['value']} {t_lag.formatted_time['duration']}"
-            pattern.append(f"({item.to_string()}) {str_time}")
+            pattern.append(f"({gi.to_string()}) {str_time}")
         return pattern
 
     def print(self, columns) -> list[list[str] | float]:
@@ -749,9 +751,11 @@ class TGP(GP):
         col_title = columns[target_gi.attribute_col]
         pattern = [f"{col_title}{target_gi.symbol}"]
 
-        for item, t_lag in self._temporal_gradual_items:
+        for temp_gi in self._temporal_gradual_items:
+            gi = temp_gi.gradual_item
+            t_lag = temp_gi.time_delay
             str_time = f"{t_lag.sign}{t_lag.formatted_time['value']} {t_lag.formatted_time['duration']}"
-            col_title = columns[item.attribute_col]
-            pat = f"({col_title}{item.symbol}) {str_time}"
+            col_title = columns[gi.attribute_col]
+            pat = f"({col_title}{gi.symbol}) {str_time}"
             pattern.append(pat)
         return [pattern, self.support]

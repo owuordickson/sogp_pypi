@@ -17,19 +17,16 @@ except ImportError:
     from src.so4gp import DataGP, GI, GP
 
 class ClusterGP(DataGP):
-    """Description of class CluDataGP (Clustering DataGP)
-
-    CluDataGP stands for Clustering DataGP. It is a class that inherits the DataGP class in order to create data-gp
-    objects for the clustering approach. This class inherits the DataGP class which is used to create data-gp objects.
-    The classical data-gp object is meant to store all the parameters required by GP algorithms to extract gradual
-    patterns (GP). It takes a numeric file (in CSV format) as input and converts it into an object whose attributes are
-    used by algorithms to extract GPs.
-
-    """
 
     def __init__(self, *args, e_prob: float = 0.5, max_iter: int = 10,
                  no_prob: bool = False, **kwargs):
-        """Description of class CluDataGP (Clustering DataGP)
+        """Description of class ClusterGP (Clustering DataGP)
+
+        CluDataGP stands for Clustering DataGP. It is a class that inherits the DataGP class to create data-gp
+        objects for the clustering approach. This class inherits the DataGP class which is used to create data-gp objects.
+        The classical data-gp object is meant to store all the parameters required by GP algorithms to extract gradual
+        patterns (GP). It takes a numeric file (in CSV format) as input and converts it into an object whose attributes are
+        used by algorithms to extract GPs.
 
         A class for creating data-gp objects for the clustering approach. This class inherits the DataGP class which is
         used to create data-gp objects. This class adds the parameters required for clustering gradual items to the
@@ -39,42 +36,37 @@ class ClusterGP(DataGP):
         :param e_prob: [optional] erasure probability, the default is 0.5
         :param max_iter: [optional] maximum iteration for score vector estimation, the default is 10
 
-        >>> import so4gp as sgp
+        >>> import so4gp.algorithms import ClusterGP
         >>> import pandas
         >>> import json
         >>> dummy_data = [[30, 3, 1, 10], [35, 2, 2, 8], [40, 4, 2, 7], [50, 1, 1, 6], [52, 7, 1, 2]]
         >>> dummy_df = pandas.DataFrame(dummy_data, columns=['Age', 'Salary', 'Cars', 'Expenses'])
         >>>
-        >>> mine_obj = sgp.ClusterGP(dummy_df, 0.5, max_iter=3, e_prob=0.5)
+        >>> mine_obj = ClusterGP(dummy_df, 0.5, max_iter=3, e_prob=0.5)
         >>> result_json = mine_obj.discover()
         >>> result = json.loads(result_json)
         >>> # print(result['Patterns'])
         >>> print(result_json) # doctest: +SKIP
         """
         super(ClusterGP, self).__init__(*args, **kwargs)
-        self.erasure_probability = e_prob
-        """:type erasure_probability: float"""
-        self.max_iteration = max_iter
-        """:type max_iteration: int"""
-        self.gradual_items, self.cum_wins, self.net_win_mat, self.ij = self._construct_matrices(e_prob)
-        """:type gradual_items: np.ndarray"""
-        """:type cum_wins: np.ndarray"""
-        """:type net_win_mat: np.ndarray"""
-        """:type ij: np.ndarray"""
-        self.win_mat = np.array([])
-        """:type win_mat: np.ndarray"""
+        self._erasure_probability: float = e_prob
+        self._max_iteration: int = max_iter
+        self._gradual_items, self._cum_wins, self._net_win_mat, self._ij = self._construct_matrices(e_prob)
+        """:type _gradual_items: np.ndarray"""
+        """:type _cum_wins: np.ndarray"""
+        """:type _net_win_mat: np.ndarray"""
+        """:type _ij: np.ndarray"""
+        self._win_mat: np.ndarray = np.array([])
         if no_prob:
-            self.gradual_items, self.win_mat, self.cum_wins, self.net_win_mat, self.ij = self._construct_all_matrices()
+            self._gradual_items, self._win_mat, self._cum_wins, self._net_win_mat, self._ij = self._construct_all_matrices()
 
-    def _construct_matrices(self, e):
+    def _construct_matrices(self, e: float) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         """Description
 
-        Generates all the gradual items and, constructs: (1) net-win matrix, (2) cumulative wins, (3) pairwise objects.
+        Generates all the gradual items and constructs: (1) net-win matrix, (2) cumulative wins, (3) pairwise objects.
 
         :param e: [required] erasure probability
-        :type e: float
-
-        :return: list of gradual items, net-win matrix, cumulative win matrix, selected pairwise (ij) objects
+        :return: List of gradual items, net-win matrix, cumulative win matrix, selected pairwise (ij) objects
         """
 
         n = self.row_count
@@ -118,8 +110,8 @@ class ClusterGP(DataGP):
                 positions = np.flatnonzero(temp_cum_wins == w)
                 i, counts_i = np.unique(pair_ij[positions, 0], return_counts=True)
                 j, counts_j = np.unique(pair_ij[positions, 1], return_counts=True)
-                s_vec[i] += w * counts_i  # i wins/loses (1/-1)
-                s_vec[j] += -w * counts_j  # j loses/wins (1/-1)
+                s_vec[i] += w * counts_i  # 'i' wins/loses (1/-1)
+                s_vec[j] += -w * counts_j  # 'j' loses/wins (1/-1)
             # print(s_vec)
             # print("\n")
             # Normalize S-vector
@@ -137,13 +129,13 @@ class ClusterGP(DataGP):
 
         return np.array(lst_gis), np.array(cum_wins), np.array(s_mat), pair_ij
 
-    def _construct_all_matrices(self):
+    def _construct_all_matrices(self) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         """Description
 
-        Generates all the gradual items and, constructs: (1) win matrix (2) net-win matrix, (3) cumulative wins,
+        Generates all the gradual items and constructs: (1) win matrix (2) net-win matrix, (3) cumulative wins,
         (4) pairwise objects.
 
-        :return: list of gradual items, win matrix, net-win matrix, cumulative win matrix, selected (ij) objects
+        :return: List of gradual items, win matrix, net-win matrix, cumulative win matrix, selected (ij) objects
         """
 
         n = self.row_count
@@ -178,8 +170,8 @@ class ClusterGP(DataGP):
                 positions = np.flatnonzero(temp_cum_wins == w)
                 i, counts_i = np.unique(pair_ij[positions, 0], return_counts=True)
                 j, counts_j = np.unique(pair_ij[positions, 1], return_counts=True)
-                s_vec[i] += w * counts_i  # i wins/loses (1/-1)
-                s_vec[j] += -w * counts_j  # j loses/wins (1/-1)
+                s_vec[i] += w * counts_i  # 'i' wins/loses (1/-1)
+                s_vec[j] += -w * counts_j  # 'j' loses/wins (1/-1)
 
                 """
                 if w == 1:
@@ -226,22 +218,19 @@ class ClusterGP(DataGP):
         # print(np.array(nodes_mat))
         return np.array(lst_gis), np.array(w_mat), np.array(cum_wins), np.array(s_mat), pair_ij
 
-    def _infer_gps(self, clusters):
+    def _infer_gps(self, clusters: np.ndarray) -> list[GP]:
         """Description
 
         A function that infers GPs from clusters of gradual items.
 
         :param clusters: [required] groups of gradual items clustered through K-MEANS algorithm
-        :type clusters: np.ndarray
-
-        :return: list of (str) patterns, list of GP objects
+        :return: List of (str) patterns, list of GP objects
         """
 
         patterns = []
-        str_patterns = []
 
-        all_gis = self.gradual_items
-        cum_wins = self.cum_wins
+        all_gis = self._gradual_items
+        cum_wins = self._cum_wins
 
         lst_indices = [np.where(clusters == element)[0] for element in np.unique(clusters)]
         for grp_idx in lst_indices:
@@ -261,36 +250,33 @@ class ClusterGP(DataGP):
 
                 # 4. Infer GPs from the clusters
                 if est_sup >= self.thd_supp:
-                    gp = ExtGP()
+                    gp = GP()
                     for gi in cluster_gis:
                         gp.add_gradual_item(gi)
-                    gp.support(est_sup)
+                    gp.support = est_sup
                     patterns.append(gp)
-                    str_patterns.append(gp.print(self.titles))
-        return str_patterns, patterns
+        return patterns
 
-    def _estimate_score_vector(self, c_wins):
+    def _estimate_score_vector(self, c_wins: np.ndarray) -> np.ndarray:
         """Description
 
         A function that estimates the score vector based on the cumulative wins.
 
         :param c_wins: [required] cumulative wins
-        :type c_wins: np.ndarray
-
-        :return: score vector (ndarray)
+        :return: Score vector
         """
 
         # Estimate score vector from pairs
         n = self.row_count
         score_vector = np.ones(shape=(n,))
-        arr_ij = self.ij
+        arr_ij = self._ij
 
         # Construct a win-matrix
         temp_vec = np.zeros(shape=(n,))
         pair_count = arr_ij.shape[0]
 
         # Compute score vector
-        for _ in range(self.max_iteration):
+        for _ in range(self._max_iteration):
             if np.count_nonzero(score_vector == 0) > 1:
                 break
             else:
@@ -311,14 +297,12 @@ class ClusterGP(DataGP):
                 score_vector = abs(temp_vec / np.sum(temp_vec))
         return score_vector
 
-    def _estimate_support(self, score_vectors):
+    def _estimate_support(self, score_vectors: list) -> float:
         """Description
 
         A function that estimates the frequency support of a GP based on its score vector.
 
-        :param score_vectors: Score vector (ndarray)
-        :type score_vectors: list
-
+        :param score_vectors: Score vector
         :return: Estimated support (float)
         """
 
@@ -333,22 +317,21 @@ class ClusterGP(DataGP):
         """:type est_sup: float"""
         return est_sup
 
-    def discover(self, eval_mode=False):
+    def discover(self, eval_mode: bool=False):
         """Description
 
         Applies spectral clustering to determine which gradual items belong to the same group based on the similarity
-        of net-win vectors. Gradual items in the same cluster should have almost similar score vector. The candidates
+        of net-win vectors. Gradual items in the same cluster should have almost the same score vector. The candidates
         are validated if their computed support is greater than or equal to the minimum support threshold specified by
         the user.
 
         :param eval_mode: [optional] run algorithm in evaluation mode. Returns more evaluation data as dict.
-        :type eval_mode: bool
-
         :return: JSON | dict object
         """
 
+        self.clear_gradual_patterns()
         # 1. Generate net-win matrices
-        s_matrix = self.net_win_mat  # Net-win matrix (S)
+        s_matrix = self._net_win_mat  # Net-win matrix (S)
         if s_matrix.size < 1:
             raise Exception("Erasure probability is too high, consider reducing it.")
         # print(s_matrix)
@@ -370,18 +353,19 @@ class ClusterGP(DataGP):
         end = time.time()  # TO BE REMOVED
 
         # 3. Infer GPs
-        str_gps, estimated_gps = self._infer_gps(y_predicted)
+        estimated_gps = self._infer_gps(y_predicted)
+        for gp in estimated_gps:
+            self.add_gradual_pattern(gp)
 
         # 4. Output - DO NOT ADD TO PyPi Package
-        out = {'estimated_gps': estimated_gps, 'max_iteration': self.max_iteration, 'titles': self.titles,
-               'col_count': self.col_count, 'row_count': self.row_count, 'e_prob': self.erasure_probability,
+        out = {'estimated_gps': estimated_gps, 'max_iteration': self._max_iteration, 'titles': self.titles,
+               'col_count': self.col_count, 'row_count': self.row_count, 'e_prob': self._erasure_probability,
                'cluster_time': (end - start)}
         """:type out: dict"""
         if eval_mode:
             return out
 
         # Output
-        out = json.dumps({"Algorithm": "Clu-GRAANK", "Patterns": str_gps, "Invalid Count": 0})
+        out = json.dumps({"Algorithm": "Clu-GRAANK", "Patterns": self.str_gradual_patterns, "Invalid Count": 0})
         """:type out: object"""
-        self.gradual_patterns = estimated_gps
         return out

@@ -7,14 +7,8 @@
 import json
 import numpy as np
 from sklearn.feature_selection import mutual_info_regression
+from .tgrad import TGrad
 
-try:
-    from ..gradual_patterns import GI, TGP
-    from .tgrad import TGrad
-    from .graank import GRAANK
-except ImportError:
-    from src.so4gp import GI, TGP
-    from src.so4gp.algorithms import TGrad, GRAANK
 
 class TGradAMI(TGrad):
 
@@ -35,7 +29,7 @@ class TGradAMI(TGrad):
         :param kwargs: [required] target-column or attribute or feature, [optional] minimum representativity
         :param min_error: [optional] minimum Mutual Information error margin.
 
-        >>> import so4gp.algorithms import TGradAMI
+        >>> from so4gp.algorithms import TGradAMI
         >>> import pandas
         >>> import json
         >>> dummy_data = [["2021-03", 30, 3, 1, 10], ["2021-04", 35, 2, 2, 8], ["2021-05", 40, 4, 2, 7], ["2021-06", 50, 1, 1, 6], ["2021-07", 52, 7, 1, 2]]

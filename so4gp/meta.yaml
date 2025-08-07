@@ -1,5 +1,6 @@
 {% set name = "so4gp" %}
 {% set version = "0.7.0" %}
+{% set python_min = "3.12" %}
 
 package:
   name: {{ name|lower }}
@@ -16,11 +17,11 @@ build:
 
 requirements:
   host:
-    - python >=3.9
+    - python {{ python_min }}
     - setuptools >=80.9
     - pip
   run:
-    - python >=3.9
+    - python {{ python_min }}
     - numpy >=2.3.2,<2.4.dev0
     - pandas >=2.3.1,<2.4.dev0
     - scikit-fuzzy >=0.5.0,<0.6.dev0
@@ -39,6 +40,7 @@ test:
 
 about:
   summary: Some Python optimization algorithms for mining gradual patterns.
+  home: https://github.com/owuordickson/sogp_pypi
   license: GPL-3.0-only
   license_file: LICENSE
 

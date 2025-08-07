@@ -9,12 +9,9 @@ import json
 import time
 import numpy as np
 from sklearn.cluster import KMeans
+from ..data_gp import DataGP
+from ..gradual_patterns import GI, GP
 
-try:
-    from ..data_gp import DataGP
-    from ..gradual_patterns import GI, GP
-except ImportError:
-    from src.so4gp import DataGP, GI, GP
 
 class ClusterGP(DataGP):
 

@@ -17,5 +17,6 @@ conda install -c conda-forge grayskull  # Already Done
 conda config --add channels conda-forge # Already Done
 conda build purge
 
-grayskull pypi --strict-conda-forge so4gp
-conda
+grayskull pypi --strict-conda-forge so4gp  # Already Done
+conda build .
+* Add recipe to 'staged-recipes' and make 'pull-request'

@@ -21,13 +21,9 @@ import numpy as np
 import pandas as pd
 import multiprocessing as mp
 from tabulate import tabulate
+from .data_gp import DataGP
+from .algorithms.tgrad_ami import TGradAMI
 
-try:
-    from . import DataGP
-    from .algorithms import GRAANK, TGradAMI
-except ImportError:
-    from src.so4gp import DataGP
-    from src.so4gp.algorithms import GRAANK, TGradAMI
 
 
 def analyze_gps(data_src, min_sup, est_gps, approach='bfs') -> str:
@@ -35,7 +31,7 @@ def analyze_gps(data_src, min_sup, est_gps, approach='bfs') -> str:
     For each estimated GP, computes its true support using the GRAANK approach and returns the statistics (% error,
     and standard deviation).
 
-    >>> import src.so4gp as sgp
+    >>> import so4gp as sgp
     >>> import pandas
     >>> dummy_data = [[30, 3, 1, 10], [35, 2, 2, 8], [40, 4, 2, 7], [50, 1, 1, 6], [52, 7, 1, 2]]
     >>> columns = ['Age', 'Salary', 'Cars', 'Expenses']

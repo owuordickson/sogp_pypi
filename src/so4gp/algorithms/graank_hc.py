@@ -7,14 +7,9 @@
 
 import json
 import random
+from ..data_gp import DataGP
+from .numeric_ss import NumericSS
 
-try:
-    from ..data_gp import DataGP
-    from ..gradual_patterns import GI, GP
-    from .numeric_ss import NumericSS
-except ImportError:
-    from src.so4gp import DataGP, GI, GP
-    from src.so4gp.algorithms import NumericSS
 
 
 class HillClimbingGRAANK(DataGP):

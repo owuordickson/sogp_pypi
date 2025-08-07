@@ -11,14 +11,10 @@ import skfuzzy as fuzzy
 import multiprocessing as mp
 from sklearn.cluster import KMeans
 from sklearn.preprocessing import MinMaxScaler
+from .graank import GRAANK
+from ..data_gp import DataGP
+from ..gradual_patterns import GI, TGP, TimeDelay
 
-try:
-    from ..data_gp import DataGP
-    from ..gradual_patterns import GI, TGP, TimeDelay
-    from .graank import GRAANK
-except ImportError:
-    from src.so4gp import DataGP, GI, TGP, TimeDelay
-    from src.so4gp.algorithms import GRAANK
 
 class TGrad(GRAANK):
 

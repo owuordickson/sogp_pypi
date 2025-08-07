@@ -8,14 +8,9 @@
 import json
 import random
 import numpy as np
+from ..data_gp import DataGP
+from .numeric_ss import NumericSS
 
-try:
-    from ..data_gp import DataGP
-    from ..gradual_patterns import GI
-    from .numeric_ss import NumericSS
-except ImportError:
-    from src.so4gp import DataGP, GI
-    from src.so4gp.algorithms import NumericSS
 
 class ParticleGRAANK(DataGP):
 

@@ -21,11 +21,8 @@ import time
 import numpy as np
 import pandas as pd
 from dateutil.parser import parse
+from .gradual_patterns import GP, TGP, PairwiseMatrix
 
-try:
-    from .gradual_patterns import GP, TGP, PairwiseMatrix
-except ImportError:
-    from src.so4gp import GP, TGP, PairwiseMatrix
 
 class DataGP:
 

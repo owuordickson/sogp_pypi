@@ -8,11 +8,9 @@
 import random
 import numpy as np
 from dataclasses import dataclass
+from ..data_gp import DataGP
+from ..gradual_patterns import GI, GP, PairwiseMatrix
 
-try:
-    from . import DataGP, GI, GP, PairwiseMatrix
-except ImportError:
-    from src.so4gp import DataGP, GI, GP, PairwiseMatrix
 
 class NumericSS:
 

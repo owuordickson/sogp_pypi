@@ -7,14 +7,9 @@
 
 import json
 import random
+from ..data_gp import DataGP
+from .numeric_ss import NumericSS
 
-try:
-    from ..data_gp import DataGP
-    from ..gradual_patterns import GI
-    from .numeric_ss import NumericSS
-except ImportError:
-    from src.so4gp import DataGP, GI
-    from src.so4gp.algorithms import NumericSS
 
 class RandomGRAANK(DataGP):
 
@@ -35,7 +30,7 @@ class RandomGRAANK(DataGP):
         :param args: [required] a data source path of Pandas DataFrame, [optional] minimum-support, [optional] eq
         :param max_iter: [optional] maximum_iteration, default is 1
 
-        >>> from so4gp.algorithms as RandomGRAANK
+        >>> from so4gp.algorithms import RandomGRAANK
         >>> import pandas
         >>> import json
         >>> dummy_data = [[30, 3, 1, 10], [35, 2, 2, 8], [40, 4, 2, 7], [50, 1, 1, 6], [52, 7, 1, 2]]

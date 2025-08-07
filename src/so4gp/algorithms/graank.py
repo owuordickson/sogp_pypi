@@ -7,12 +7,8 @@
 import gc
 import json
 import numpy as np
-
-try:
-    from ..data_gp import DataGP
-    from ..gradual_patterns import GI, GP, PairwiseMatrix
-except ImportError:
-    from src.so4gp import DataGP, GI, GP, PairwiseMatrix
+from ..data_gp import DataGP
+from ..gradual_patterns import GI, GP, PairwiseMatrix
 
 
 class GRAANK(DataGP):

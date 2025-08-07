@@ -7,11 +7,9 @@
 import gc
 import json
 import numpy as np
-try:
-    from ..data_gp import DataGP
-    from ..gradual_patterns import GI, GP, PairwiseMatrix
-except ImportError:
-    from src.so4gp import DataGP, GI, GP, PairwiseMatrix
+from ..data_gp import DataGP
+from ..gradual_patterns import GI, GP, PairwiseMatrix
+
 
 class AntGRAANK(DataGP):
 
@@ -36,7 +34,7 @@ class AntGRAANK(DataGP):
         :param max_iter: [optional] maximum_iteration, default is 1
         :param e_factor: [optional] evaporation factor, default is 0.5
 
-        >>> from so4gp.algorithms as AntGRAANK
+        >>> from so4gp.algorithms import AntGRAANK
         >>> import pandas
         >>> import json
         >>> dummy_data = [[30, 3, 1, 10], [35, 2, 2, 8], [40, 4, 2, 7], [50, 1, 1, 6], [52, 7, 1, 2]]

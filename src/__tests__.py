@@ -1,5 +1,5 @@
 import pandas
-from src.so4gp.algorithms import GRAANK#, AntGRAANK, GeneticGRAANK, HillClimbingGRAANK, RandomGRAANK, ParticleGRAANK, TGrad, TGradAMI, ClusterGP
+from so4gp.algorithms import GRAANK#, AntGRAANK, GeneticGRAANK, HillClimbingGRAANK, RandomGRAANK, ParticleGRAANK, TGrad, TGradAMI, ClusterGP
 
 if __name__ == "__main__":
 
@@ -23,9 +23,8 @@ if __name__ == "__main__":
     # result_json = mine_obj.discover_tgp(use_clustering=True, eval_mode=False)  # TGradAMI
     print(result_json)
 
-    # from src.so4gp.utils import gradual_decompose
-    # gp_trends = gradual_decompose(dummy_df, target=1)
-    # print(gp_trends)
+    import so4gp as sgp
+    gp_trends = sgp.gradual_decompose(dummy_df, target=1)
+    print(gp_trends)
 
-    # from src.so4gp import DataGP
-    # print(DataGP.test_time("09-01-2005"))
+    print(sgp.DataGP.test_time("09-01-2005"))

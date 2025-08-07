@@ -36,16 +36,14 @@ class ClusterGP(DataGP):
         :param e_prob: [optional] erasure probability, the default is 0.5
         :param max_iter: [optional] maximum iteration for score vector estimation, the default is 10
 
-        >>> import so4gp.algorithms import ClusterGP
         >>> import pandas
         >>> import json
+        >>> from src.so4gp.algorithms import ClusterGP
         >>> dummy_data = [[30, 3, 1, 10], [35, 2, 2, 8], [40, 4, 2, 7], [50, 1, 1, 6], [52, 7, 1, 2]]
         >>> dummy_df = pandas.DataFrame(dummy_data, columns=['Age', 'Salary', 'Cars', 'Expenses'])
         >>>
         >>> mine_obj = ClusterGP(dummy_df, 0.5, max_iter=3, e_prob=0.5)
         >>> result_json = mine_obj.discover()
-        >>> result = json.loads(result_json)
-        >>> # print(result['Patterns'])
         >>> print(result_json) # doctest: +SKIP
         """
         super(ClusterGP, self).__init__(*args, **kwargs)

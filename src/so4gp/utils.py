@@ -35,19 +35,21 @@ def analyze_gps(data_src, min_sup, est_gps, approach='bfs') -> str:
     For each estimated GP, computes its true support using the GRAANK approach and returns the statistics (% error,
     and standard deviation).
 
-    >>> import so4gp as sgp
+    >>> import src.so4gp as sgp
     >>> import pandas
     >>> dummy_data = [[30, 3, 1, 10], [35, 2, 2, 8], [40, 4, 2, 7], [50, 1, 1, 6], [52, 7, 1, 2]]
     >>> columns = ['Age', 'Salary', 'Cars', 'Expenses']
     >>> dummy_df = pandas.DataFrame(dummy_data, columns=['Age', 'Salary', 'Cars', 'Expenses'])
     >>>
     >>> estimated_gps = list()
-    >>> temp_gp = sgp.ExtGP()
-    >>> temp_gp.add_items_from_list(['0+', '1-'])
+    >>> temp_gp = sgp.GP()
+    >>> for gi_str in ['0+', '1-']:
+    >>>     temp_gp.add_gradual_item(sgp.GI.from_string(gi_str))
     >>> temp_gp.support = 0.5
     >>> estimated_gps.append(temp_gp)
-    >>> temp_gp = sgp.ExtGP()
-    >>> temp_gp.add_items_from_list(['1+', '3-', '0+'])
+    >>> temp_gp = sgp.GP()
+    >>> for gi_str in ['1+', '3-', '0+']:
+    >>>     temp_gp.add_gradual_item(sgp.GI.from_string(gi_str))
     >>> temp_gp.support = 0.48
     >>> estimated_gps.append(temp_gp)
     >>> res = sgp.analyze_gps(dummy_df, min_sup=0.4, est_gps=estimated_gps, approach='bfs')

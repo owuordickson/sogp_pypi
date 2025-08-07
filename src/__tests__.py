@@ -1,5 +1,5 @@
 import pandas
-from src.so4gp.algorithms import GRAANK, AntGRAANK, GeneticGRAANK, HillClimbingGRAANK, RandomGRAANK, ParticleGRAANK, TGrad, TGradAMI, ClusterGP
+from src.so4gp.algorithms import GRAANK#, AntGRAANK, GeneticGRAANK, HillClimbingGRAANK, RandomGRAANK, ParticleGRAANK, TGrad, TGradAMI, ClusterGP
 
 if __name__ == "__main__":
 
@@ -9,7 +9,7 @@ if __name__ == "__main__":
     # dummy_data = [[30, 3, 1, 10], [35, 2, 2, 8], [40, 4, 2, 7], [50, 1, 1, 6], [52, 7, 1, 2]]
     # dummy_df = pandas.DataFrame(dummy_data, columns=['Age', 'Salary', 'Cars', 'Expenses'])
     mine_obj = GRAANK(dummy_df, min_sup=0.5, eq=False)
-    mine_obj = ClusterGP(dummy_df, 0.5, max_iter=3, e_prob=0.5)
+    # mine_obj = ClusterGP(dummy_df, 0.5, max_iter=3, e_prob=0.5)
     # mine_obj = AntGRAANK(dummy_df, 0.5, max_iter=20, e_factor=0.5)
     # mine_obj = GeneticGRAANK(dummy_df, 0.5, max_iter=20)
     # mine_obj = HillClimbingGRAANK(dummy_df, 0.5, max_iter=20)

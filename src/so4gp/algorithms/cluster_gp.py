@@ -37,7 +37,7 @@ class ClusterGP(DataGP):
 
         >>> import pandas
         >>> import json
-        >>> from src.so4gp.algorithms import ClusterGP
+        >>> from so4gp.algorithms import ClusterGP
         >>> dummy_data = [[30, 3, 1, 10], [35, 2, 2, 8], [40, 4, 2, 7], [50, 1, 1, 6], [52, 7, 1, 2]]
         >>> dummy_df = pandas.DataFrame(dummy_data, columns=['Age', 'Salary', 'Cars', 'Expenses'])
         >>>

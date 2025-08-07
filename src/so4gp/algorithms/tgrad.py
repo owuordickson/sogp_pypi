@@ -109,8 +109,11 @@ class TGrad(GRAANK):
         for lst_obj in patterns:
             if lst_obj:
                 for lst_tgp in lst_obj:
-                    for tgp in lst_tgp:
-                        self.add_gradual_pattern(tgp)
+                    if isinstance(lst_tgp, TGP):
+                        self.add_gradual_pattern(lst_tgp)
+                    else:
+                        for tgp in lst_tgp:
+                            self.add_gradual_pattern(tgp)
         # Output
         out = json.dumps({"Algorithm": "TGrad", "Patterns": self.str_gradual_patterns})
         """:type out: object"""

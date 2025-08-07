@@ -172,5 +172,6 @@ class GeneticGRAANK(DataGP):
         out = json.dumps({"Algorithm": "GA-GRAANK", "Best Patterns": s_space.str_best_gps,
                           "Invalid Count": s_space.invalid_count, "Iterations": s_space.iter_count})
         """:type out: object"""
-        self.gradual_patterns = s_space.best_patterns
+        for gp in s_space.best_patterns:
+            self.add_gradual_pattern(gp)
         return out

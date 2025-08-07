@@ -158,9 +158,7 @@ class GRAANK(DataGP):
 
         self.fit_bitmap()
         valid_bins_dict = self.valid_bins.copy()
-
-        str_winner_gps = []
-        self.gradual_patterns: list[GP] = []
+        self.clear_gradual_patterns()
 
         invalid_count = 0
         candidate_level = 1
@@ -171,21 +169,18 @@ class GRAANK(DataGP):
                                                                  exclude_target=exclude_target)
             invalid_count += inv_count
             for gp_set, gi_data in valid_bins_dict.items():
-                # if not ignore_support:
-                self.gradual_patterns = GP.remove_subsets(self.gradual_patterns, set(gp_set))
-
+                self.remove_subsets(set(gp_set))
                 gp: GP = GP()
                 for gi_str in gp_set:
                     gi: GI = GI.from_string(gi_str)
                     gp.add_gradual_item(gi)
                 gp.support = gi_data.support
                 self.add_gradual_pattern(gp)
-                str_winner_gps.append(gp.print(self.titles))
             candidate_level += 1
             if (apriori_level is not None) and candidate_level >= apriori_level:
                 break
         # Output
-        out = json.dumps({"Algorithm": "GRAANK", "Patterns": str_winner_gps, "Invalid Count": invalid_count})
+        out = json.dumps({"Algorithm": "GRAANK", "Patterns": self.str_gradual_patterns, "Invalid Count": invalid_count})
         """:type out: object"""
         return out
 

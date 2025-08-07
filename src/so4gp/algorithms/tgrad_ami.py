@@ -193,16 +193,16 @@ class TGradAMI(TGrad):
 
         # 3. Discover temporal-GPs from time-delayed data
         if eval_mode:
-            list_tgp, gp_components = self._mine(time_delay_data=time_data, attr_data=delayed_data, clustering_method=use_clustering, decompose=True)
+            gp_components = self._mine_gps_at_step(time_delay_data=time_data, attr_data=delayed_data, clustering_method=use_clustering, decompose=True)
         else:
-            list_tgp: list = self._mine(time_delay_data=time_data, attr_data=delayed_data, clustering_method=use_clustering)
+            self._mine_gps_at_step(time_delay_data=time_data, attr_data=delayed_data, clustering_method=use_clustering)
             gp_components = None
 
         # 4. Organize FTGPs into a single list
-        if list_tgp:
-            print(list_tgp)
-            for tgp in list_tgp:
-                self.gradual_patterns.append(tgp)
+        if self.gradual_patterns:
+            print(self.gradual_patterns)
+            for tgp in self.gradual_patterns:
+                # self.gradual_patterns.append(tgp)
                 str_gps.append(tgp.print(self.titles))
 
         # 5. Check if the algorithm is in evaluation mode

@@ -77,43 +77,9 @@ class GI:
         return np.array((self._attribute_col, self._symbol), dtype='i, S1')
 
     @property
-    def as_swapped_array(self) -> np.ndarray:
-        """The resulting GI with symbol swapped (i.e., from - to +; or, from + to -) in ndarray format"""
-        if self._symbol == "+":
-            # tuple([self.attribute_col, "-"])
-            return np.array((self._attribute_col, "-"), dtype='i, S1')
-        elif self._symbol == "-":
-            # tuple([self.attribute_col, "+"])
-            return np.array((self._attribute_col, "+"), dtype='i, S1')
-        else:
-            return np.array((self._attribute_col, 'x'), dtype='i, S1')
-
-    @property
     def as_tuple(self) -> tuple[int, str]:
         """The Gradual Item (GI) in tuple format"""
         return tuple((self._attribute_col, self._symbol))
-
-    @property
-    def as_integer(self) -> list[int]:
-        """The Gradual Item (GI) in integer format. Converts a variation symbol into an integer
-        (i.e., + to 1; and - to -1) and returns as a list (e.g., (1+) -> [1, -1])."""
-        if self._symbol == "+":
-            return [self._attribute_col, 1]
-        elif self._symbol == "-":
-            return [self._attribute_col, -1]
-        else:
-            return [self._attribute_col, 0]
-
-    @property
-    def as_string(self) -> str:
-        """The Gradual Item (GI) in string format. Stringifies a GI. It converts a variation symbol into a string
-        (i.e., + to _pos; and - to _neg)."""
-        if self._symbol == "+":
-            return str(self._attribute_col) + "_pos"
-        elif self._symbol == "-":
-            return str(self._attribute_col) + "_neg"
-        else:
-            return str(self._attribute_col) + "_inv"
 
     def to_string(self) -> str:
         """Description
@@ -241,52 +207,15 @@ class GP:
                 self.add_gradual_item(GI(int(str_gi[0]), str_gi[1]))
 
     @property
-    def as_list(self) -> list:
-        """Description
-
-        Returns the gradual pattern (GP) as a list
-        :return: gradual pattern
-        """
-        pattern = list()
-        for gi in self._gradual_items:
-            pattern.append(gi.as_array.tolist())
-        return pattern
+    def as_set(self) -> set[str]:
+        """Returns the gradual pattern (GP) as a set of strings: {'1+', '2-'}"""
+        return set(self.to_string())
 
     @property
-    def as_swapped_list(self) -> list:
-        """Description
-
-        Swaps all the variation symbols of all the gradual items (GIs) in the gradual pattern (GP)
-        :return: GP with swapped variation symbols
-        """
-        pattern = list()
-        for gi in self._gradual_items:
-            pattern.append(gi.as_swapped_array.tolist())
-        return pattern
-
-    @property
-    def as_array(self) -> np.ndarray:
-        """Description
-
-        Returns a gradual pattern (GP) as a ndarray
-        :return: ndarray
-        """
-        pattern = []
-        for gi in self._gradual_items:
-            pattern.append(gi.as_array)
-        return np.array(pattern)
-
-    @property
-    def as_tuples(self) -> list[tuple[int, str]]:
-        """Description
-
-        Returns the gradual pattern (GP) as a list of GI tuples
-        :return: list of GI tuples
-        """
-        pattern = list()
-        for gi in self._gradual_items:
-            pattern.append(gi.as_tuple)
-        return pattern
+    def as_swapped_set(self) -> set[str]:
+        """Returns the gradual pattern (GP) as a set of strings: {'1-', '2+'}"""
+        gp = GP.swap_gp_symbols(self)
+        return set(gp.to_string())
 
     def decompose(self) -> tuple[list[int], list[str]]:
         """
@@ -299,7 +228,7 @@ class GP:
         attrs = list()
         syms = list()
         for item in self._gradual_items:
-            gi = item.as_integer
+            gi = item.as_tuple
             attrs.append(gi[0])
             syms.append(gi[1])
         return attrs, syms
@@ -385,7 +314,7 @@ class GP:
         """
         gi_dict = {}
         for gi in self._gradual_items:
-            gi_dict.update({gi.as_string: 0})
+            gi_dict.update({gi.to_string(): 0})
         return gi_dict
 
     def print(self, columns) -> list[list[str] | float]:
@@ -493,15 +422,15 @@ class GP:
         result = False
         if subset:
             for pat in gp_list:
-                result1 = set(self.as_list).issubset(set(pat.as_list))
-                result2 = set(self.as_swapped_list).issubset(set(pat.as_list))
+                result1 = set(self.as_set).issubset(set(pat.as_set))
+                result2 = set(self.as_swapped_set).issubset(set(pat.as_set))
                 if result1 or result2:
                     result = True
                     break
         else:
             for pat in gp_list:
-                result1 = set(self.as_list).issuperset(set(pat.as_list))
-                result2 = set(self.as_swapped_list).issuperset(set(pat.as_list))
+                result1 = set(self.as_set).issuperset(set(pat.as_set))
+                result2 = set(self.as_swapped_set).issuperset(set(pat.as_set))
                 if result1 or result2:
                     result = True
                     break
@@ -520,32 +449,24 @@ class GP:
             pass
         else:
             for pat in invalid_gps:
-                if set(self.as_list) == set(pat.as_list) or \
-                        set(self.as_swapped_list) == set(pat.as_list):
+                if set(self.as_set) == set(pat.as_set) or \
+                        set(self.as_swapped_set) == set(pat.as_set):
                     return True
         for pat in valid_gps:
-            if set(self.as_list) == set(pat.as_list) or \
-                    set(self.as_swapped_list) == set(pat.as_list):
+            if set(self.as_set) == set(pat.as_set) or \
+                    set(self.as_swapped_set) == set(pat.as_set):
                 return True
         return False
 
     @staticmethod
-    def remove_subsets(gp_list:list["GP"], gi_arr:set) -> list:
+    def swap_gp_symbols(gp_obj: "GP") -> "GP":
         """
-
-        Remove subset GPs from the list.
-
-        :param gp_list: List of existing GPs
-        :param gi_arr: Gradual items in an array
-        :return: List of GPs
+        Swaps the variation symbols of all the gradual items (GIs) in a gradual pattern (GP)
         """
-        mod_gp_list = []
-        for gp in gp_list:
-            result1 = set(gp.as_list).issubset(gi_arr)
-            result2 = set(gp.as_swapped_list).issubset(gi_arr)
-            if not (result1 or result2):
-                mod_gp_list.append(gp)
-        return mod_gp_list
+        new_gp = GP()
+        for gi in gp_obj.gradual_items:
+            new_gp.add_gradual_item(GI.swap_gi_symbol(gi))
+        return new_gp
 
     @staticmethod
     def perform_and(bin_data_1: "PairwiseMatrix", bin_data_2: "PairwiseMatrix", dim: int) -> "PairwiseMatrix":

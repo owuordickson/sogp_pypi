@@ -193,7 +193,7 @@ class TGrad(GRAANK):
         except ZeroDivisionError:
             return []
 
-        t_gps = []
+        t_gps: list[TGP] = []
         valid_bins_dict = self.valid_bins.copy()
         gp_components: dict = {}
 
@@ -214,13 +214,13 @@ class TGrad(GRAANK):
             valid_bins_dict, inv_count = self._gen_apriori_candidates(valid_bins_dict, target_col=self._target_col)
             invalid_count += inv_count
             for gp_set, gi_data in valid_bins_dict.items():
-                # gradual_patterns = TGP.remove_subsets(gradual_patterns, set(gp_set))
                 if type(self) is TGrad:
                     t_lag = self.get_fuzzy_time_lag(gi_data.bin_mat, time_delay_data, gi_arr=None, tri_mf_data=tri_mf_data)
                 else:
                     t_lag = self.get_fuzzy_time_lag(gi_data.bin_mat, time_delay_data, gp_set, tri_mf_data)
 
                 if t_lag.valid:
+                    # t_gps = GP.remove_subsets(t_gps, set(gp_set))
                     tgp: TGP = TGP()
                     for gi_str in gp_set:
                         gi: GI = GI.from_string(gi_str)

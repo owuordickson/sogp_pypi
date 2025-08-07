@@ -107,11 +107,12 @@ class DataGP:
     def gradual_patterns(self) -> list | None:
         return self._gradual_patterns
 
-    @gradual_patterns.setter
-    def gradual_patterns(self, patterns) -> None:
-        if not isinstance(patterns, list):
-            raise Exception("Patterns must be a list of gradual patterns (GP objects)")
-        self._gradual_patterns = patterns
+    @property
+    def str_gradual_patterns(self) -> list:
+        str_gps = []
+        for gp in self._gradual_patterns:
+            str_gps.append(gp.print(self.titles))
+        return str_gps
 
     def _init_attributes(self) -> None:
         """Initializes the attributes of the data-gp object."""
@@ -154,6 +155,23 @@ class DataGP:
         if not isinstance(pattern, (GP, TGP)):
             raise Exception("Pattern must be of type GP, ExtGP, or TGP")
         self._gradual_patterns.append(pattern)
+
+    def clear_gradual_patterns(self) -> None:
+        self._gradual_patterns = list()
+
+    def remove_subsets(self, gi_arr:set) -> None:
+        """
+
+        Remove subset GPs from the list.
+
+        :param gi_arr: Gradual items in an array
+        :return: List of GPs
+        """
+        for gp in self._gradual_patterns:
+            result1 = set(gp.as_set).issubset(gi_arr)
+            result2 = set(gp.as_swapped_set).issubset(gi_arr)
+            if result1 or result2:
+                self._gradual_patterns.remove(gp)
 
     def fit_bitmap(self, attr_data=None) -> None:
         """

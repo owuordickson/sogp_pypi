@@ -5,8 +5,17 @@ DOCUMENTATION SOFTWARE
        - 'furo' theme for sphinx-docs (pip install furo)
        - 'myst_parser' for allowing sphinx to read .md files (pip install myst-parser)
 
-BUILD RELEASE
+BUILD & PUBLISH PyPi RELEASE
     python3 -m pip install --upgrade pip setuptools wheel twine build
     py -m build
     py -m twine upload dist/*
     twine upload --repository so4gp
+
+BUILD & PUBLISH Conda RELEASE
+conda activate SGT_ENV
+conda install -c conda-forge grayskull  # Already Done
+conda config --add channels conda-forge # Already Done
+conda build purge
+
+grayskull pypi --strict-conda-forge so4gp
+conda

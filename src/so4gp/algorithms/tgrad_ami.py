@@ -182,9 +182,7 @@ class TGradAMI(TGrad):
         :return: List of (FTGPs as JSON object) or (FTGPs and evaluation data as a Python dict) when executed in evaluation mode.
         """
 
-        self.gradual_patterns: list[TGP] = []
-        str_gps = []
-
+        self.clear_gradual_patterns()
         # 1. Compute and find the lowest mutual information
         optimal_dict, max_step = self.find_best_mutual_info()
 
@@ -193,17 +191,15 @@ class TGradAMI(TGrad):
 
         # 3. Discover temporal-GPs from time-delayed data
         if eval_mode:
-            gp_components = self._mine_gps_at_step(time_delay_data=time_data, attr_data=delayed_data, clustering_method=use_clustering, decompose=True)
+            lst_tgp, gp_components = self._mine_gps_at_step(time_delay_data=time_data, attr_data=delayed_data, clustering_method=use_clustering, decompose=True)
         else:
-            self._mine_gps_at_step(time_delay_data=time_data, attr_data=delayed_data, clustering_method=use_clustering)
+            lst_tgp = self._mine_gps_at_step(time_delay_data=time_data, attr_data=delayed_data, clustering_method=use_clustering)
             gp_components = None
 
         # 4. Organize FTGPs into a single list
-        if self.gradual_patterns:
-            print(self.gradual_patterns)
-            for tgp in self.gradual_patterns:
-                # self.gradual_patterns.append(tgp)
-                str_gps.append(tgp.print(self.titles))
+        if lst_tgp:
+            for tgp in lst_tgp:
+                self.add_gradual_pattern(tgp)
 
         # 5. Check if the algorithm is in evaluation mode
         if eval_mode:
@@ -216,7 +212,7 @@ class TGradAMI(TGrad):
                     time_title.append(txt)
             eval_dict = {
                 'Algorithm': 'TGradAMI',
-                'Patterns': str_gps,
+                'Patterns': self.str_gradual_patterns,
                 'Time Data': np.vstack((np.array(time_title), time_data.T)),
                 'Transformed Data': np.vstack((np.array(title_row), delayed_data.T)),
                 'GP Components': gp_components
@@ -225,6 +221,6 @@ class TGradAMI(TGrad):
             return eval_dict
         else:
             # Output
-            out = json.dumps({"Algorithm": "TGradAMI", "Patterns": str_gps})
+            out = json.dumps({"Algorithm": "TGradAMI", "Patterns": self.str_gradual_patterns})
             """:type out: object"""
             return out

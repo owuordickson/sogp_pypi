@@ -124,6 +124,7 @@ class GeneticGRAANK(DataGP):
 
         # Prepare data set
         self.fit_bitmap()
+        self.clear_gradual_patterns()
         if self.valid_bins is None:
             return []
 

@@ -61,19 +61,17 @@ class RandomGRAANK(DataGP):
 
         :return: JSON object
         """
-        # Prepare data set
+
         self.fit_bitmap()
+        self.clear_gradual_patterns()
         if self.valid_bins is None:
             return []
 
-        # Initialize search space
         s_space = NumericSS.initialize_search_space(self.valid_bins, 1, self._max_iteration)
         if s_space is None:
             return []
 
-        # run the hill climb
-        repeated = 0
-        candidate = NumericSS.Candidate()
+        repeated, candidate = 0, NumericSS.Candidate()
         while s_space.counter < self._max_iteration:
             # while eval_count < max_evaluations:
             candidate.position = ((s_space.var_min + random.random()) * (s_space.var_max - s_space.var_min))

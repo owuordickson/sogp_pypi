@@ -63,8 +63,10 @@ class HillClimbingGRAANK(DataGP):
 
         :return: JSON object
         """
+
         # Prepare data set
         self.fit_bitmap()
+        self.clear_gradual_patterns()
         if self.valid_bins is None:
             return []
 

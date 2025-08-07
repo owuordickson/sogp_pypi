@@ -150,12 +150,11 @@ class AntGRAANK(DataGP):
         # d_set = DataGP(f_path, min_supp)
         # """:type d_set: DataGP"""
         self._fit()  # distance matrix (d) & attributes corresponding to d
+        self.clear_gradual_patterns()
         d = self._distance_matrix
 
         a = self.attr_size
-        self.clear_gradual_patterns()
         loser_gps = list()  # supersets
-        str_winner_gps = list()  # subsets
         repeated = 0
         it_count = 0
         counter = 0
@@ -194,7 +193,6 @@ class AntGRAANK(DataGP):
                         if gen_gp.support >= self.thd_supp:
                             pheromones = self._update_pheromones(gen_gp, pheromones)
                             self.add_gradual_pattern(gen_gp)
-                            str_winner_gps.append(gen_gp.print(self.titles))
                         else:
                             loser_gps.append(gen_gp)
                             invalid_count += 1
@@ -210,7 +208,7 @@ class AntGRAANK(DataGP):
             else:
                 counter = it_count
         # Output
-        out = json.dumps({"Algorithm": "ACO-GRAANK", "Best Patterns": str_winner_gps, "Invalid Count": invalid_count,
+        out = json.dumps({"Algorithm": "ACO-GRAANK", "Best Patterns": self.str_gradual_patterns, "Invalid Count": invalid_count,
                           "Iterations": it_count})
         """:type out: object"""
         return out

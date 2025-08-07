@@ -89,9 +89,7 @@ class TGrad(GRAANK):
         :return: List of FTGPs as JSON object
         """
 
-        self.gradual_patterns: list[TGP] = []
-        str_gps = []
-
+        self.clear_gradual_patterns()
         # 1. Mine FTGPs
         if parallel:
             # implement parallel multi-processing
@@ -110,12 +108,11 @@ class TGrad(GRAANK):
         # 2. Organize FTGPs into a single list
         for lst_obj in patterns:
             if lst_obj:
-                print(lst_obj)
-                for tgp in lst_obj:
-                    self.gradual_patterns.append(tgp)
-                    str_gps.append(tgp.print(self.titles))
+                for lst_tgp in lst_obj:
+                    for tgp in lst_tgp:
+                        self.add_gradual_pattern(tgp)
         # Output
-        out = json.dumps({"Algorithm": "TGrad", "Patterns": str_gps})
+        out = json.dumps({"Algorithm": "TGrad", "Patterns": self.str_gradual_patterns})
         """:type out: object"""
         return out
 
@@ -165,7 +162,7 @@ class TGrad(GRAANK):
 
                     if return_patterns:
                         # 2. Execute t-graank for each transformation
-                        t_gps = self._mine(time_delay_data=time_diffs, attr_data=delayed_attr_data)
+                        t_gps = self._mine_gps_at_step(time_delay_data=time_diffs, attr_data=delayed_attr_data)
                         if len(t_gps) > 0:
                             return t_gps
                         return False
@@ -175,7 +172,7 @@ class TGrad(GRAANK):
             msg = "Fatal Error: Time format in column could not be processed"
             raise Exception(msg)
 
-    def _mine(self, time_delay_data: np.ndarray | dict = None, attr_data: np.ndarray = None, clustering_method: bool = False, decompose: bool = False) -> list[TGP] | tuple[list[TGP], dict]:
+    def _mine_gps_at_step(self, time_delay_data: np.ndarray | dict = None, attr_data: np.ndarray = None, clustering_method: bool = False, decompose: bool = False) -> list[TGP] | tuple[list[TGP], dict]:
         """
 
         Uses apriori algorithm to find GP candidates based on the target-attribute. The candidates are validated if
@@ -220,7 +217,6 @@ class TGrad(GRAANK):
                     t_lag = self.get_fuzzy_time_lag(gi_data.bin_mat, time_delay_data, gp_set, tri_mf_data)
 
                 if t_lag.valid:
-                    # t_gps = GP.remove_subsets(t_gps, set(gp_set))
                     tgp: TGP = TGP()
                     for gi_str in gp_set:
                         gi: GI = GI.from_string(gi_str)
@@ -229,10 +225,13 @@ class TGrad(GRAANK):
                         else:
                             tgp.add_temporal_gradual_item(gi, t_lag)
                     tgp.support = gi_data.support
-                    t_gps.append(tgp)  # PROBLEM: DO NOT APPEND -- MODIFY remove_subsets
+                    t_gps.append(tgp)
                     if decompose:
                         gp_components[f"{tgp.to_string()}"] = GRAANK.decompose_to_gp_component(gi_data.bin_mat)
-        return t_gps, gp_components if decompose else t_gps
+        if decompose:
+            return t_gps, gp_components
+        else:
+            return t_gps
 
     def get_time_diffs(self, step: int):  # optimized
         """

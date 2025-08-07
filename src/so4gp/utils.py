@@ -44,12 +44,12 @@ def analyze_gps(data_src, min_sup, est_gps, approach='bfs') -> str:
     >>> estimated_gps = list()
     >>> temp_gp = sgp.GP()
     >>> for gi_str in ['0+', '1-']:
-    >>>     temp_gp.add_gradual_item(sgp.GI.from_string(gi_str))
+    >>>    temp_gp.add_gradual_item(sgp.GI.from_string(gi_str))
     >>> temp_gp.support = 0.5
     >>> estimated_gps.append(temp_gp)
     >>> temp_gp = sgp.GP()
     >>> for gi_str in ['1+', '3-', '0+']:
-    >>>     temp_gp.add_gradual_item(sgp.GI.from_string(gi_str))
+    >>>    temp_gp.add_gradual_item(sgp.GI.from_string(gi_str))
     >>> temp_gp.support = 0.48
     >>> estimated_gps.append(temp_gp)
     >>> res = sgp.analyze_gps(dummy_df, min_sup=0.4, est_gps=estimated_gps, approach='bfs')
@@ -83,7 +83,7 @@ def analyze_gps(data_src, min_sup, est_gps, approach='bfs') -> str:
     data = []
     for est_gp in est_gps:
         est_sup = est_gp.support
-        est_gp.support(0)
+        est_gp.support = 0
         if approach == 'dfs':
             true_gp = est_gp.validate_tree(d_set)
         else:
@@ -115,7 +115,7 @@ def gradual_decompose(data: pd.DataFrame, target: int) -> dict | Exception:
     :param target: [required] the target column or feature or attribute.
 
     >>> import pandas
-    >>> import so4gp as sgp
+    >>> import src.so4gp as sgp
     >>> import matplotlib.pyplot as plt
     >>>
     >>> dummy_data = [["2021-03", 30, 3, 1, 10], ["2021-04", 35, 2, 2, 8], ["2021-05", 40, 4, 2, 7], ["2021-06", 50, 1, 1, 6], ["2021-07", 52, 7, 1, 2]]

@@ -23,9 +23,9 @@ if __name__ == "__main__":
     # result_json = mine_obj.discover_tgp(use_clustering=True, eval_mode=False)  # TGradAMI
     print(result_json)
 
-    from src.so4gp.utils import gradual_decompose
-    gp_trends = gradual_decompose(dummy_df, target=1)
-    print(gp_trends)
+    # from src.so4gp.utils import gradual_decompose
+    # gp_trends = gradual_decompose(dummy_df, target=1)
+    # print(gp_trends)
 
-    from src.so4gp import DataGP
-    print(DataGP.test_time("09-01-2005"))
+    # from src.so4gp import DataGP
+    # print(DataGP.test_time("09-01-2005"))

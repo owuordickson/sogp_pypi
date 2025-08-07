@@ -167,10 +167,9 @@ class GP:
 
         :return: void
         """
-        if isinstance(item, GI):
-            self._gradual_items.append(item)
-            return True
-        return False
+        if not isinstance(item, GI):
+            raise TypeError("Invalid gradual item")
+        self._gradual_items.append(item)
 
     @property
     def as_set(self) -> set[str]:

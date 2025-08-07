@@ -8,7 +8,6 @@
 import json
 import random
 import numpy as np
-from ypstruct import structure
 
 try:
     from ..data_gp import DataGP

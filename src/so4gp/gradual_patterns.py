@@ -64,19 +64,6 @@ class GI:
         return self._symbol
 
     @property
-    def is_decreasing(self) -> bool:
-        """Checks if a GI's variation corresponds to decreasing and returns True, False otherwise."""
-        if self._symbol == "-":
-            return True
-        else:
-            return False
-
-    @property
-    def as_array(self) -> np.ndarray:
-        """The Gradual Item (GI) in ndarray format"""
-        return np.array((self._attribute_col, self._symbol), dtype='i, S1')
-
-    @property
     def as_tuple(self) -> tuple[int, str]:
         """The Gradual Item (GI) in tuple format"""
         return tuple((self._attribute_col, self._symbol))
@@ -171,12 +158,6 @@ class GP:
     def support(self, support: float):
         self._support = round(support, 3) if support <= 1 else support
 
-    @gradual_items.setter
-    def gradual_items(self, items: list[GI]):
-        if not isinstance(items, list):
-            raise TypeError("Items must be a list of Gradual Items (GI) objects.")
-        self._gradual_items = items
-
     def add_gradual_item(self, item: GI) -> bool:
         """Description
 
@@ -190,21 +171,6 @@ class GP:
             self._gradual_items.append(item)
             return True
         return False
-
-    def add_items_from_list(self, lst_items: list[str]) -> None:
-        """
-        Adds gradual items from a list of str or a list of sets.
-        For example,
-        >>> import so4gp
-        >>> new_gp = so4gp.GP()
-        >>> new_gp.add_items_from_list(["0+", "2-", "3-"])
-
-        :param lst_items: A string or set
-        :type lst_items: list
-        """
-        for str_gi in lst_items:
-            if type(str_gi[1]) is str:
-                self.add_gradual_item(GI(int(str_gi[0]), str_gi[1]))
 
     @property
     def as_set(self) -> set[str]:
@@ -233,52 +199,6 @@ class GP:
             syms.append(gi[1])
         return attrs, syms
 
-    def find_index(self, gi: GI) -> int:
-        """Description
-
-        Returns the index position of a gradual item in the gradual pattern
-        :param gi: gradual item
-        :type gi: GI
-
-        :return: index of gradual item
-        """
-        for i in range(len(self._gradual_items)):
-            gi_obj = self._gradual_items[i]
-            if (gi.symbol == gi_obj.symbol) and (gi.attribute_col == gi_obj.attribute_col):
-                return i
-        return -1
-
-    def contains(self, gi: GI) -> bool:
-        """Description
-
-        Checks if a gradual item (GI) is a member of a gradual pattern (GP)
-        :param gi: gradual item
-        :type gi: GI
-
-        :return: True if it is a member, otherwise False
-        """
-        if gi is None:
-            return False
-        if gi in self._gradual_items:
-            return True
-        return False
-
-    def contains_strict(self, gi: GI) -> bool:
-        """Description
-
-        Strictly checks if a gradual item (GI) is a member of a gradual pattern (GP)
-        :param gi: gradual item
-        :type gi: GI
-
-        :return: True if it is a member, otherwise False
-        """
-        if gi is None:
-            return False
-        for gi_obj in self._gradual_items:
-            if (gi.attribute_col == gi_obj.attribute_col) and (gi.symbol == gi_obj.symbol):
-                return True
-        return False
-
     def contains_attr(self, gi: GI) -> bool:
         """Description
 
@@ -305,17 +225,6 @@ class GP:
         for item in self._gradual_items:
             pattern.append(item.to_string())
         return pattern
-
-    def to_dict(self) -> dict[str, int]:
-        """Description
-
-        Returns the GP as a dictionary
-        :return: dict
-        """
-        gi_dict = {}
-        for gi in self._gradual_items:
-            gi_dict.update({gi.to_string(): 0})
-        return gi_dict
 
     def print(self, columns) -> list[list[str] | float]:
         """Description

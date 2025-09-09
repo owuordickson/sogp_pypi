@@ -153,6 +153,8 @@ class NumericSS:
             candidate.position = np.minimum(candidate.position, s_space.var_max)
 
         apply_bound()
+        # Update: What about duplicate candidate (position already exists in the search-space)?
+        
         candidate.cost = NumericSS.cost_function(candidate.position, valid_bins_dict)
         if candidate.cost == 1:
             s_space.invalid_count += 1

@@ -1,9 +1,9 @@
 ---
 layout: "contents"
-title: so4gp Release Notes
+title: Release Notes
 ---
 
-# so4gp Release Notes
+# Release Notes
 
 ```{eval-rst}
 .. changelog::

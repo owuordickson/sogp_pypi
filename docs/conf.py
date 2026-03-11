@@ -30,6 +30,7 @@ extensions = [
     "sphinx.ext.viewcode",
     "sphinx.ext.coverage",
     "myst_parser",
+    "sphinx_github_changelog",
 ]
 
 templates_path = ["_templates"]

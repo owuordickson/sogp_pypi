@@ -42,7 +42,7 @@ The ```sgp``` namespace contains all necessary classes, functions, and algorithm
 
 The ```so4gp``` algorithms require a numeric dataset provided as either a ```pandas.DataFrame``` or a path to a ```CSV``` file.
 
-All ```so4gp``` functions and classes are documented in the [API Function Reference](functions_reference), and algorithms are documented in the [API Algorithm Reference](algorithms_reference).
+All ```so4gp``` functions and classes are documented in the **API Section**.
 
 ## References
 * Owuor, D., Runkler T., Laurent A., Menya E., Orero J (2021), Ant Colony Optimization for Mining Gradual Patterns. International Journal of Machine Learning and Cybernetics. [https://doi.org/10.1007/s13042-021-01390-w](https://doi.org/10.1007/s13042-021-01390-w)

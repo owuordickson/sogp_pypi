@@ -44,8 +44,7 @@ class GRAANK(DataGP):
 
     def _gen_apriori_candidates(self, gi_dict: dict, ignore_sup: bool = False,
                                 target_col: int | None = None, exclude_target: bool = False):
-        """Description
-
+        """
         Generates Apriori GP candidates (w.r.t target-feature/reference-column if provided). If a user wishes to generate
         candidates that do not contain the target-feature, then they do so by specifying the exclude_target parameter.
 
@@ -138,8 +137,7 @@ class GRAANK(DataGP):
 
     def discover(self, ignore_support: bool = False, apriori_level: int | None = None,
                  target_col: int | None = None, exclude_target: bool = False):
-        """Description
-
+        """
         Uses apriori algorithm to find gradual pattern (GP) candidates. The candidates are validated if their computed
         support is greater than or equal to the minimum support threshold specified by the user.
 

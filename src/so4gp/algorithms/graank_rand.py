@@ -14,8 +14,7 @@ from .numeric_ss import NumericSS
 class RandomGRAANK(DataGP):
 
     def __init__(self, *args, max_iter: int = 1, **kwargs):
-        """Description
-
+        """
         Extract gradual patterns (GPs) from a numeric data source using the Random Search Algorithm (LS-GRAANK)
         approach (proposed in a published research paper by Dickson Owuor). A GP is a set of gradual items (GI), and its
         quality is measured by its computed support value. For example, given a data set with 3 columns (age, salary,
@@ -48,8 +47,7 @@ class RandomGRAANK(DataGP):
         self._n_var: int = 1
 
     def discover(self):
-        """Description
-
+        """
         Uses random search to find GP candidates. The candidates are validated if their computed support is greater
         than or equal to the minimum support threshold specified by the user.
 

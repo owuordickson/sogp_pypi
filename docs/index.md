@@ -22,9 +22,8 @@ introduction/basic_usage
 :caption: API
 
 api/algorithms
+api/classes
 api/functions
-api/so4gp
-api/so4gp.algorithms
 
 ```
 

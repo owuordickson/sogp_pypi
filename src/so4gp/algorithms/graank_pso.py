@@ -16,8 +16,7 @@ class ParticleGRAANK(DataGP):
 
     def __init__(self, *args, max_iter: int = 1, n_particle: int = 5, vel: float = 0.9,
                  coeff_p: float = 0.01, coeff_g: float = 0.9, **kwargs):
-        """Description
-
+        """
         Extract gradual patterns (GPs) from a numeric data source using the Particle Swarm Optimization Algorithm
         approach (proposed in a published research paper by Dickson Owuor). A GP is a set of gradual items (GI), and its
         quality is measured by its computed support value. For example, given a data set with 3 columns (age, salary,
@@ -56,8 +55,7 @@ class ParticleGRAANK(DataGP):
         self._coeff_g: float = coeff_g
 
     def discover(self):
-        """Description
-
+        """
         Searches through particle positions to find GP candidates. The candidates are validated if their computed
         support is greater than or equal to the minimum support threshold specified by the user.
 

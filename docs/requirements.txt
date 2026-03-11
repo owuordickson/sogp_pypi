@@ -4,5 +4,4 @@ myst-parser>=2.0
 sphinx-autobuild
 sphinx-gallery==0.20.0
 sphinx-github-changelog
-sphinx-autoapi
 tabulate

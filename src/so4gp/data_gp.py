@@ -27,9 +27,7 @@ from .gradual_patterns import GP, TGP, PairwiseMatrix
 class DataGP:
 
     def __init__(self, data_source, min_sup=0.5, eq=False) -> None:
-        """Description of class DataGP
-
-
+        """
         A class for creating data-gp objects. A data-gp object is meant to store all the parameters required by GP
         algorithms to extract gradual patterns (GP). It takes a numeric file (in CSV format) as input and converts it
         into an object whose attributes are used by algorithms to extract GPs.
@@ -115,8 +113,7 @@ class DataGP:
         """Initializes the attributes of the data-gp object."""
 
         def get_attr_cols() -> np.ndarray:
-            """Description
-
+            """
             Returns indices of all columns with non-datetime objects
 
             :return: ndarray
@@ -149,16 +146,21 @@ class DataGP:
         self._attr_cols = get_attr_cols()
 
     def add_gradual_pattern(self, pattern) -> None:
+        """
+        Adds a gradual pattern to the list of gradual patterns.
+
+        :param pattern: A gradual pattern
+        """
         if not isinstance(pattern, (GP, TGP)):
             raise Exception("Pattern must be of type GP, ExtGP, or TGP")
         self._gradual_patterns.append(pattern)
 
     def clear_gradual_patterns(self) -> None:
+        """Clears the list of gradual patterns."""
         self._gradual_patterns = list()
 
     def remove_subsets(self, gi_arr:set) -> None:
         """
-
         Remove subset GPs from the list.
 
         :param gi_arr: Gradual items in an array
@@ -172,7 +174,6 @@ class DataGP:
 
     def fit_bitmap(self, attr_data=None) -> None:
         """
-
         Generates bitmaps for columns with numeric objects. It stores the bitmaps in attribute valid_bins (those bitmaps
         whose computed support values are greater or equal to the minimum support threshold value).
 
@@ -214,7 +215,6 @@ class DataGP:
 
     def fit_tids(self) -> None:
         """
-
         Generates transaction ids (tids) for each column/feature with numeric objects. It stores the tids in attribute
         valid_tids (those tids whose computed support values are greater or equal to the minimum support threshold
         value).
@@ -237,7 +237,6 @@ class DataGP:
     @staticmethod
     def read(data_src) -> tuple[list, np.ndarray]:
         """
-
         Reads all the contents of a file (in CSV format) or a data-frame. Checks if its columns have numeric values. It
         separates its columns headers (titles) from the objects.
 
@@ -301,7 +300,6 @@ class DataGP:
     @staticmethod
     def test_time(date_str) -> None | tuple[bool, float] | tuple[bool, bool]:
         """
-
         Tests if a str represents a date-time variable.
 
         :param date_str: A string
@@ -326,9 +324,9 @@ class DataGP:
 
     @staticmethod
     def clean_data(df) -> tuple[list, np.ndarray]:
-        """Description
-
+        """
         Cleans a data-frame (i.e., missing values, outliers) before extraction of GPs
+
         :param df: data-frame
         :type df: pd.DataFrame
         :return: list (column titles), numpy (cleaned data)

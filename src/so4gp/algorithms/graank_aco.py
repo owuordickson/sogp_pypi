@@ -14,9 +14,7 @@ from ..gradual_patterns import GI, GP, PairwiseMatrix
 class AntGRAANK(DataGP):
 
     def __init__(self, *args, max_iter: int = 1, e_factor: float = 0.5, **kwargs):
-        """Description
-
-    Extract gradual patterns (GPs) from a numeric data source using the Ant Colony Optimization approach
+        """Extract gradual patterns (GPs) from a numeric data source using the Ant Colony Optimization approach
     (proposed in a published paper by Dickson Owuor). A GP is a set of gradual items (GI), and its quality is
     measured by its computed support value. For example, given a data set with 3 columns (age, salary, cars) and 10
     objects. A GP may take the form: {age+, salary-} with a support of 0.8. This implies that 8 out of 10 objects
@@ -54,8 +52,7 @@ class AntGRAANK(DataGP):
         self._attribute_keys: list | None = None
 
     def _fit(self):
-        """Description
-
+        """
         Generates the distance matrix (d)
         :return: distance matrix (d) and attribute keys
         """
@@ -117,8 +114,7 @@ class AntGRAANK(DataGP):
         return pattern, p_matrix
 
     def _update_pheromones(self, pattern: GP, p_matrix: np.ndarray):
-        """Description
-
+        """
         Updates the pheromone level of the pheromone matrix
 
         :param pattern: pattern used to update values
@@ -135,8 +131,7 @@ class AntGRAANK(DataGP):
         return p_matrix
 
     def discover(self):
-        """Description
-
+        """
         Applies ant-colony optimization algorithm and uses pheromone levels to find GP candidates. The candidates are
         validated if their computed support is greater than or equal to the minimum support threshold specified by the
         user.

@@ -14,8 +14,7 @@ from .numeric_ss import NumericSS
 class GeneticGRAANK(DataGP):
 
     def __init__(self, *args, max_iter=1, n_pop=5, pc=0.5, gamma=1.0, mu=0.9, sigma=0.9, **kwargs):
-        """Description
-
+        """
         Extract gradual patterns (GPs) from a numeric data source using the Genetic Algorithm approach (proposed
         in a published paper by Dickson Owuor). A GP is a set of gradual items (GI), and its quality is measured by
         its computed support value. For example, given a data set with 3 columns (age, salary, cars) and 10 objects.
@@ -109,8 +108,7 @@ class GeneticGRAANK(DataGP):
         return y
 
     def discover(self):
-        """Description
-
+        """
         Uses genetic algorithm to find GP candidates. The candidates are validated if their computed support is greater
         than or equal to the minimum support threshold specified by the user.
 

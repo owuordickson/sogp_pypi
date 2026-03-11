@@ -41,6 +41,7 @@ class GradPFS:
         >>> fs_obj = GradPFS(data_src=dummy_df)
         >>> gp_cor = fs_obj.univariate_fs()
         >>> fs_obj.generate_pdf_report(fs_type='U')
+        >>>
         >>> # fs_obj.target_col = 2
         >>> # m_fs = fs_obj.multivariate_fs()
         >>> print(gp_cor)

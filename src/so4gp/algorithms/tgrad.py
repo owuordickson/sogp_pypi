@@ -31,6 +31,7 @@ class TGrad(GRAANK):
         >>> import so4gp.algorithms import TGrad
         >>> import pandas
         >>> import json
+        >>>
         >>> dummy_data = [["2021-03", 30, 3, 1, 10], ["2021-04", 35, 2, 2, 8], ["2021-05", 40, 4, 2, 7], ["2021-06", 50, 1, 1, 6], ["2021-07", 52, 7, 1, 2]]
         >>> dummy_df = pandas.DataFrame(dummy_data, columns=['Date', 'Age', 'Salary', 'Cars', 'Expenses'])
         >>>
@@ -77,7 +78,6 @@ class TGrad(GRAANK):
 
     def discover_tgp(self, parallel: bool = False, num_cores: int = 1):
         """
-
         Applies fuzzy-logic, data transformation and gradual pattern mining to mine for Fuzzy Temporal Gradual Patterns.
 
         :param parallel: Allow multiprocessing.
@@ -173,7 +173,6 @@ class TGrad(GRAANK):
 
     def _mine_gps_at_step(self, time_delay_data: np.ndarray | dict = None, attr_data: np.ndarray = None, clustering_method: bool = False, decompose: bool = False) -> list[TGP] | tuple[list[TGP], dict]:
         """
-
         Uses apriori algorithm to find GP candidates based on the target-attribute. The candidates are validated if
         their computed support is greater than or equal to the minimum support threshold specified by the user.
 
@@ -234,7 +233,6 @@ class TGrad(GRAANK):
 
     def get_time_diffs(self, step: int):  # optimized
         """
-
         A method that computes the difference between 2 timestamps separated by a specific transformation step.
 
         :param step: Data transformation step.
@@ -267,7 +265,6 @@ class TGrad(GRAANK):
 
     def get_fuzzy_time_lag(self, bin_data: np.ndarray, time_data: np.ndarray | dict, gi_arr: set = None, tri_mf_data: np.ndarray | None = None) -> TimeDelay:
         """
-
         A method that uses a fuzzy membership function to select the most accurate time-delay value. We implement two
         methods: (1) uses classical slide and re-calculate dynamic programming to find the best time-delay value and,
         (2) uses metaheuristic hill-climbing to find the best time-delay value.
@@ -277,6 +274,7 @@ class TGrad(GRAANK):
         :param gi_arr: Gradual item object.
         :param tri_mf_data: The 'a,b,c' values of the triangular MF. Used to find and approximate the best time-delay value
         using KMeans and Hill-climbing approach.
+
         :return: TimeDelay object.
         """
 
@@ -433,7 +431,6 @@ class TGrad(GRAANK):
     @staticmethod
     def get_timestamp(time_str: str):
         """
-
         A method that computes the corresponding timestamp from a DateTime string.
 
         :param time_str: DateTime value as a string

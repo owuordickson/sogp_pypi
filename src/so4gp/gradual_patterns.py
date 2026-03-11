@@ -28,7 +28,6 @@ class GI:
 
     def __init__(self, attr_col, symbol):
         """
-
         GI (Gradual Item). A class that is used to create GI objects. A GI is a pair (i,v) where is a column, and v is a variation symbol -
         increasing/decreasing. Each column of a data set yields 2 GIs; for example, column age yields GI age+ or age-.
 
@@ -69,8 +68,7 @@ class GI:
         return tuple((self._attribute_col, self._symbol))
 
     def to_string(self) -> str:
-        """Description
-
+        """
         Returns a GI in string format
         :return: string
         """
@@ -91,8 +89,7 @@ class GI:
 
     @staticmethod
     def swap_gi_symbol(gi_obj: "GI") -> "GI":
-        """Description
-
+        """
         Inverts a GI symbol to the opposite variation (i.e., from - to +; or, from + to -)
         :return: inverted GI object
         """
@@ -105,7 +102,6 @@ class GI:
     @staticmethod
     def parse_gi(gi_str: str) -> "GI":
         """
-
         Converts a stringified GI into normal GI.
 
         :param gi_str: A stringified GI
@@ -159,8 +155,7 @@ class GP:
         self._support = round(support, 3) if support <= 1 else support
 
     def add_gradual_item(self, item: GI) -> bool:
-        """Description
-
+        """
         Adds a gradual item (GI) into the gradual pattern (GP)
         :param item: gradual item
         :type item: so4gp.GI
@@ -199,9 +194,8 @@ class GP:
         return attrs, syms
 
     def contains_attr(self, gi: GI) -> bool:
-        """Description
-
-        Checks is any gradual item (GI) in the gradual pattern (GP) is composed of the column
+        """
+        Checks if any gradual item (GI) in the gradual pattern (GP) is composed of the column
         :param gi: gradual item
         :type gi: GI
 
@@ -215,8 +209,7 @@ class GP:
         return False
 
     def to_string(self) -> list[str]:
-        """Description
-
+        """
         Returns the GP in string format
         :return: string
         """
@@ -226,8 +219,7 @@ class GP:
         return pattern
 
     def print(self, columns) -> list[list[str] | float]:
-        """Description
-
+        """
         A method that returns patterns with actual column names
 
         :param columns: Column names
@@ -345,8 +337,7 @@ class GP:
         return result
 
     def is_duplicate(self, valid_gps:list["GP"], invalid_gps:list["GP"]=None) -> bool:
-        """Description
-
+        """
         Checks if a pattern is in the list of winner GPs or loser GPs
 
         :param valid_gps: list of GPs
@@ -380,6 +371,7 @@ class GP:
     def perform_and(bin_data_1: "PairwiseMatrix", bin_data_2: "PairwiseMatrix", dim: int) -> "PairwiseMatrix":
         """
         Perform logical AND operation on two bitmaps.
+
         :param bin_data_1: Bitmap 1
         :param bin_data_2: bitmap 2
         :param dim: dimension of the bitmaps
@@ -393,17 +385,7 @@ class TimeDelay:
 
     def __init__(self, tstamp=0, supp=0):
         """
-            TimeDelay (Time Delay). A class used in Fuzzy Temporal Gradual Patterns to create the time-delay object. The class TimeDelay has the following attributes:
-
-            timestamp: the time-delay value as a timestamp.
-
-            support: the true value of the time-delay value.
-
-            valid: if the time-delay value is valid (should not be zero).
-
-            sign: if the time is earlier (-) or later (+)
-
-            formatted_time: time-delay formatted as a Date (in terms of hours/days/weeks/months/years)
+            TimeDelay (Time Delay). A class used in Fuzzy Temporal Gradual Patterns to create the time-delay object.
 
         >>> import so4gp as sgp
         >>> t_delay = sgp.TimeDelay(3600, 0.75)
@@ -519,8 +501,6 @@ class TGP(GP):
 
     def __init__(self):
         """
-        Description of class TGP (Temporal Gradual Pattern)
-
         A class that inherits an existing GP class to create Temporal GP objects. A TGP is a gradual pattern with a
         time-delay. It has a target gradual item (which is created from a user-defined attribute), and it is used as the
         anchor for mining patterns from a dataset. The class has the following attributes:
@@ -551,8 +531,7 @@ class TGP(GP):
         self._target_gradual_item = item
 
     def add_temporal_gradual_item(self, item: GI, time_delay: TimeDelay):
-        """Description
-
+        """
             Adds a fuzzy temporal gradual item (fTGI) into the fuzzy temporal gradual pattern (fTGP)
             :param item: gradual item
             :type item: so4gp.GI
@@ -581,8 +560,7 @@ class TGP(GP):
         return pattern
 
     def print(self, columns) -> list[list[str] | float]:
-        """Description
-
+        """
         A method that returns a fuzzy temporal gradual pattern (TGP) with actual column names
 
         :param columns: Column names

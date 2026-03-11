@@ -16,8 +16,7 @@ from ..gradual_patterns import GI, GP
 class ClusterGP(DataGP):
 
     def __init__(self, *args, e_prob: float = 0.5, max_iter: int = 10, **kwargs):
-        """Description of class ClusterGP (Clustering DataGP)
-
+        """
         CluDataGP stands for Clustering DataGP. It is a class that inherits the DataGP class to create data-gp
         objects for the clustering approach. This class inherits the DataGP class which is used to create data-gp objects.
         The classical data-gp object is meant to store all the parameters required by GP algorithms to extract gradual
@@ -53,8 +52,7 @@ class ClusterGP(DataGP):
         self._construct_matrices(e_prob)
 
     def _construct_matrices(self, e: float=0):
-        """Description
-
+        """
         Generates all the gradual items and constructs: (1) net-win matrix, (2) cumulative wins, (3) pairwise objects.
 
         :param e: [required] erasure probability
@@ -127,8 +125,7 @@ class ClusterGP(DataGP):
         self._ij = pair_ij
 
     def _infer_gps(self, clusters: np.ndarray) -> list[GP]:
-        """Description
-
+        """
         A function that infers GPs from clusters of gradual items.
 
         :param clusters: [required] groups of gradual items clustered through K-MEANS algorithm
@@ -224,8 +221,7 @@ class ClusterGP(DataGP):
         return lst_gps
 
     def discover(self, eval_mode: bool=False):
-        """Description
-
+        """
         Applies spectral clustering to determine which gradual items belong to the same group based on the similarity
         of net-win vectors. Gradual items in the same cluster should have almost the same score vector. The candidates
         are validated if their computed support is greater than or equal to the minimum support threshold specified by

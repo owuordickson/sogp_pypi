@@ -177,12 +177,13 @@ def get_slurm_cores() -> int | bool:
 
 
 def write_file(data, path, wr=True) -> None:
-    """Description
-
+    """
     Writes data into a file
+
     :param data: information to be written
     :param path: name of file and storage path
     :param wr: writes data into the file if True
+
     :return:
     """
     if wr:

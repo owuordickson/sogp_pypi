@@ -38,7 +38,7 @@ class ClusterGP(DataGP):
         >>> dummy_data = [[30, 3, 1, 10], [35, 2, 2, 8], [40, 4, 2, 7], [50, 1, 1, 6], [52, 7, 1, 2]]
         >>> dummy_df = pandas.DataFrame(dummy_data, columns=['Age', 'Salary', 'Cars', 'Expenses'])
         >>>
-        >>> mine_obj = ClusterGP(dummy_df, 0.5, max_iter=3, e_prob=0.5)
+        >>> mine_obj = ClusterGP(data_source=dummy_df, min_sup=0.5, max_iter=3, e_prob=0.5)
         >>> result_json = mine_obj.discover()
         >>> print(result_json) # doctest: +SKIP
         """
@@ -252,7 +252,7 @@ class ClusterGP(DataGP):
         # 2c. Spectral Clustering: rank approximation
         s_matrix_approx = u[:, :r] @ np.diag(s[:r]) @ vt[:r, :]
 
-        # 2d. Clustering using K-Means (using sklearn library)
+        # 2d. Clustering using K-Means (using the sklearn library)
         kmeans = KMeans(n_clusters=r, random_state=0)
         y_predicted = kmeans.fit_predict(s_matrix_approx)
 

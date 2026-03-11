@@ -164,7 +164,7 @@ class NumericSS:
         return s_space
 
     @staticmethod
-    def evaluate_gradual_pattern(max_iter: int, repeat_count: int, s_space: "NumericSS.SearchSpace", data_gp: DataGP) -> tuple["NumericSS.SearchSpace", int]:
+    def evaluate_gradual_pattern(repeat_count: int, s_space: "NumericSS.SearchSpace", data_gp: DataGP) -> tuple["NumericSS.SearchSpace", int]:
         """"""
         dim = data_gp.attr_size
         best_gp: GP = NumericSS.decode_gp(s_space.best_sol.position, data_gp.valid_bins)
@@ -179,15 +179,11 @@ class NumericSS:
                 s_space.str_best_gps.append(best_gp.print(data_gp.titles))
 
         try:
-            # Show Iteration Information
-            # Store Best Cost
+            # Show Iteration Information (store Best Cost)
             s_space.best_costs[s_space.iter_count] = s_space.best_sol.cost
         except IndexError:
             pass
         s_space.iter_count += 1
 
-        if max_iter == 1:
-            s_space.counter = repeat_count
-        else:
-            s_space.counter = s_space.iter_count
+        s_space.counter = s_space.iter_count
         return s_space, repeat_count

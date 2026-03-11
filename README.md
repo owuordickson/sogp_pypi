@@ -36,9 +36,13 @@ import so4gp as sgp
 This is the classical approach (initially proposed by Anne Laurent) for mining gradual patterns. All the remaining algorithms are variants of this algorithm.
 
 ```python
+import pandas as pd
 import so4gp as sgp
 
-mine_obj = sgp.GRAANK(data_source=f_path, min_sup=0.5, eq=False)
+dummy_data = [["2021-03", 30, 3, 1, 10], ["2021-04", 35, 2, 2, 8], ["2021-05", 40, 4, 2, 7], ["2021-06", 50, 1, 1, 6], ["2021-07", 52, 7, 1, 2]]
+dummy_df = pd.DataFrame(dummy_data, columns=['Date', 'Age', 'Salary', 'Cars', 'Expenses'])
+    
+mine_obj = sgp.algorithms.GRAANK(data_source=dummy_df, min_sup=0.5, eq=False)
 gp_json = mine_obj.discover()
 print(gp_json)
 

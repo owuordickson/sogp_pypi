@@ -37,7 +37,6 @@ class GRAANK(DataGP):
         >>>
         >>> mine_obj = GRAANK(data_source=dummy_df, min_sup=0.5, eq=False)
         >>> result_json = mine_obj.discover()
-        >>> result = json.loads(result_json)
         >>> # print(result['Patterns'])
         >>> print(result_json) # doctest: +SKIP
         """

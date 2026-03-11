@@ -36,9 +36,8 @@ class RandomGRAANK(DataGP):
         >>> dummy_data = [[30, 3, 1, 10], [35, 2, 2, 8], [40, 4, 2, 7], [50, 1, 1, 6], [52, 7, 1, 2]]
         >>> dummy_df = pandas.DataFrame(dummy_data, columns=['Age', 'Salary', 'Cars', 'Expenses'])
         >>>
-        >>> mine_obj = RandomGRAANK(dummy_df, 0.5, max_iter=3)
+        >>> mine_obj = RandomGRAANK(data_source=dummy_df, min_sup=0.5, max_iter=3)
         >>> result_json = mine_obj.discover()
-        >>> result = json.loads(result_json)
         >>> # print(result['Patterns'])
         >>> print(result_json) # doctest: +SKIP
         {"Algorithm": "RS-GRAANK", "Best Patterns": [[["Age+", "Salary+", "Expenses-"], 0.6]], "Invalid Count": 1,
@@ -75,7 +74,7 @@ class RandomGRAANK(DataGP):
             NumericSS.evaluate_candidate(candidate, s_space, self.valid_bins)
 
             # Evaluate GP
-            _, repeated = NumericSS.evaluate_gradual_pattern(self._max_iteration, repeated, s_space, self)
+            _, repeated = NumericSS.evaluate_gradual_pattern(repeated, s_space, self)
 
         # Output
         out = json.dumps({"Algorithm": "RS-GRAANK", "Best Patterns": s_space.str_best_gps,

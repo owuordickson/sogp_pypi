@@ -38,9 +38,8 @@ class HillClimbingGRAANK(DataGP):
         >>> dummy_data = [[30, 3, 1, 10], [35, 2, 2, 8], [40, 4, 2, 7], [50, 1, 1, 6], [52, 7, 1, 2]]
         >>> dummy_df = pandas.DataFrame(dummy_data, columns=['Age', 'Salary', 'Cars', 'Expenses'])
         >>>
-        >>> mine_obj = HillClimbingGRAANK(dummy_df, 0.5, max_iter=3, step_size=0.5)
+        >>> mine_obj = HillClimbingGRAANK(data_source=dummy_df, min_sup=0.5, max_iter=3, step_size=0.5)
         >>> result_json = mine_obj.discover()
-        >>> result = json.loads(result_json)
         >>> # print(result['Patterns'])
         >>> print(result_json) # doctest: +SKIP
         {"Algorithm": "LS-GRAANK", "Best Patterns": [[["Age+", "Expenses-"], 1.0]], "Invalid Count": 2, "Iterations": 2}
@@ -84,7 +83,7 @@ class HillClimbingGRAANK(DataGP):
             NumericSS.evaluate_candidate(candidate, s_space, self.valid_bins)
 
             # Evaluate GP
-            _, repeated = NumericSS.evaluate_gradual_pattern(self._max_iteration, repeated, s_space, self)
+            _, repeated = NumericSS.evaluate_gradual_pattern(repeated, s_space, self)
 
         # Output
         out = json.dumps({"Algorithm": "LS-GRAANK", "Best Patterns": s_space.str_best_gps, "Invalid Count": s_space.invalid_count,

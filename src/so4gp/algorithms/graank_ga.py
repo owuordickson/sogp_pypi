@@ -131,8 +131,6 @@ class GeneticGRAANK(DataGP):
         num_children = int(np.round(self._children_pop * self._parent_pop / 2) * 2)  # Number of children np.round is used to get an even number
         repeated = 0
         while s_space.counter < self._max_iteration:
-            # while eval_count < max_evaluations:
-            # while repeated < 1:
 
             c_pop = []  # Children population
             for _ in range(num_children // 2):
@@ -162,7 +160,7 @@ class GeneticGRAANK(DataGP):
             s_space.pop = s_space.pop[0:self._parent_pop]
 
             # Evaluate GP
-            _, repeated = NumericSS.evaluate_gradual_pattern(self._max_iteration, repeated, s_space, self)
+            _, repeated = NumericSS.evaluate_gradual_pattern(repeated, s_space, self)
 
         # Output
         out = json.dumps({"Algorithm": "GA-GRAANK", "Best Patterns": s_space.str_best_gps,

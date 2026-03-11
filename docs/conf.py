@@ -1,118 +1,91 @@
 # Configuration file for the Sphinx documentation builder.
-#
-# This file only contains a selection of the most common options. For a full
-# list see the documentation:
-# https://www.sphinx-doc.org/en/master/usage/configuration.html
+
+import os
+import sys
+import time
 
 # -- Path setup --------------------------------------------------------------
 
-# If extensions (or modules to document with autodoc) are in another directory,
-# add these directories to sys.path here. If the directory is relative to the
-# documentation root, use os.path.abspath to make it absolute, like shown here.
-#
-# import os
-# import sys
-import time
-
-# import sphinx_gallery.gen_rst
-# from furo.gen_tutorials import generate_tutorials
-
-# sys.path.insert(0, os.path.abspath('.'))
-
+# Add project root so autodoc can find the package
+sys.path.insert(0, os.path.abspath(".."))
 
 # -- Project information -----------------------------------------------------
 
-project = 'so4gp'
-copyright = f"{time.localtime().tm_year} Dickson Owuor"
-author = 'Dickson Owuor'
+project = "so4gp"
+author = "Dickson Owuor"
+copyright = f"{time.localtime().tm_year}, Dickson Owuor"
 
-# The full version, including alpha/beta/rc tags
-release = '0.2'
-version = '0.2.5'
+# Full version
+release = "0.2.5"
 
+# Short version
+version = "0.2"
 
 # -- General configuration ---------------------------------------------------
 
-# Add any Sphinx extension module names here, as strings. They can be
-# extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
-# ones.
-# -- General configuration
 extensions = [
-    "sphinx.ext.napoleon",
     "sphinx.ext.autodoc",
+    "sphinx.ext.napoleon",
     "sphinx.ext.githubpages",
     "sphinx.ext.viewcode",
     "sphinx.ext.coverage",
     "myst_parser",
-    #"furo.gen_tutorials",
-    #"sphinx_gallery.gen_gallery",
-    #"sphinx_github_changelog",
 ]
 
+templates_path = ["_templates"]
 
-# Add any paths that contain templates here, relative to this directory.
-# templates_path = ['_templates']
+exclude_patterns = [
+    "_build",
+    "Thumbs.db",
+    ".DS_Store",
+]
 
-# List of patterns, relative to source directory, that match files and
-# directories to ignore when looking for source files.
-# This pattern also affects html_static_path and html_extra_path.
-exclude_patterns = []
+# -- Napoleon settings -------------------------------------------------------
 
-# Napoleon settings
 napoleon_use_ivar = True
 napoleon_use_admonition_for_references = True
-# See https://github.com/sphinx-doc/sphinx/issues/9119
-napoleon_custom_sections = [("Returns", "params_style")]
 
-# Autodoc
+# -- Autodoc settings --------------------------------------------------------
+
 autoclass_content = "both"
 autodoc_preserve_defaults = True
 
-
-# This function removes the content before the parameters in the __init__ function.
-# This content is often not useful for the website documentation as it replicates
-# the class docstring.
+# Remove duplicate constructor documentation
 def remove_lines_before_parameters(app, what, name, obj, options, lines):
     if what == "class":
-        # ":param" represents args values
-        first_idx_to_keep = next(
-            (i for i, line in enumerate(lines) if line.startswith(":param")), 0
+        first_idx = next(
+            (i for i, line in enumerate(lines) if line.startswith(":param")),
+            None,
         )
-        lines[:] = lines[first_idx_to_keep:]
+        if first_idx is not None:
+            lines[:] = lines[first_idx:]
 
 
 def setup(app):
     app.connect("autodoc-process-docstring", remove_lines_before_parameters)
 
 
-# -- Options for HTML output -------------------------------------------------
+# -- HTML output -------------------------------------------------------------
 
-# The theme to use for HTML and HTML Help pages.  See the documentation for
-# a list of builtin themes.
-#
 html_theme = "furo"
-html_title = "so4gp Documentation"
-html_baseurl = "https://sogp_pi.readthedocs.io"
+
+html_title = "so4gp — Gradual Pattern Mining Algorithms"
+
+html_baseurl = "https://so4gp.readthedocs.io/"
+
 html_copy_source = False
-# html_favicon = "_static/img/favicon.png"
+
 html_theme_options = {
-    #"light_logo": "img/so4gp_black.svg",
-    #"dark_logo": "img/so4gp_white.svg",
-    #"gtag": "G-6H9C8TWXZ8",
-    "description": "A collection of gradual pattern mining algorithms and tools",
-    #"image": "img/so4gp-github.png",
-    "versioning": True,
+    # "description": "A collection of gradual pattern mining algorithms and tools",  ## Not supported by Furo
     "source_repository": "https://github.com/owuordickson/sogp_pypi",
     "source_branch": "main",
     "source_directory": "docs/",
+    "top_of_page_buttons": ["view", "edit"],
 }
 
-# Add any paths that contain custom static files (such as style sheets) here,
-# relative to this directory. They are copied after the builtin static files,
-# so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ["_static"]
 html_css_files = []
 
+# -- EPUB --------------------------------------------------------------------
 
-# -- Options for EPUB output
-# epub_show_urls = 'footnote'
+# epub_show_urls = "footnote"

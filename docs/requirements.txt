@@ -1,6 +1,7 @@
-sphinx
+sphinx>=7.0
+furo
+myst-parser>=2.0
 sphinx-autobuild
-myst-parser
-sphinx-gallery==0.14.0
-sphinx_github_changelog
+sphinx-gallery==0.20.0
+sphinx-github-changelog
 tabulate

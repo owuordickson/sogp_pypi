@@ -20,9 +20,9 @@ class TGrad(GRAANK):
 
     def __init__(self, *args, target_col: int, min_rep: float = 0.5, **kwargs):
         """
-        TGrad is an algorithm used to extract temporal gradual patterns from numeric datasets. An algorithm for
-    mining temporal gradual patterns using fuzzy membership functions. It uses a technique published
-    in: https://ieeexplore.ieee.org/abstract/document/8858883.
+        TGrad is an algorithm used to extract temporal gradual patterns from numeric datasets. An algorithm for mining
+        temporal gradual patterns using fuzzy membership functions. It uses a technique
+        published in: https://ieeexplore.ieee.org/abstract/document/8858883.
 
         :param args: [required] a data source path of Pandas DataFrame, [optional] minimum-support, [optional] eq
         :param target_col: [required] Target column.

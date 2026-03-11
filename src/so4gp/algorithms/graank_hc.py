@@ -22,10 +22,10 @@ class HillClimbingGRAANK(DataGP):
         cars) and 10 objects. A GP may take the form: {age+, salary-} with a support of 0.8. This implies that 8 out of
         10 objects have the values of column age 'increasing' and column 'salary' decreasing.
 
-             In this approach, we assume that every GP candidate may be represented as a position that has cost value
-             associated with it. The cost is derived from the computed support of that candidate, the higher the support
-              value, the lower the cost. The aim of the algorithm is to search through a group of positions and find those with
-             the lowest cost as efficiently as possible.
+        In this approach, we assume that every GP candidate may be represented as a position that has cost value
+        associated with it. The cost is derived from the computed support of that candidate, the higher the support
+        value, the lower the cost. The aim of the algorithm is to search through a group of positions and find those with
+        the lowest cost as efficiently as possible.
 
         :param args: [required] a data source path of Pandas DataFrame, [optional] minimum-support, [optional] eq
         :param max_iter: [optional] maximum_iteration, default is 1

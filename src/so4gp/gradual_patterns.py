@@ -122,15 +122,11 @@ class GP:
 
     def __init__(self):
         """
-            GP (Gradual Pattern). A class that is used to create GP objects. A GP object is a set of gradual items (GI), and its quality is
-            measured by its computed support value. For example, given a data set with 3 columns (age, salary,
-            cars) and 10 objects. A GP may take the form: {age+, salary-} with a support of 0.8. This implies that 8
-            out of 10 objects have the values of column age 'increasing' and column 'salary' decreasing.
+        GP (Gradual Pattern). A class that is used to create GP objects. A GP object is a set of gradual items (GI),
+        and its quality is measured by its computed support value. For example, given a data set with 3 columns
+        (age, salary, cars) and 10 objects. A GP may take the form: {age+, salary-} with a support of 0.8. This implies
+        that 8 out of 10 objects have the values of column age 'increasing' and column 'salary' decreasing.
 
-             The class has the following attributes:
-                gradual_items: list if GIs
-
-                support: computed support value as a float
         >>> import so4gp as sgp
         >>> gradual_pattern = sgp.GP()
         >>> gradual_pattern.add_gradual_item(sgp.GI(0, "+"))
@@ -138,7 +134,8 @@ class GP:
         >>> gradual_pattern.support = 0.5
         >>> print(f"{gradual_pattern.to_string()}: {gradual_pattern.support}")
 
-            """
+        """
+
         self._gradual_items: list[GI] = list()
         self._support: float = 0
 

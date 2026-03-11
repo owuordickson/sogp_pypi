@@ -6,7 +6,7 @@ firstpage:
 # Introduction
 
 
-**SO4GP** stands for: "Some Optimizations for Gradual Patterns". SO4GP applies optimizations such as swarm intelligence, HDF5 chunks, cluster analysis, and many others to improve the efficiency of extracting gradual patterns. 
+A GP (Gradual Pattern) is a set of gradual items (GI), and its quality is measured by its computed support value. For example, given a data set with 3 features (age, salary, cars) and 6 objects. A GP may take the form: {age+, salary-} with a support of 0.83. This implies that 5 out of 6 objects have the values of **age** *'increasing'* and **salary** *'decreasing'*.
 
 <p align="center">
 
@@ -21,7 +21,6 @@ firstpage:
 
 </p>
 
-A GP (Gradual Pattern) is a set of gradual items (GI), and its quality is measured by its computed support value. For example, given a data set with 3 features (age, salary, cars) and 6 objects. A GP may take the form: {age+, salary-} with a support of 0.83. This implies that 5 out of 6 objects have the values of **age** *'increasing'* and **salary** *'decreasing'*.
 
 
 ## Installation

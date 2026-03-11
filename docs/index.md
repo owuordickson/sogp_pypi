@@ -10,6 +10,9 @@ lastpage:
 :height: 100px
 ```
 
+**SO4GP** stands for: "Some Optimizations for Gradual Patterns". SO4GP applies optimizations such as swarm intelligence, HDF5 chunks, cluster analysis, and many others to improve the efficiency of extracting gradual patterns. 
+
+
 ```{toctree}
 :hidden:
 

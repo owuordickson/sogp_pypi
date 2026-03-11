@@ -14,16 +14,16 @@ class TGradAMI(TGrad):
 
     def __init__(self, *args, min_error: float = 0.0001, **kwargs):
         """
-        Algorithm for estimating time-lag using Average Mutual Information (AMI) and KMeans clustering which is extended to
-    mining gradual patterns. The average mutual information I(X; Y) is a measure of the “information” amount that
-    the random variables X and Y provide about one another.
+        Algorithm for estimating time-lag using Average Mutual Information (AMI) and KMeans clustering which is
+        extended to mining gradual patterns. The average mutual information I(X; Y) is a measure of the “information”
+        amount that the random variables X and Y provide about one another.
 
-    This algorithm extends the work published in: https://ieeexplore.ieee.org/abstract/document/8858883.
-        TGradAMI is an algorithm that improves the classical TGrad algorithm for extracting more accurate temporal
-        gradual patterns. It computes Mutual Information (MI) with respect to target-column with original dataset to
-        get the actual relationship between variables: by computing MI for every possible time-delay and if the
-        transformed dataset has the same almost identical MI to the original dataset, then it selects that as the best
-        time-delay. Instead of min-representativity value, the algorithm relies on the error-margin between MIs.
+        This algorithm extends the work published in: https://ieeexplore.ieee.org/abstract/document/8858883. TGradAMI
+        is an algorithm that improves the classical TGrad algorithm for extracting more accurate temporal gradual
+        patterns.  It computes Mutual Information (MI) with respect to target-column with original dataset to get
+        the actual relationship between variables: by computing MI for every possible time-delay and if the transformed
+        dataset has the same almost identical MI to the original dataset, then it selects that as the best time-delay.
+        Instead of min-representativity value, the algorithm relies on the error-margin between MIs.
 
         :param args: [required] data source path of Pandas DataFrame, [optional] minimum-support, [optional] eq
         :param kwargs: [required] target-column or attribute or feature, [optional] minimum representativity

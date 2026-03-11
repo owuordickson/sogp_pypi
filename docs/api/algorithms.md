@@ -2,7 +2,8 @@
 title: Algorithms
 ---
 
-# Algorithms
+(algorithms_reference)=
+# Algorithm Reference
 To run each algorithm to extract GPs, follow the instructions that follow.
 
 

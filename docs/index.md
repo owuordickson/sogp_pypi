@@ -23,6 +23,9 @@ introduction/basic_usage
 
 api/algorithms
 api/functions
+api/so4gp
+api/so4gp.algorithms
+
 ```
 
 ```{toctree}

@@ -2,4 +2,5 @@
 title: Functions
 ---
 
-# Functions
+(functions_reference)=
+# Function Reference

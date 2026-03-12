@@ -25,12 +25,12 @@ maintainers = [
 ]
 description = "Some Python optimization algorithms for mining gradual patterns."
 readme =  "README.md"
-license = {file = "LICENSE"}
+license = "MIT"
+license-files = ["LICENSE*"]
 keywords = ["gradual patterns", "GRAANK", "ant-colony-optimization", "data-mining", "swarm-intelligence"]
 classifiers = [
   "Development Status :: 4 - Beta",
   "Programming Language :: Python :: 3.12",
-  "License :: OSI Approved :: MIT License",
   "Operating System :: OS Independent",
   "Intended Audience :: Science/Research",
   "Topic :: Scientific/Engineering :: Artificial Intelligence"

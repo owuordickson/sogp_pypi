@@ -159,18 +159,20 @@ class DataGP:
         """Clears the list of gradual patterns."""
         self._gradual_patterns = list()
 
-    def remove_subsets(self, gi_arr:set) -> None:
+    def remove_subsets(self, gi_arr:set, gradual_patterns: GP|None=None) -> None:
         """
         Remove subset GPs from the list.
 
         :param gi_arr: Gradual items in an array
+        :param gradual_patterns: List of gradual patterns (if None, use the object's GPs)
         :return: List of GPs
         """
-        for gp in self._gradual_patterns:
+        gps = self._gradual_patterns if gradual_patterns is None else gradual_patterns
+        for gp in gps:
             result1 = set(gp.as_set).issubset(gi_arr)
             result2 = set(gp.as_swapped_set).issubset(gi_arr)
             if result1 or result2:
-                self._gradual_patterns.remove(gp)
+                gps.remove(gp)
 
     def fit_bitmap(self, attr_data=None) -> None:
         """

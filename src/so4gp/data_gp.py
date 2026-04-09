@@ -159,7 +159,7 @@ class DataGP:
         """Clears the list of gradual patterns."""
         self._gradual_patterns = list()
 
-    def remove_subsets(self, gi_arr:set, gradual_patterns: GP|None=None) -> None:
+    def remove_subsets(self, gi_arr:set, gradual_patterns: list[GP]|None=None) -> None:
         """
         Remove subset GPs from the list.
 

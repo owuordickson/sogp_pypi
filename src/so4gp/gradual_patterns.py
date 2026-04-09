@@ -102,7 +102,7 @@ class GI:
     @staticmethod
     def parse_gi(gi_str: str) -> "GI":
         """
-        Converts a stringified GI into normal GI.
+        Converts a stringified GI into normal GI. The accepted format is '1_neg' or 1_pos'.
 
         :param gi_str: A stringified GI
         :type gi_str: str

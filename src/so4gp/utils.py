@@ -22,7 +22,6 @@ import pandas as pd
 import multiprocessing as mp
 from tabulate import tabulate
 from .data_gp import DataGP
-from .algorithms.tgrad_ami import TGradAMI
 
 
 def analyze_gps(data_src, min_sup, est_gps, approach='bfs') -> str:

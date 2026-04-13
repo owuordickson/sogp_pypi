@@ -13,6 +13,7 @@ from sklearn.cluster import KMeans
 from sklearn.preprocessing import MinMaxScaler
 from .graank import GRAANK
 from ..data_gp import DataGP
+from ..utils import gen_gradual_warping_path
 from ..gradual_patterns import GI, TGP, TimeDelay
 
 
@@ -190,7 +191,7 @@ class TGrad(GRAANK):
 
         t_gps: list[TGP] = []
         valid_bins_dict = self.valid_bins.copy()
-        gp_components: dict = {}
+        tgp_warping_path: dict = {}
 
         if clustering_method:
             # Build the main triangular MF using the clustering algorithm
@@ -202,7 +203,7 @@ class TGrad(GRAANK):
         if decompose:
             for gi_str, gi_data in valid_bins_dict.items():
                 gi = GI.from_string(gi_str)
-                gp_components[gi.to_string()] = GRAANK.decompose_to_gp_component(gi_data.bin_mat)
+                tgp_warping_path[gi.to_string()] = gen_gradual_warping_path(gi_data.bin_mat)
 
         invalid_count = 0
         while len(valid_bins_dict) > 0:
@@ -225,9 +226,9 @@ class TGrad(GRAANK):
                     tgp.support = gi_data.support
                     t_gps.append(tgp)
                     if decompose:
-                        gp_components[f"{tgp.to_string()}"] = GRAANK.decompose_to_gp_component(gi_data.bin_mat)
+                        tgp_warping_path[f"{tgp.to_string()}"] = gen_gradual_warping_path(gi_data.bin_mat)
         if decompose:
-            return t_gps, gp_components
+            return t_gps, tgp_warping_path
         else:
             return t_gps
 

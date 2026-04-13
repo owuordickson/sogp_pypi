@@ -186,10 +186,10 @@ class TGradAMI(TGrad):
 
         # 3. Discover temporal-GPs from time-delayed data
         if eval_mode:
-            lst_tgp, gp_components = self._mine_gps_at_step(time_delay_data=time_data, attr_data=delayed_data, clustering_method=use_clustering, decompose=True)
+            lst_tgp, warping_path_dict = self._mine_gps_at_step(time_delay_data=time_data, attr_data=delayed_data, clustering_method=use_clustering, decompose=True)
         else:
             lst_tgp = self._mine_gps_at_step(time_delay_data=time_data, attr_data=delayed_data, clustering_method=use_clustering)
-            gp_components = None
+            warping_path_dict = None
 
         # 4. Organize FTGPs into a single list
         if lst_tgp:
@@ -210,7 +210,7 @@ class TGradAMI(TGrad):
                 'Patterns': self.str_gradual_patterns,
                 'Time Data': np.vstack((np.array(time_title), time_data.T)),
                 'Transformed Data': np.vstack((np.array(title_row), delayed_data.T)),
-                'GP Components': gp_components
+                'Warping Paths': warping_path_dict
             }
             # Output
             return eval_dict

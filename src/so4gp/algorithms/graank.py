@@ -177,16 +177,3 @@ class GRAANK(DataGP):
         """:type out: object"""
         return out
 
-    @staticmethod
-    def decompose_to_gp_component(pairwise_mat: np.ndarray) -> list[tuple[int, str]]:
-        """
-        A method that decomposes the pairwise matrix of a gradual item/pattern into a warping path. This path is the
-        decomposed component of that gradual item/pattern.
-
-        :param pairwise_mat: The pairwise matrix of a gradual item/pattern.
-        :return: A ndarray of the warping path.
-        """
-
-        edge_lst = [(i, j) for i, row in enumerate(pairwise_mat) for j, val in enumerate(row) if val]
-        """:type edge_lst: list"""
-        return edge_lst

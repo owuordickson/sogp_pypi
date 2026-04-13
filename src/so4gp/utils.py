@@ -25,7 +25,6 @@ from .data_gp import DataGP
 from .algorithms.tgrad_ami import TGradAMI
 
 
-
 def analyze_gps(data_src, min_sup, est_gps, approach='bfs') -> str:
     """
     For each estimated GP, computes its true support using the GRAANK approach and returns the statistics (% error,
@@ -101,43 +100,19 @@ def analyze_gps(data_src, min_sup, est_gps, approach='bfs') -> str:
     return tabulate(data, headers=headers)
 
 
-def gradual_decompose(data: pd.DataFrame, target: int) -> dict | Exception:
+def gen_gradual_warping_path(pairwise_mat: np.ndarray) -> list[tuple[int, str]]:
     """
-    A method that decomposes multivariate timeseries data into its gradual components.  Attributes that have
-    strong correlation will produce a decomposition graph with dense zigzag patterns. Those with weak correlation will
-    produce a decomposition graph with sparse zigzag patterns.
+    A method that decomposes the pairwise matrix of a gradual item/pattern into a warping path. Attributes that have
+strong correlation will produce a warping path with dense zigzag patterns. Those with weak correlation will
+produce a warping path with sparse zigzag patterns.
 
-    :param data: [required] the multivariate timeseries data as Pandas DataFrame.
-    :param target: [required] the target column or feature or attribute.
-
-    >>> import pandas
-    >>> import src.so4gp as sgp
-    >>> import matplotlib.pyplot as plt
-    >>>
-    >>> dummy_data = [["2021-03", 30, 3, 1, 10], ["2021-04", 35, 2, 2, 8], ["2021-05", 40, 4, 2, 7], ["2021-06", 50, 1, 1, 6], ["2021-07", 52, 7, 1, 2]]
-    >>> dummy_df = pandas.DataFrame(dummy_data, columns=['Date', 'Age', 'Salary', 'Cars', 'Expenses'])
-    >>>
-    >>> gp_trends = sgp.gradual_decompose(dummy_df, target=1)
-    >>> print(gp_trends.keys())
-    >>>
-    >>> for key, val in gp_trends.items():
-    >>>     plt.figure()
-    >>>     plt.plot([p[0] for p in val], [p[1] for p in val], '-', label=f"{key}")
-    >>>     plt.legend()
-    >>>     plt.xlabel("GP 1 Index")
-    >>>     plt.ylabel("GP 2 Index")
-    >>>     plt.title(f"GP Warping Path")
+    :param pairwise_mat: The pairwise matrix of a gradual item/pattern.
+    :return: A list array of the warping path (as edge list).
     """
 
-    try:
-        t_grad = TGradAMI(data, target_col=target)
-        eval_dict = t_grad.discover_tgp(use_clustering=False, eval_mode=True)
-        gp_components = eval_dict['GP Components']
-        """:type gp_components: dict"""
-        return gp_components
-    except Exception as e:
-        # return {'Fatal Error': 'Try again with a bigger dataset or different dataset.'}
-        raise Exception(e)
+    edge_lst = [(i, j) for i, row in enumerate(pairwise_mat) for j, val in enumerate(row) if val]
+    """:type edge_lst: list"""
+    return edge_lst
 
 
 def get_num_cores() -> int:

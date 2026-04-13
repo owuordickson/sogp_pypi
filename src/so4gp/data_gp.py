@@ -22,7 +22,7 @@ import numpy as np
 import pandas as pd
 from dateutil.parser import parse
 from .gradual_patterns import GP, TGP, PairwiseMatrix
-
+## DO NOT IMPORT FROM utils.py (circular import error)
 
 class DataGP:
 

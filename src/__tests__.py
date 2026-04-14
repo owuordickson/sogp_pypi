@@ -12,7 +12,7 @@ if __name__ == "__main__":
 
     ## Test Algorithms
     mine_obj = GRAANK(dummy_df, min_sup=0.5, eq=False)
-    # mine_obj = ClusterGP(dummy_df, 0.5, max_iter=3, e_prob=0.5)
+    #mine_obj = ClusterGP(dummy_df, 0.5, max_iter=3, e_prob=0.0)
     # mine_obj = AntGRAANK(dummy_df)
     # mine_obj = GeneticGRAANK(dummy_df)
     # mine_obj = HillClimbingGRAANK(dummy_df)
@@ -24,20 +24,53 @@ if __name__ == "__main__":
     result_json = mine_obj.discover()
     # result_json = mine_obj.discover_tgp(parallel=False)  # TGrad
     # result_json = mine_obj.discover_tgp(use_clustering=True, eval_mode=False)  # TGradAMI
-    print(result_json)
+    print(f"{result_json}\n")
 
     ## Test Time
     #print(sgp.DataGP.test_time("09-01-2005"))
 
     ## Test Warping Path
-    #tgt_col = 0
-    #graank = GRAANK(dummy_df)
-    #graank.discover(target_col=tgt_col)
-    #warping_paths = {}
-    #for gi_str, pairwise_mat in graank.valid_bins.items():
-    #    gi = sgp.GI.from_string(gi_str)
-    #    warping_paths[gi.to_string()] = sgp.gen_gradual_warping_path(pairwise_mat.bin_mat)
-    #print(warping_paths)
+    tgt_col = 0
+    graank = GRAANK(dummy_df)
+    ##graank.discover(target_col=tgt_col)
+    graank.discover()
+    warping_paths = {}
+    for gi_str, pairwise_mat in graank.valid_bins.items():
+        gi = sgp.GI.from_string(gi_str)
+        warping_paths[gi.to_string()] = sgp.gen_gradual_warping_path(pairwise_mat.bin_mat, as_array=True)
+    plot_data = []
+    for k, val in warping_paths.items():
+        plot_data.append([val[:,0], val[:,1]])
+    print(warping_paths)
+    print(f"\n{plot_data}")
+
+    """
+    import math
+    import matplotlib.pyplot as plt
+    # Calculate the number of rows needed
+    num_plots = len(warping_paths)
+    cols = 4
+    rows = math.ceil(num_plots / cols)
+
+    # Create subplots with the required number of rows and columns
+    fig, axes = plt.subplots(rows, cols, figsize=(20, rows * 5))
+    axes = axes.flatten()  # Flatten to make indexing easier
+
+    # Plot each component in its subplot
+    for idx, (key, val) in enumerate(warping_paths.items()):
+        axes[idx].plot(val[:,0], val[:,1], '-', label=f"{key}")
+        axes[idx].set_xlabel("Object i")
+        axes[idx].set_ylabel("Object j")
+        axes[idx].legend()
+        axes[idx].set_title(f"'{key}' Warping Path")
+
+    # Hide any extra subplots
+    for ax in axes[num_plots:]:
+        ax.axis("off")
+
+    plt.tight_layout()
+    plt.show()
+    """
 
 
     ## Analyze GPs

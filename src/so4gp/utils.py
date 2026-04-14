@@ -20,18 +20,22 @@ import numpy as np
 import multiprocessing as mp
 
 
-def gen_gradual_warping_path(pairwise_mat: np.ndarray) -> list[tuple[int, str]]:
+def gen_gradual_warping_path(pairwise_mat: np.ndarray, as_array: bool = False) -> list[tuple[int, str]] | np.ndarray:
     """
     A method that decomposes the pairwise matrix of a gradual item/pattern into a warping path. Attributes that have
 strong correlation will produce a warping path with dense zigzag patterns. Those with weak correlation will
 produce a warping path with sparse zigzag patterns.
 
     :param pairwise_mat: The pairwise matrix of a gradual item/pattern.
-    :return: A list array of the warping path (as edge list).
+    :param as_array: If True, returns the warping path as a numpy array else as a list of tuples.
+
+    :return: A list array of the warping path (as an edge list).
     """
 
     edge_lst = [(i, j) for i, row in enumerate(pairwise_mat) for j, val in enumerate(row) if val]
     """:type edge_lst: list"""
+    if as_array:
+        return np.array(edge_lst)
     return edge_lst
 
 

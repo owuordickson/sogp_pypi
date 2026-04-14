@@ -6,6 +6,7 @@
 
 import gc
 import json
+import copy
 import numpy as np
 from ..data_gp import DataGP
 from ..gradual_patterns import GI, GP, PairwiseMatrix
@@ -42,7 +43,7 @@ class GRAANK(DataGP):
         """
         super(GRAANK, self).__init__(*args, **kwargs)
 
-    def _gen_apriori_candidates(self, gi_dict: dict, ignore_sup: bool = False,
+    def _gen_apriori_candidates(self, gi_dict: dict|None, ignore_sup: bool = False,
                                 target_col: int | None = None, exclude_target: bool = False):
         """
         Generates Apriori GP candidates (w.r.t target-feature/reference-column if provided). If a user wishes to generate
@@ -74,7 +75,7 @@ class GRAANK(DataGP):
         n = self.attr_size
 
         if gi_dict is None:
-            return []
+            return {}, 0
 
         all_candidates = []
         invalid_count = 0
@@ -86,6 +87,9 @@ class GRAANK(DataGP):
                 # 1. Fetch pairwise matrix
                 gi_str_i = gi_key_list[i]
                 gi_str_j = gi_key_list[j]
+
+                """
+                TO DELETE
                 try:
                     gi_i = {list(gi_str_i) if isinstance(gi_str_i, tuple) else gi_str_i}
                     gi_j = {gi_str_j}
@@ -94,6 +98,18 @@ class GRAANK(DataGP):
                     gi_i = set(list(gi_str_i) if isinstance(gi_str_i, tuple) else gi_str_i)
                     gi_j = set(list(gi_str_j) if isinstance(gi_str_j, tuple) else gi_str_j)
                     gi_o = set(gi_key_list[0])
+                """
+                if isinstance(gi_str_i, (tuple, list)):
+                    gi_i = set(gi_str_i)
+                    gi_o = set(gi_key_list[0])
+                else:
+                    gi_i = {gi_str_i}
+                    gi_o = {gi_key_list[0]}
+
+                if isinstance(gi_str_j, (tuple, list)):
+                    gi_j = set(gi_str_j)
+                else:
+                    gi_j = {gi_str_j}
 
                 # 2. Identify a GP candidate (create its inverse)
                 gp_cand = gi_i | gi_j
@@ -151,17 +167,18 @@ class GRAANK(DataGP):
 
         self.fit_bitmap()
         self.clear_gradual_patterns()
-        valid_bins_dict = self.valid_bins.copy()
+        valid_bins_dict: dict|None = copy.deepcopy(self.valid_bins)
+        # valid_bins_dict = self.valid_bins.copy()
 
         invalid_count = 0
         candidate_level = 1
-        while len(valid_bins_dict) > 0:
+        while valid_bins_dict:
             valid_bins_dict, inv_count = self._gen_apriori_candidates(valid_bins_dict,
                                                                  ignore_sup=ignore_support,
                                                                  target_col=target_col,
                                                                  exclude_target=exclude_target)
             invalid_count += inv_count
-            for gp_set, gi_data in valid_bins_dict.items():
+            for gp_set, gi_data in (valid_bins_dict or {}).items():
                 self.remove_subsets(set(gp_set))
                 gp: GP = GP()
                 for gi_str in gp_set:

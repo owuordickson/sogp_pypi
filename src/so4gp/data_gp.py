@@ -18,11 +18,13 @@ A collection of classes for pre-processing data for mining gradual patterns.
 import gc
 import csv
 import time
+import statistics
 import numpy as np
 import pandas as pd
+from tabulate import tabulate
 from dateutil.parser import parse
 from .gradual_patterns import GP, TGP, PairwiseMatrix
-## DO NOT IMPORT FROM utils.py (circular import error)
+
 
 class DataGP:
 
@@ -235,6 +237,74 @@ class DataGP:
             supp = float((tids_len*0.5) * (tids_len - 1)) / float(n * (n - 1.0) / 2.0)
             if supp >= self._thd_supp:
                 self._valid_tids[gi_str] = set_ij
+
+    @classmethod
+    def analyze_gps(cls, data_src: pd.DataFrame | str, min_sup: float, est_gps: list[GP], approach: str = 'bfs') -> str:
+        """
+        For each estimated GP, computes its true support using the GRAANK approach and returns the statistics (% error,
+        and standard deviation).
+
+        >>> import so4gp as sgp
+        >>> import pandas
+        >>> dummy_data = [[30, 3, 1, 10], [35, 2, 2, 8], [40, 4, 2, 7], [50, 1, 1, 6], [52, 7, 1, 2]]
+        >>> columns = ['Age', 'Salary', 'Cars', 'Expenses']
+        >>> dummy_df = pandas.DataFrame(dummy_data, columns=['Age', 'Salary', 'Cars', 'Expenses'])
+        >>>
+        >>> estimated_gps = list()
+        >>> temp_gp = sgp.GP()
+        >>> for gi_str in ['0+', '1-']:
+        >>>    temp_gp.add_gradual_item(sgp.GI.from_string(gi_str))
+        >>> temp_gp.support = 0.5
+        >>> estimated_gps.append(temp_gp)
+        >>> temp_gp = sgp.GP()
+        >>> for gi_str in ['1+', '3-', '0+']:
+        >>>    temp_gp.add_gradual_item(sgp.GI.from_string(gi_str))
+        >>> temp_gp.support = 0.48
+        >>> estimated_gps.append(temp_gp)
+        >>> res = sgp.analyze_gps(dummy_df, min_sup=0.4, est_gps=estimated_gps, approach='bfs')
+        >>> print(res)
+        Gradual Pattern       Estimated Support    True Support  Percentage Error      Standard Deviation
+        ['0+', '1-']                       0.5              0.4             25.0%                   0.071
+        ['1+', '3-', '0+']                 0.48             0.6            -20.0%                   0.085
+
+        :param data_src: Data set file
+        :param min_sup: Minimum support (set by user)
+        :param est_gps: Estimated GPs
+        :param approach: 'Bfs' (default) or 'dfs'
+
+        :return: Tabulated results
+        """
+        if approach == 'dfs':
+            d_set = cls(data_src, min_sup)
+            d_set.fit_tids()
+        else:
+            d_set = cls(data_src, min_sup)
+            d_set.fit_bitmap()
+        headers = ["Gradual Pattern", "Estimated Support", "True Support", "Percentage Error", "Standard Deviation"]
+        data = []
+        for est_gp in est_gps:
+            est_sup = est_gp.support
+            est_gp.support = 0
+            if approach == 'dfs':
+                true_gp = est_gp.validate_tree(d_set)
+            else:
+                true_gp = est_gp.validate_graank(d_set)
+            true_sup = true_gp.support
+
+            if true_sup == 0:
+                percentage_error = np.inf
+                st_dev = np.inf
+            else:
+                percentage_error = ((est_sup - true_sup) / true_sup) * 100
+                st_dev = statistics.stdev([est_sup, true_sup])
+
+            if len(true_gp.gradual_items) == len(est_gp.gradual_items):
+                data.append(
+                    [est_gp.to_string(), round(float(est_sup), 3), round(float(true_sup), 3), str(round(float(percentage_error), 3)) + '%',
+                     round(float(st_dev), 3)])
+            else:
+                data.append([est_gp.to_string(), round(est_sup, 3), -1, np.inf, np.inf])
+        return tabulate(data, headers=headers)
 
     @staticmethod
     def read(data_src) -> tuple[list, np.ndarray]:

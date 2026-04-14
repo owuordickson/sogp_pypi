@@ -16,87 +16,8 @@ A collection of miscellaneous classes and methods.
 """
 
 import os
-import statistics
 import numpy as np
-import pandas as pd
 import multiprocessing as mp
-from tabulate import tabulate
-from .data_gp import DataGP
-
-
-def analyze_gps(data_src, min_sup, est_gps, approach='bfs') -> str:
-    """
-    For each estimated GP, computes its true support using the GRAANK approach and returns the statistics (% error,
-    and standard deviation).
-
-    >>> import so4gp as sgp
-    >>> import pandas
-    >>> dummy_data = [[30, 3, 1, 10], [35, 2, 2, 8], [40, 4, 2, 7], [50, 1, 1, 6], [52, 7, 1, 2]]
-    >>> columns = ['Age', 'Salary', 'Cars', 'Expenses']
-    >>> dummy_df = pandas.DataFrame(dummy_data, columns=['Age', 'Salary', 'Cars', 'Expenses'])
-    >>>
-    >>> estimated_gps = list()
-    >>> temp_gp = sgp.GP()
-    >>> for gi_str in ['0+', '1-']:
-    >>>    temp_gp.add_gradual_item(sgp.GI.from_string(gi_str))
-    >>> temp_gp.support = 0.5
-    >>> estimated_gps.append(temp_gp)
-    >>> temp_gp = sgp.GP()
-    >>> for gi_str in ['1+', '3-', '0+']:
-    >>>    temp_gp.add_gradual_item(sgp.GI.from_string(gi_str))
-    >>> temp_gp.support = 0.48
-    >>> estimated_gps.append(temp_gp)
-    >>> res = sgp.analyze_gps(dummy_df, min_sup=0.4, est_gps=estimated_gps, approach='bfs')
-    >>> print(res)
-    Gradual Pattern       Estimated Support    True Support  Percentage Error      Standard Deviation
-    ------------------  -------------------  --------------  ------------------  --------------------
-    ['0+', '1-']                       0.5              0.4  25.0%                              0.071
-    ['1+', '3-', '0+']                 0.48             0.6  -20.0%                             0.085
-
-    :param data_src: Data set file
-    :type data_src: pd.DataFrame | str
-
-    :param min_sup: Minimum support (set by user)
-    :type min_sup: float
-
-    :param est_gps: Estimated GPs
-    :type est_gps: list
-
-    :param approach: 'Bfs' (default) or 'dfs'
-    :type approach: str
-
-    :return: Tabulated results
-    """
-    if approach == 'dfs':
-        d_set = DataGP(data_src, min_sup)
-        d_set.fit_tids()
-    else:
-        d_set = DataGP(data_src, min_sup)
-        d_set.fit_bitmap()
-    headers = ["Gradual Pattern", "Estimated Support", "True Support", "Percentage Error", "Standard Deviation"]
-    data = []
-    for est_gp in est_gps:
-        est_sup = est_gp.support
-        est_gp.support = 0
-        if approach == 'dfs':
-            true_gp = est_gp.validate_tree(d_set)
-        else:
-            true_gp = est_gp.validate_graank(d_set)
-        true_sup = true_gp.support
-
-        if true_sup == 0:
-            percentage_error = np.inf
-            st_dev = np.inf
-        else:
-            percentage_error = ((est_sup - true_sup) / true_sup) * 100
-            st_dev = statistics.stdev([est_sup, true_sup])
-
-        if len(true_gp.gradual_items) == len(est_gp.gradual_items):
-            data.append([est_gp.to_string(), round(est_sup, 3), round(true_sup, 3), str(round(percentage_error, 3))+'%',
-                         round(st_dev, 3)])
-        else:
-            data.append([est_gp.to_string(), round(est_sup, 3), -1, np.inf, np.inf])
-    return tabulate(data, headers=headers)
 
 
 def gen_gradual_warping_path(pairwise_mat: np.ndarray) -> list[tuple[int, str]]:

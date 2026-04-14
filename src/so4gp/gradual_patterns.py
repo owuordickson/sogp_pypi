@@ -155,13 +155,13 @@ class GP:
         """
         Adds a gradual item (GI) into the gradual pattern (GP)
         :param item: gradual item
-        :type item: so4gp.GI
 
-        :return: void
+        :return: True if gradual item is added, None otherwise
         """
         if not isinstance(item, GI):
             raise TypeError("Invalid gradual item")
         self._gradual_items.append(item)
+        return True
 
     @property
     def as_set(self) -> set[str]:
@@ -509,7 +509,7 @@ class TGP(GP):
         >>> import so4gp as sgp
         >>> t_gp = sgp.TGP()
         >>> t_gp.target_gradual_item = sgp.GI(1, "+")
-        >>> t_gp.temporal_gradual_items(sgp.GI(2, "-"), sgp.TimeDelay(7200, 0.8))
+        >>> t_gp.add_temporal_gradual_item(sgp.GI(2, "-"), sgp.TimeDelay(7200, 0.8))
         >>> t_gp.to_string()
         """
         super(TGP, self).__init__()

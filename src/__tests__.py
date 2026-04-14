@@ -38,13 +38,14 @@ if __name__ == "__main__":
     for gi_str, pairwise_mat in graank.valid_bins.items():
         gi = sgp.GI.from_string(gi_str)
         warping_paths[gi.to_string()] = sgp.gen_gradual_warping_path(pairwise_mat.bin_mat, as_array=True)
+        print(f"{gi.to_string()}\n{pairwise_mat.bin_mat.astype(int)}\n\n")
     plot_data = []
     for k, val in warping_paths.items():
         plot_data.append([val[:,0], val[:,1]])
-    print(warping_paths)
+    #print(warping_paths)
     print(f"\n{plot_data}")
 
-    """
+
     import math
     import matplotlib.pyplot as plt
     # Calculate the number of rows needed
@@ -58,10 +59,10 @@ if __name__ == "__main__":
 
     # Plot each component in its subplot
     for idx, (key, val) in enumerate(warping_paths.items()):
-        axes[idx].plot(val[:,0], val[:,1], '-', label=f"{key}")
-        axes[idx].set_xlabel("Object i")
-        axes[idx].set_ylabel("Object j")
-        axes[idx].legend()
+        axes[idx].plot(val[:,0], val[:,1], '-')#, label=f"{key}")
+        axes[idx].set_xlabel("Index i")
+        axes[idx].set_ylabel("Index j")
+        #axes[idx].legend()
         axes[idx].set_title(f"'{key}' Warping Path")
 
     # Hide any extra subplots
@@ -70,7 +71,7 @@ if __name__ == "__main__":
 
     plt.tight_layout()
     plt.show()
-    """
+
 
 
     ## Analyze GPs

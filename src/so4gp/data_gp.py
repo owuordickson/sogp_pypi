@@ -246,8 +246,7 @@ class DataGP:
         n = self._row_count
         self._warping_set = {}
         for gi_str, gi_data in self._valid_bins.items():
-            lst_ij: list = [(i, j) for i, row in enumerate(gi_data.bin_mat) for j, val in enumerate(row) if val]
-            lst_ij = sorted(list(lst_ij), key=lambda x: x[0])
+            lst_ij: list = list(DataGP.gen_gradual_warping_set(gi_data.bin_mat))
             # set_ij = set(sorted(list(lst_ij), key=lambda x: x[0])) ## Messes with the order of the items in the set
             tids_len = len(lst_ij)
             supp = float((tids_len*0.5) * (tids_len - 1)) / float(n * (n - 1.0) / 2.0)
@@ -321,6 +320,25 @@ class DataGP:
             else:
                 data.append([est_gp.to_string(), round(est_sup, 3), -1, np.inf, np.inf])
         return tabulate(data, headers=headers)
+
+    @staticmethod
+    def gen_gradual_warping_set(pairwise_mat: np.ndarray, as_array: bool = False) -> list[tuple[int, int]] | np.ndarray:
+        """
+        A method that decomposes the pairwise matrix of a gradual item/pattern into a warping set. Attributes that have
+        strong correlation will produce a warping set with dense zigzag patterns when plotted as a graph. Those with weak
+        correlation will produce a warping set with sparse zigzag patterns.
+
+        :param pairwise_mat: The pairwise matrix of a gradual item/pattern.
+        :param as_array: If True, returns the warping path as a numpy array else as a list of tuples.
+
+        :return: A list array of the warping path (as an edge list).
+        """
+
+        edge_lst: list[tuple[int, int]] = [(i, j) for i, row in enumerate(pairwise_mat) for j, val in enumerate(row) if val]
+        edge_lst = sorted(list(edge_lst), key=lambda x: x[0])
+        if as_array:
+            return np.array(edge_lst)
+        return edge_lst
 
     @staticmethod
     def read(data_src) -> tuple[list, np.ndarray]:

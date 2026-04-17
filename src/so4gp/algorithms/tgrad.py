@@ -179,10 +179,10 @@ class TGrad(GRAANK):
             msg = "Fatal Error: Time format in column could not be processed"
             raise Exception(msg)
 
-    def _safe_transform_and_mine(self, step: int):
+    def _safe_transform_and_mine(self, step: int, return_patterns: bool = True):
         """Wrapper to catch exceptions during parallel mining."""
         try:
-            return self.transform_and_mine(step)
+            return self.transform_and_mine(step, return_patterns=return_patterns)
         except Exception as e:
             print(f"Error at step {step}: {e}")
             return None
@@ -238,6 +238,9 @@ class TGrad(GRAANK):
                         else:
                             tgp.add_temporal_gradual_item(gi, t_lag)
                     tgp.support = gi_data.support
+                    warping_set_arr: np.ndarray = np.array(
+                    DataGP.gen_gradual_warping_set(gi_data.bin_mat, as_array=True))
+                    tgp.compute_descriptors(warping_set_arr, obj_count=self.row_count)
                     t_gps.append(tgp)
         if decompose:
             return t_gps, tgp_warping_set

@@ -159,41 +159,21 @@ class GP:
     def density(self) -> float:
         return self._density
 
-    @density.setter
-    def density(self, density: float):
-        self._density = round(density, 3) if density <= 1 else density
-
     @property
     def avg_deviation_from_diagonal(self) -> float:
         return self._avg_dev_from_diag
-
-    @avg_deviation_from_diagonal.setter
-    def avg_deviation_from_diagonal(self, avg_dev_from_diag: float):
-        self._avg_dev_from_diag = round(avg_dev_from_diag, 3)
 
     @property
     def temporal_dispersion(self) -> float:
         return self._temporal_dispersion
 
-    @temporal_dispersion.setter
-    def temporal_dispersion(self, temporal_dispersion: float):
-        self._temporal_dispersion = round(temporal_dispersion, 3)
-
     @property
     def graph_connectivity(self) -> float:
         return self._graph_connectivity
 
-    @graph_connectivity.setter
-    def graph_connectivity(self, graph_connectivity: float):
-        self._graph_connectivity = round(graph_connectivity, 3)
-
     @property
     def singularity_score(self) -> float:
         return self._singularity_score
-
-    @singularity_score.setter
-    def singularity_score(self, singularity_score: float):
-        self._singularity_score = round(singularity_score, 3)
 
     def add_gradual_item(self, item: GI) -> bool:
         """
@@ -403,6 +383,50 @@ class GP:
                     set(self.as_swapped_set) == set(pat.as_set):
                 return True
         return False
+
+    def compute_descriptors(self, warping_set: np.ndarray|None, obj_count: int) -> bool:
+        """
+        Computes descriptors for a given gradual pattern (GP); that is, computes the density, the average deviation from
+        diagonal, the temporal dispersion, the graph connectivity, and the singularity score.
+
+        :param warping_set: The set of tuple indices (i, j) whose object pairs (object i, object j) respect the
+        gradual pattern (GP)
+        :param obj_count: The number of objects/rows in the dataset
+
+        :return: True if descriptors are computed, False otherwise
+        """
+
+        if warping_set is None:
+            return False
+
+        def compute_density() -> float:
+            """"""
+            tids_len = len(warping_set) if warping_set is not None else 0
+            set_density = float((tids_len * 0.5) * (tids_len - 1)) / float(obj_count * (obj_count - 1.0) / 2.0)
+            return set_density
+
+        def compute_avg_dev_from_diagonal() -> float:
+            """"""
+            return 0.0
+
+        def compute_temporal_dispersion() -> float:
+            """"""
+            return 0.0
+
+        def compute_graph_connectivity() -> float:
+            """"""
+            return 0.0
+
+        def compute_singularity_score() -> float:
+            """"""
+            return 0.0
+
+        self._density = compute_density()
+        self._avg_dev_from_diag = compute_avg_dev_from_diagonal()
+        self._temporal_dispersion = compute_temporal_dispersion()
+        self._graph_connectivity = compute_graph_connectivity()
+        self._singularity_score = compute_singularity_score()
+        return True
 
     @staticmethod
     def swap_gp_symbols(gp_obj: "GP") -> "GP":

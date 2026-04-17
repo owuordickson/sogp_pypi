@@ -168,7 +168,6 @@ class GRAANK(DataGP):
         self.fit_bitmap()
         self.clear_gradual_patterns()
         valid_bins_dict: dict|None = copy.deepcopy(self.valid_bins)
-        # valid_bins_dict = self.valid_bins.copy()
 
         invalid_count = 0
         candidate_level = 1

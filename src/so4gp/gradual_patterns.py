@@ -384,43 +384,123 @@ class GP:
                 return True
         return False
 
-    def compute_descriptors(self, warping_set: np.ndarray|None, obj_count: int) -> bool:
+    def compute_descriptors(self, warping_set: np.ndarray | None, obj_count: int) -> bool:
         """
-        Computes descriptors for a given gradual pattern (GP); that is, computes the density, the average deviation from
-        diagonal, the temporal dispersion, the graph connectivity, and the singularity score.
+        Computes gradual warping set (GWS) descriptors for a given gradual pattern.
 
-        :param warping_set: The set of tuple indices (i, j) whose object pairs (object i, object j) respect the
-        gradual pattern (GP)
-        :param obj_count: The number of objects/rows in the dataset
+        The descriptors are defined as follows:
 
-        :return: True if descriptors are computed, False otherwise
+        1. Density (ρ_g):
+            Proportion of concordant index pairs relative to all possible pairs
+            ρ_g = |W_g| / C(n, 2)
+
+        2. Average Deviation from Diagonal (μ_g):
+            Mean absolute distance |i - j| across all pairs in W_g.
+
+        3. Temporal Dispersion (σ_g):
+            Standard deviation of |i - j|, capturing variability of temporal delays.
+
+        4. Graph Connectivity (κ_g):
+            Number of connected components when W_g is interpreted as an undirected graph.
+
+        5. Singularity Score (S_g):
+            Measures concentration of index participation (node degree skewness).
+            High values indicate dominance of certain indices.
+
+        Path-like behavior (DTW-like) is approximated when:
+            κ_g = 1, S_g is low, and σ_g is smooth (low variance).
+
+        :param warping_set: np.ndarray of shape (k, 2), containing index pairs (i, j)
+        :param obj_count: Total number of objects (n)
+
+        :return: True if descriptors are computed successfully, False otherwise
         """
 
-        if warping_set is None:
+        if warping_set is None or len(warping_set) == 0 or obj_count < 2:
             return False
 
+        # Ensure numpy array
+        W = np.asarray(warping_set)
+        i_vals = W[:, 0]
+        j_vals = W[:, 1]
+
+        pair_count = len(W)
+        total_pairs = obj_count * (obj_count - 1) / 2.0
+
         def compute_density() -> float:
-            """"""
-            tids_len = len(warping_set) if warping_set is not None else 0
-            set_density = float((tids_len * 0.5) * (tids_len - 1)) / float(obj_count * (obj_count - 1.0) / 2.0)
-            return set_density
+            """
+            Warping set density
+
+            ρ_g = |W_g| / C(n, 2)
+            """
+            return float(pair_count) / float(total_pairs)
 
         def compute_avg_dev_from_diagonal() -> float:
-            """"""
-            return 0.0
+            """
+            Average Deviation from Diagonal
+
+            μ_g = (1 / |W_g|) * Σ |i - j|
+            """
+            deviations = np.abs(i_vals - j_vals)
+            return float(np.mean(deviations))
 
         def compute_temporal_dispersion() -> float:
-            """"""
-            return 0.0
+            """
+            Temporal Dispersion
 
-        def compute_graph_connectivity() -> float:
-            """"""
-            return 0.0
+            σ_g = sqrt((1 / |W_g|) * Σ (|i - j| - μ_g)^2)
+            """
+            deviations = np.abs(i_vals - j_vals)
+            return float(np.std(deviations))
+
+        def compute_graph_connectivity() -> int:
+            """
+            Graph Connectivity
+
+            κ_g = number of connected components in the graph G = (V, W_g)
+            """
+            parent = list(range(obj_count))
+
+            def find(x):
+                while parent[x] != x:
+                    parent[x] = parent[parent[x]]
+                    x = parent[x]
+                return x
+
+            def union(x, y):
+                px, py = find(x), find(y)
+                if px != py:
+                    parent[px] = py
+
+            for u, v in W:
+                union(int(u), int(v))
+
+            roots = set(find(i) for i in range(obj_count))
+            return len(roots)
 
         def compute_singularity_score() -> float:
-            """"""
-            return 0.0
+            """
+            Singularity Score
 
+            S_g = normalized variance of node degrees
+
+            Steps:
+            - Count degree of each index
+            - Compute variance normalized by mean degree
+            """
+            degree = np.zeros(obj_count)
+
+            for u, v in W:
+                degree[int(u)] += 1
+                degree[int(v)] += 1
+
+            mean_deg = np.mean(degree)
+            if mean_deg == 0:
+                return 0.0
+
+            return float(np.var(degree) / mean_deg)
+
+        # Compute descriptors
         self._density = compute_density()
         self._avg_dev_from_diag = compute_avg_dev_from_diagonal()
         self._temporal_dispersion = compute_temporal_dispersion()

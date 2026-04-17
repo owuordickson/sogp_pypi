@@ -193,7 +193,8 @@ class GRAANK(DataGP):
             if (apriori_level is not None) and candidate_level >= apriori_level:
                 break
         # Output
-        out = json.dumps({"Algorithm": "GRAANK", "Patterns": self.str_gradual_patterns, "Invalid Count": invalid_count})
+        out = json.dumps({"Algorithm": "GRAANK", "Patterns": self.str_gradual_patterns, "Invalid Count": invalid_count},
+                         indent=4)
         """:type out: object"""
         return out
 

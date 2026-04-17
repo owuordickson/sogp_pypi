@@ -216,6 +216,7 @@ class TGradAMI(TGrad):
             return eval_dict
         else:
             # Output
-            out = json.dumps({"Algorithm": "TGradAMI", "Patterns": self.str_gradual_patterns})
+            out = json.dumps({"Algorithm": "TGradAMI", "Patterns": self.str_gradual_patterns},
+                             indent=4)
             """:type out: object"""
             return out

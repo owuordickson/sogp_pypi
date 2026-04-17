@@ -239,7 +239,7 @@ class GP:
             pattern.append(item.to_string())
         return pattern
 
-    def print(self, columns) -> list[list[str] | float]:
+    def print(self, columns) -> list[list[str] | str]:
         """
         A method that returns patterns with actual column names
 
@@ -248,12 +248,21 @@ class GP:
 
         :return: GP with actual column names
         """
-        pattern = list()
+        pattern = "" # list()
+        i = 0
         for item in self._gradual_items:
             col_title = columns[item.attribute_col]
             pat = str(col_title + item.symbol)
-            pattern.append(pat)  # (item.to_string())
-        return [pattern, self._support]
+            #pattern.append(pat)  # (item.to_string())
+            pattern += pat + ", " if i < len(self._gradual_items) - 1 else pat
+            i += 1
+        if self.density <= 0:
+            params = [f"sup={self.support}"]
+        else:
+            params = [f"sup={self.support}", f"density={self.density}", f"avg_dev={self.avg_deviation_from_diagonal}",
+                      f"dispersion={self.temporal_dispersion}", f"connect={self.graph_connectivity}",
+                      f"singularity_scr={self.singularity_score}"]
+        return [[pattern], *params]
 
     def validate_graank(self, d_gp) -> "GP":
         """
@@ -527,11 +536,11 @@ class GP:
             return float(np.var(degree) / mean_deg)
 
         # Compute descriptors
-        self._density = compute_density()
-        self._avg_dev_from_diag = compute_avg_dev_from_diagonal()
-        self._temporal_dispersion = compute_temporal_dispersion()
-        self._graph_connectivity = compute_graph_connectivity()
-        self._singularity_score = compute_singularity_score()
+        self._density = round(compute_density(), 3)
+        self._avg_dev_from_diag = round(compute_avg_dev_from_diagonal(), 3)
+        self._temporal_dispersion = round(compute_temporal_dispersion(), 3)
+        self._graph_connectivity = round(compute_graph_connectivity(), 3)
+        self._singularity_score = round(compute_singularity_score(), 3)
         return True
 
     @staticmethod
@@ -738,7 +747,7 @@ class TGP(GP):
             pattern.append(f"({gi.to_string()}) {str_time}")
         return pattern
 
-    def print(self, columns) -> list[list[str] | float]:
+    def print(self, columns) -> list[list[str] | str]:
         """
         A method that returns a fuzzy temporal gradual pattern (TGP) with actual column names
 
@@ -750,13 +759,23 @@ class TGP(GP):
 
         target_gi = self._target_gradual_item
         col_title = columns[target_gi.attribute_col if target_gi else -1]
-        pattern = [f"{col_title}{target_gi.symbol if target_gi else ''}"]
+        pattern = f"{col_title}{target_gi.symbol if target_gi else ''}, "
 
+        i = 0
         for temp_gi in self._temporal_gradual_items:
             gi = temp_gi.gradual_item
             t_lag = temp_gi.time_delay
             str_time = f"{t_lag.sign}{t_lag.formatted_time['value']} {t_lag.formatted_time['duration']}"
             col_title = columns[gi.attribute_col]
             pat = f"({col_title}{gi.symbol}) {str_time}"
-            pattern.append(pat)
-        return [pattern, self.support]
+            # pattern.append(pat)
+            pattern += pat + ", " if i < len(self._temporal_gradual_items) - 1 else pat
+            i += 1
+        # return [pattern, self.support]
+        if self.density <= 0:
+            params = [f"sup={self.support}"]
+        else:
+            params = [f"sup={self.support}", f"density={self.density}", f"avg_dev={self.avg_deviation_from_diagonal}",
+                      f"dispersion={self.temporal_dispersion}", f"connect={self.graph_connectivity}",
+                      f"singularity_scr={self.singularity_score}"]
+        return [[pattern], *params]

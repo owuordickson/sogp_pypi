@@ -140,7 +140,7 @@ class GP:
         self._density: float = 0
         self._avg_dev_from_diag: float = 0
         self._temporal_dispersion: float = 0
-        self._graph_connectivity: float = 0
+        self._graph_connectivity: int = 0
         self._singularity_score: float = 0
 
     @property
@@ -168,7 +168,7 @@ class GP:
         return self._temporal_dispersion
 
     @property
-    def graph_connectivity(self) -> float:
+    def graph_connectivity(self) -> int:
         return self._graph_connectivity
 
     @property
@@ -420,11 +420,11 @@ class GP:
             return False
 
         # Ensure numpy array
-        W = np.asarray(warping_set)
-        i_vals = W[:, 0]
-        j_vals = W[:, 1]
+        w_set = np.asarray(warping_set)
+        i_vals = w_set[:, 0]
+        j_vals = w_set[:, 1]
 
-        pair_count = len(W)
+        pair_count = len(w_set)
         total_pairs = obj_count * (obj_count - 1) / 2.0
 
         def compute_density() -> float:
@@ -453,13 +453,38 @@ class GP:
             deviations = np.abs(i_vals - j_vals)
             return float(np.std(deviations))
 
-        def compute_graph_connectivity() -> int:
+        def compute_graph_connectivity(active_only: bool = True) -> int:
             """
-            Graph Connectivity
+            Computes the graph connectivity (number of connected components) of the gradual warping set W_g.
 
-            κ_g = number of connected components in the graph G = (V, W_g)
+            The warping set W_g is interpreted as an undirected graph G = (V, E), where:
+                - V is the set of object indices
+                - E = W_g is the set of edges (i, j)
+
+            Two modes of computation are supported:
+
+            1. Global connectivity (active_only = False):
+                - V = {0, 1, ..., n-1}
+                - Includes all dataset objects, even those not present in W_g
+                - Isolated nodes are counted as individual connected components
+                - Captures global fragmentation of the dataset
+
+            2. Active connectivity (active_only = True):
+                - V = set of indices appearing in W_g
+                - Ignores isolated nodes not participating in any pair
+                - Captures structural connectivity of the gradual pattern itself
+
+            Interpretation:
+                - κ_g = 1 indicates a fully connected structure
+                - Higher κ_g indicates fragmentation
+                - Path-like behavior is approximated when κ_g = 1
+
+            :param active_only: If True, compute connectivity using only nodes present in W_g;
+                                otherwise, include all dataset nodes.
+            :return: Number of connected components (κ_g)
             """
-            parent = list(range(obj_count))
+            nodes = np.unique(w_set) if active_only else range(obj_count)
+            parent = {int(i): int(i) for i in nodes}
 
             def find(x):
                 while parent[x] != x:
@@ -468,14 +493,15 @@ class GP:
                 return x
 
             def union(x, y):
-                px, py = find(x), find(y)
-                if px != py:
-                    parent[px] = py
+                if x in parent and y in parent:
+                    px, py = find(x), find(y)
+                    if px != py:
+                        parent[px] = py
 
-            for u, v in W:
+            for u, v in w_set:
                 union(int(u), int(v))
 
-            roots = set(find(i) for i in range(obj_count))
+            roots = set(find(i) for i in nodes)
             return len(roots)
 
         def compute_singularity_score() -> float:
@@ -490,7 +516,7 @@ class GP:
             """
             degree = np.zeros(obj_count)
 
-            for u, v in W:
+            for u, v in w_set:
                 degree[int(u)] += 1
                 degree[int(v)] += 1
 

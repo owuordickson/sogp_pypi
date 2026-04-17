@@ -54,7 +54,7 @@ class DataGP:
         self._time_cols: np.ndarray = np.array([])
         self._attr_cols: np.ndarray = np.array([])
         self._valid_bins: dict | None = None
-        self._valid_tids: dict | None = None
+        self._warping_set: dict | None = None
         self._attr_size: int = 0
         self._gradual_patterns = None
         """:type _gradual_patterns: list[GP] | None"""
@@ -93,8 +93,8 @@ class DataGP:
         return self._valid_bins
 
     @property
-    def valid_tids(self) -> dict | None:
-        return self._valid_tids
+    def warping_set(self) -> dict | None:
+        return self._warping_set
 
     @property
     def attr_size(self) -> int:
@@ -226,26 +226,33 @@ class DataGP:
             self._valid_bins = None
         gc.collect()
 
-    def fit_tids(self) -> None:
+    def fit_warpingset(self) -> None:
         """
         Generates transaction ids (tids) for each column/feature with numeric objects. It stores the tids in attribute
         valid_tids (those tids whose computed support values are greater or equal to the minimum support threshold
         value).
 
+        The method decomposes the pairwise matrix of a gradual item/pattern into a warping set. Attributes that have
+        strong correlation will produce a warping set with dense zigzag patterns when plotted as a graph. Those with weak
+        correlation will produce a warping set with sparse zigzag patterns.
+
         """
-        self.fit_bitmap()
+
         if self._valid_bins is None:
-            return
+            self.fit_bitmap()
+            if self._valid_bins is None:
+                return
 
         n = self._row_count
-        self._valid_tids = {}
+        self._warping_set = {}
         for gi_str, gi_data in self._valid_bins.items():
-            arr_ij = np.transpose(np.nonzero(gi_data.bin_mat))
-            set_ij = {tuple(ij) for ij in arr_ij if ij[0] < ij[1]}
-            tids_len = len(set_ij)
+            lst_ij: list = [(i, j) for i, row in enumerate(gi_data.bin_mat) for j, val in enumerate(row) if val]
+            lst_ij = sorted(list(lst_ij), key=lambda x: x[0])
+            # set_ij = set(sorted(list(lst_ij), key=lambda x: x[0])) ## Messes with the order of the items in the set
+            tids_len = len(lst_ij)
             supp = float((tids_len*0.5) * (tids_len - 1)) / float(n * (n - 1.0) / 2.0)
-            if (supp >= self._thd_supp) and self._valid_tids is not None:
-                self._valid_tids[gi_str] = set_ij
+            if (supp >= self._thd_supp) and self._warping_set is not None:
+                self._warping_set[gi_str] = lst_ij
 
     @classmethod
     def analyze_gps(cls, data_src: pd.DataFrame | str, min_sup: float, est_gps: list[GP], approach: str = 'bfs') -> str:
@@ -285,7 +292,7 @@ class DataGP:
         """
         if approach == 'dfs':
             d_set = cls(data_src, min_sup)
-            d_set.fit_tids()
+            d_set.fit_warpingset()
         else:
             d_set = cls(data_src, min_sup)
             d_set.fit_bitmap()

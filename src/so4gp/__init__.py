@@ -8,7 +8,6 @@ from .gradual_patterns import PairwiseMatrix
 from .utils import get_num_cores
 from .utils import get_slurm_cores
 from .utils import write_file
-from .utils import gen_gradual_warping_path
 
 
 from functools import wraps
@@ -33,6 +32,5 @@ __all__ = [
     "get_num_cores",
     "get_slurm_cores",
     "write_file",
-    "gen_gradual_warping_path",
     "analyze_gps"
 ]

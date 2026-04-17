@@ -209,7 +209,7 @@ class TGradAMI(TGrad):
                 'Algorithm': 'TGradAMI',
                 'Patterns': self.str_gradual_patterns,
                 'Time Data': np.vstack((np.array(time_title), time_data.T)),
-                'Transformed Data': np.vstack((np.array(title_row), (delayed_data or np.array([])).T)),
+                'Transformed Data': np.vstack((np.array(title_row), delayed_data.T if delayed_data is not None else np.array([]))),
                 'Warping Paths': warping_path_dict
             }
             # Output

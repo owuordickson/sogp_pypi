@@ -279,7 +279,7 @@ class GP:
 
         :return: A valid GP or an empty GP
         """
-        if d_gp.valid_tids is None:
+        if d_gp.warping_set is None:
             return self
 
         min_supp = d_gp.thd_supp
@@ -290,7 +290,7 @@ class GP:
         for gi in self.gradual_items:
             node = gi.to_string()
             node_inv = GI.swap_gi_symbol(gi).to_string()
-            for gi_str, gi_tids in d_gp.valid_tids.items():
+            for gi_str, gi_tids in d_gp.warping_set.items():
                 if (node == gi_str) or (node_inv == gi_str):
                     if temp_tids is None:
                         temp_tids = gi_tids

@@ -1,3 +1,4 @@
+import numpy as np
 import pandas
 from so4gp.algorithms import GRAANK, AntGRAANK, GeneticGRAANK, HillClimbingGRAANK, RandomGRAANK, ParticleGRAANK, TGrad, TGradAMI, ClusterGP
 from src import so4gp as sgp
@@ -23,34 +24,30 @@ if __name__ == "__main__":
     # result_json = mine_obj.discover(target_col=2)  # GRAANK
     result_json = mine_obj.discover()
     # result_json = mine_obj.discover_tgp(parallel=False)  # TGrad
-    # result_json = mine_obj.discover_tgp(use_clustering=True, eval_mode=False)  # TGradAMI
+    # result_json = mine_obj.discover_tgp(use_clustering=True, eval_mode=True)  # TGradAMI
     print(f"{result_json}\n")
 
     ## Test Time
     #print(sgp.DataGP.test_time("09-01-2005"))
 
-    """
+
     ## Test Warping Path
     tgt_col = 0
     graank = GRAANK(dummy_df)
-    ##graank.discover(target_col=tgt_col)
-    graank.discover()
-    warping_paths = {}
-    for gi_str, pairwise_mat in graank.valid_bins.items():
-        gi = sgp.GI.from_string(gi_str)
-        warping_paths[gi.to_string()] = sgp.gen_gradual_warping_path(pairwise_mat.bin_mat, as_array=True)
-        print(f"{gi.to_string()}\n{pairwise_mat.bin_mat.astype(int)}\n\n")
+    ## graank.discover(target_col=tgt_col)
+    ## graank.discover()
+    graank.fit_warpingset()
     plot_data = []
-    for k, val in warping_paths.items():
-        plot_data.append([val[:,0], val[:,1]])
-    #print(warping_paths)
+    for k, val in graank.warping_set.items():
+        val_arr = np.array(list(val), dtype=int)
+        plot_data.append(f"{k}: {[val_arr[:, 0], val_arr[:, 1]]}")
     print(f"\n{plot_data}")
 
-
+    """
     import math
     import matplotlib.pyplot as plt
     # Calculate the number of rows needed
-    num_plots = len(warping_paths)
+    num_plots = len((graank.warping_set or {}).items())
     cols = 4
     rows = math.ceil(num_plots / cols)
 
@@ -59,7 +56,8 @@ if __name__ == "__main__":
     axes = axes.flatten()  # Flatten to make indexing easier
 
     # Plot each component in its subplot
-    for idx, (key, val) in enumerate(warping_paths.items()):
+    for idx, (key, val) in enumerate(graank.warping_set.items()):
+        val = np.array(list(val), dtype=int)
         axes[idx].plot(val[:,0], val[:,1], '-')#, label=f"{key}")
         axes[idx].set_xlabel("Index i")
         axes[idx].set_ylabel("Index j")
@@ -74,19 +72,19 @@ if __name__ == "__main__":
     plt.show()
 
 
-
     ## Analyze GPs
-    #estimated_gps = list()
-    #temp_gp = sgp.GP()
-    #for gi_str in ['0+', '1-']:
-    #    temp_gp.add_gradual_item(sgp.GI.from_string(gi_str))
-    #temp_gp.support = 0.5
-    #estimated_gps.append(temp_gp)
-    #temp_gp = sgp.GP()
-    #for gi_str in ['1+', '3-', '0+']:
-    #    temp_gp.add_gradual_item(sgp.GI.from_string(gi_str))
-    #temp_gp.support = 0.48
-    #estimated_gps.append(temp_gp)
-    #res = sgp.analyze_gps(dummy_df, min_sup=0.4, est_gps=estimated_gps, approach='bfs')
-    #print(res)
+    estimated_gps = list()
+    temp_gp = sgp.GP()
+    for gi_str in ['1+', '4-']:
+        temp_gp.add_gradual_item(sgp.GI.from_string(gi_str))
+    temp_gp.support = 0.5
+    estimated_gps.append(temp_gp)
+    temp_gp = sgp.GP()
+    for gi_str in ['1+', '3-', '0+']:
+        temp_gp.add_gradual_item(sgp.GI.from_string(gi_str))
+    temp_gp.support = 0.48
+    estimated_gps.append(temp_gp)
+    res = sgp.analyze_gps(dummy_df, min_sup=0.4, est_gps=estimated_gps, approach='bfs')
+    print(res)
     """
+

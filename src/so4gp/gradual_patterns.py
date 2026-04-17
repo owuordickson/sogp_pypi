@@ -135,9 +135,13 @@ class GP:
         >>> print(f"{gradual_pattern.to_string()}: {gradual_pattern.support}")
 
         """
-
         self._gradual_items: list[GI] = list()
         self._support: float = 0
+        self._density: float = 0
+        self._avg_dev_from_diag: float = 0
+        self._temporal_dispersion: float = 0
+        self._graph_connectivity: float = 0
+        self._singularity_score: float = 0
 
     @property
     def gradual_items(self) -> list[GI]:
@@ -150,6 +154,46 @@ class GP:
     @support.setter
     def support(self, support: float):
         self._support = round(support, 3) if support <= 1 else support
+
+    @property
+    def density(self) -> float:
+        return self._density
+
+    @density.setter
+    def density(self, density: float):
+        self._density = round(density, 3) if density <= 1 else density
+
+    @property
+    def avg_deviation_from_diagonal(self) -> float:
+        return self._avg_dev_from_diag
+
+    @avg_deviation_from_diagonal.setter
+    def avg_deviation_from_diagonal(self, avg_dev_from_diag: float):
+        self._avg_dev_from_diag = round(avg_dev_from_diag, 3)
+
+    @property
+    def temporal_dispersion(self) -> float:
+        return self._temporal_dispersion
+
+    @temporal_dispersion.setter
+    def temporal_dispersion(self, temporal_dispersion: float):
+        self._temporal_dispersion = round(temporal_dispersion, 3)
+
+    @property
+    def graph_connectivity(self) -> float:
+        return self._graph_connectivity
+
+    @graph_connectivity.setter
+    def graph_connectivity(self, graph_connectivity: float):
+        self._graph_connectivity = round(graph_connectivity, 3)
+
+    @property
+    def singularity_score(self) -> float:
+        return self._singularity_score
+
+    @singularity_score.setter
+    def singularity_score(self, singularity_score: float):
+        self._singularity_score = round(singularity_score, 3)
 
     def add_gradual_item(self, item: GI) -> bool:
         """

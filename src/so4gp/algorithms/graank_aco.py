@@ -215,6 +215,7 @@ class AntGRAANK(DataGP):
                 counter = it_count
         # Output
         out = json.dumps({"Algorithm": "ACO-GRAANK", "Best Patterns": self.str_gradual_patterns, "Invalid Count": invalid_count,
-                          "Iterations": it_count})
+                          "Iterations": it_count},
+                         indent=4)
         """:type out: object"""
         return out

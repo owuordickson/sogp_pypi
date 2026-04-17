@@ -76,7 +76,8 @@ class RandomGRAANK(DataGP):
 
         # Output
         out = json.dumps({"Algorithm": "RS-GRAANK", "Best Patterns": s_space.str_best_gps,
-                          "Invalid Count": s_space.invalid_count, "Iterations": s_space.iter_count})
+                          "Invalid Count": s_space.invalid_count, "Iterations": s_space.iter_count},
+                         indent=4)
         """:type out: object"""
         for gp in s_space.best_patterns:
             self.add_gradual_pattern(gp)

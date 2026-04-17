@@ -20,11 +20,11 @@ if __name__ == "__main__":
     # mine_obj = RandomGRAANK(dummy_df)
     # mine_obj = ParticleGRAANK(dummy_df)
     # mine_obj = TGrad(dummy_df, target_col=1, min_sup=0.2, min_rep=0.1)
-    mine_obj = TGradAMI(dummy_df, min_sup=0.5, target_col=1, min_rep=0.5, min_error=0.1)
+    # mine_obj = TGradAMI(dummy_df, min_sup=0.5, target_col=1, min_rep=0.5, min_error=0.1)
     # result_json = mine_obj.discover(target_col=2)  # GRAANK
     result_json = mine_obj.discover()
     # result_json = mine_obj.discover_tgp(parallel=False)  # TGrad
-    result_json = mine_obj.discover_tgp(use_clustering=True, eval_mode=True)  # TGradAMI
+    # result_json = mine_obj.discover_tgp(use_clustering=True, eval_mode=True)  # TGradAMI
     print(f"{result_json}\n")
 
     ## Test Time

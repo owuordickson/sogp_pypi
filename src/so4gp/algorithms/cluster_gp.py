@@ -270,6 +270,7 @@ class ClusterGP(DataGP):
             return out
 
         # Output
-        out = json.dumps({"Algorithm": "Clu-GRAANK", "Patterns": self.str_gradual_patterns, "Invalid Count": 0})
+        out = json.dumps({"Algorithm": "Clu-GRAANK", "Patterns": self.str_gradual_patterns, "Invalid Count": 0},
+                         indent=4)
         """:type out: object"""
         return out

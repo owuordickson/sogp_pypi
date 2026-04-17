@@ -296,7 +296,7 @@ class GP:
                         temp_tids = gi_tids
                         gen_pattern.add_gradual_item(gi)
                     else:
-                        temp = temp_tids.copy()
+                        temp = (temp_tids or {}).copy()
                         temp = temp.intersection(gi_tids)
                         supp = float(len(temp)) / float(n * (n - 1.0) / 2.0)
                         if supp >= min_supp:
@@ -308,7 +308,7 @@ class GP:
         else:
             return gen_pattern
 
-    def check_am(self, gp_list: list["GP"], subset:bool=True) -> bool:
+    def check_am(self, gp_list: list["GP"]|None, subset:bool=True) -> bool:
         """
         Anti-monotonicity check. Checks if a GP is a subset or superset of an already existing GP
 
@@ -317,6 +317,9 @@ class GP:
         :return: True if superset/subset, False otherwise
         """
         result = False
+        if gp_list is None:
+            return result
+
         if subset:
             for pat in gp_list:
                 result1 = set(self.as_set).issubset(set(pat.as_set))
@@ -333,7 +336,7 @@ class GP:
                     break
         return result
 
-    def is_duplicate(self, valid_gps:list["GP"], invalid_gps:list["GP"]=None) -> bool:
+    def is_duplicate(self, valid_gps:list["GP"]|None, invalid_gps:list["GP"]=None) -> bool:
         """
         Checks if a pattern is in the list of winner GPs or loser GPs
 
@@ -341,6 +344,9 @@ class GP:
         :param invalid_gps: list of GPs
         :return: True if a pattern is a list, False otherwise
         """
+        if valid_gps is None:
+            return False
+
         if invalid_gps is None:
             pass
         else:
@@ -365,7 +371,7 @@ class GP:
         return new_gp
 
     @staticmethod
-    def perform_and(bin_data_1: "PairwiseMatrix", bin_data_2: "PairwiseMatrix", dim: int) -> "PairwiseMatrix":
+    def perform_and(bin_data_1: "PairwiseMatrix|None", bin_data_2: "PairwiseMatrix|None", dim: int) -> "PairwiseMatrix":
         """
         Perform logical AND operation on two bitmaps.
 
@@ -373,6 +379,8 @@ class GP:
         :param bin_data_2: bitmap 2
         :param dim: dimension of the bitmaps
         """
+        if bin_data_1 is None or bin_data_2 is None:
+            return PairwiseMatrix(bin_mat=np.zeros((dim, dim)), support=0)
         bin_mat = bin_data_1.bin_mat * bin_data_2.bin_mat
         sup = float(np.sum(bin_mat)) / float(dim * (dim - 1.0) / 2.0)
         return PairwiseMatrix(bin_mat=bin_mat, support=sup)
@@ -517,7 +525,7 @@ class TGP(GP):
         self._temporal_gradual_items: list[TGP.TemporalGI] = list()
 
     @property
-    def target_gradual_item(self) -> GI:
+    def target_gradual_item(self) -> GI|None:
         return self._target_gradual_item
 
     @target_gradual_item.setter
@@ -548,7 +556,7 @@ class TGP(GP):
         """
         Returns the Temporal-GP in string format as a list.
         """
-        pattern = [self._target_gradual_item.to_string()]
+        pattern = [self._target_gradual_item.to_string() if self._target_gradual_item else ""]
         for temp_gi in self._temporal_gradual_items:
             gi = temp_gi.gradual_item
             t_lag = temp_gi.time_delay
@@ -567,8 +575,8 @@ class TGP(GP):
         """
 
         target_gi = self._target_gradual_item
-        col_title = columns[target_gi.attribute_col]
-        pattern = [f"{col_title}{target_gi.symbol}"]
+        col_title = columns[target_gi.attribute_col if target_gi else -1]
+        pattern = [f"{col_title}{target_gi.symbol if target_gi else ''}"]
 
         for temp_gi in self._temporal_gradual_items:
             gi = temp_gi.gradual_item

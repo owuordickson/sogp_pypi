@@ -95,7 +95,7 @@ class GradPFS:
         col_names = np.array(col_names)
 
         # 4. Update correlation matrix with GP support
-        for gp in grad.gradual_patterns:
+        for gp in (grad.gradual_patterns or []):
             score = gp.support
             i = int(gp.gradual_items[0].attribute_col)
             j = int(gp.gradual_items[1].attribute_col)
@@ -156,7 +156,7 @@ class GradPFS:
 
         # 3a. Collect the irrelevant features (and redundant among themselves)
         rel_lst = []
-        for gp in grad.gradual_patterns:
+        for gp in (grad.gradual_patterns or []):
              rel_attributes = gp.decompose()[0]
              for attr in rel_attributes:
                  rel_lst.append(attr)
@@ -202,7 +202,7 @@ class GradPFS:
         if len(corr_lst) <= 0:
             return None
         corr_arr = np.array(corr_lst, dtype=object)
-        # corr_df = pd.DataFrame(corr_arr, columns=["Attribute Indices", "Relevant Features", "GradPFS Score"])
+        # corr_df = pd.DataFrame(corr_arr, columns=[ "Attribute Indices", "Relevant Features", "GradPFS Score"])
         corr_df = pd.DataFrame(corr_arr, columns=["Target Feature", "Relevant Features", "Irrelevant Features"])
         """:type corr_df: pd.DataFrame"""
         return corr_df
@@ -221,6 +221,8 @@ class GradPFS:
             # 2a. Multivariate feature selection
             corr_df = self.multivariate_fs()
             fig_corr = None
+            if corr_df is None:
+                return False
 
             # Create table data
             tab_data = np.vstack([corr_df.columns, corr_df.to_numpy()])
@@ -242,12 +244,18 @@ class GradPFS:
             for x in lst_redundant:
                 feat = x[0]
                 scores = np.round(x[1], 3)
-                tab_data.append([feat, tuple(scores.tolist())])
+                # Handle both single numbers and arrays/lists
+                if isinstance(scores, np.ndarray):
+                    score_val = tuple(scores.tolist())
+                else:
+                    # If it's just a single float/int
+                    score_val = scores
+                tab_data.append([str(feat), str(score_val)])
             tab_data = np.array(tab_data, dtype=object)
             col_width = [1/2, 1/2]
 
         # 3. Produce PDF report
-        if type(self.data_src) == str:
+        if isinstance(self.data_src, str):
             f_name = ntpath.basename(self.data_src)
             f_name = f_name.replace('.csv', '')
         else:
@@ -279,11 +287,10 @@ class GradPFS:
                 pdf.savefig(fig_corr)
             pdf.savefig(GradPFS.generate_table("", out_file, [1/4, 3/4]))
             pdf.savefig(GradPFS.generate_table("", tab_data, col_width))
-
         return True
 
     @staticmethod
-    def find_redundant_features(corr_arr: np.array, thd_score: float) -> list:
+    def find_redundant_features(corr_arr: np.ndarray, thd_score: float) -> list:
         """
         A method that identifies features that are redundant using their correlation score.
 
@@ -351,11 +358,14 @@ class GradPFS:
         :param yscale: The length of the table.
         :return: A matplotlib table.
         """
-        fig_tab = plt.Figure(figsize=(8.5, 11), dpi=300)
-        ax_tab = fig_tab.add_subplot(1, 1, 1)
+        #fig_tab = plt.Figure(figsize=(8.5, 11), dpi=300)
+        # ax_tab = fig_tab.add_subplot(1, 1, 1)
+        fig_tab, ax_tab = plt.subplots(figsize=(8.5, 11), dpi=300)
+
         ax_tab.set_axis_off()
         ax_tab.set_title(f"{title}")
-        tab = ax_tab.table(cellText=data[:, :], loc='upper center', colWidths=col_width, cellLoc='left')
+        tab = ax_tab.table(cellText=data[:, :], loc='upper center', colWidths=col_width, cellLoc='left', ax=ax_tab)
         tab.scale(xscale, yscale)
 
+        fig_tab.tight_layout()
         return fig_tab

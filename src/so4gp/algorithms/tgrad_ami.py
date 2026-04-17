@@ -113,7 +113,7 @@ class TGradAMI(TGrad):
         mse_arr = np.sqrt(squared_diff)
         # mse_arr[mse_arr < self.error_margin] = -1
         optimal_steps_arr = np.argmin(mse_arr, axis=0)
-        max_step = int(np.max(optimal_steps_arr) + 1)
+        max_step = int(np.max(optimal_steps_arr)) + 1
 
         # 5. Integrate feature indices with the computed steps
         optimal_dict = {int(self._feature_cols[i]): int(optimal_steps_arr[i] + 1) for i in range(len(self._feature_cols))}
@@ -168,8 +168,8 @@ class TGradAMI(TGrad):
 
     def discover_tgp(self, use_clustering: bool = False, eval_mode: bool = False):
         """
-        A method that applies mutual information concept, clustering and hill-climbing algorithm to find the best data
-        transformation that maintains MI, and estimate the best time-delay value of the mined Fuzzy Temporal Gradual
+        A method that applies mutual information concept, clustering, and hill-climbing algorithm to find the best data
+        transformation that maintains MI and estimate the best time-delay value of the mined Fuzzy Temporal Gradual
         Patterns (FTGPs).
 
         :param use_clustering: Use a clustering algorithm to estimate the best time-delay value.
@@ -209,7 +209,7 @@ class TGradAMI(TGrad):
                 'Algorithm': 'TGradAMI',
                 'Patterns': self.str_gradual_patterns,
                 'Time Data': np.vstack((np.array(time_title), time_data.T)),
-                'Transformed Data': np.vstack((np.array(title_row), delayed_data.T)),
+                'Transformed Data': np.vstack((np.array(title_row), (delayed_data or np.array([])).T)),
                 'Warping Paths': warping_path_dict
             }
             # Output

@@ -82,7 +82,7 @@ class NumericSS:
         return search_space
 
     @staticmethod
-    def decode_gp(position: float, valid_bins_dict: dict) -> GP:
+    def decode_gp(position: float|None, valid_bins_dict: dict|None) -> GP:
         """Description
 
         Decodes a numeric value (position) into a GP
@@ -93,7 +93,7 @@ class NumericSS:
         """
 
         temp_gp: GP = GP()
-        if position is None:
+        if position is None or valid_bins_dict is None:
             return temp_gp
 
         gi_key_list = list(valid_bins_dict.keys())
@@ -110,7 +110,7 @@ class NumericSS:
         return temp_gp
 
     @staticmethod
-    def cost_function(position: float, valid_bins_dict: dict) -> float:
+    def cost_function(position: float|None, valid_bins_dict: dict|None) -> float:
         """Description
 
         Computes the fitness of a GP
@@ -119,6 +119,10 @@ class NumericSS:
         :param valid_bins_dict: a dictionary of valid bins
         :return: a floating point value that represents the fitness of the position
         """
+
+        cost = 1
+        if valid_bins_dict is None or position is None:
+            return cost
 
         gi_key_list = list(valid_bins_dict.keys())
         pattern = NumericSS.decode_gp(position, valid_bins_dict)
@@ -133,24 +137,25 @@ class NumericSS:
                     pw_mat = PairwiseMatrix(bin_mat=bin_dict.bin_mat, support=bin_dict.support)
                 else:
                     pw_mat = GP.perform_and(pw_mat, bin_dict, -1)
-        bin_sum = np.sum(pw_mat.bin_mat) if pw_mat is not None else 0
+        bin_sum = int(np.sum(pw_mat.bin_mat)) if pw_mat is not None else 0
         if bin_sum > 0:
             cost = (1 / bin_sum)
-        else:
-            cost = 1
         return cost
 
     @staticmethod
-    def evaluate_candidate(candidate: "NumericSS.Candidate", s_space: "NumericSS.SearchSpace", valid_bins_dict: dict)-> "NumericSS.SearchSpace":
+    def evaluate_candidate(candidate: "NumericSS.Candidate|None", s_space: "NumericSS.SearchSpace|None", valid_bins_dict: dict|None)-> "NumericSS.SearchSpace|None":
         """"""
+
+        if candidate is None or s_space is None or valid_bins_dict is None:
+            return s_space
 
         def apply_bound() -> None:
             """
             Modifies x (a numeric value) if it exceeds the lower/upper bound of the numeric search space.
             :return: None
             """
-            candidate.position = np.maximum(candidate.position, s_space.var_min)
-            candidate.position = np.minimum(candidate.position, s_space.var_max)
+            candidate.position = float(np.maximum(candidate.position if candidate else 0, s_space.var_min if s_space else 0))
+            candidate.position = float(np.minimum(candidate.position if candidate else 0, s_space.var_max if s_space else 0))
 
         apply_bound()
         # Update: What about duplicate candidate (position already exists in the search-space)?
@@ -158,8 +163,9 @@ class NumericSS:
         candidate.cost = NumericSS.cost_function(candidate.position, valid_bins_dict)
         if candidate.cost == 1:
             s_space.invalid_count += 1
-        if candidate.cost < s_space.best_sol.cost:
-            s_space.best_sol = NumericSS.Candidate(position=candidate.position, cost=candidate.cost)
+        if candidate.cost is not None and s_space.best_sol.cost is not None:
+            if candidate.cost < s_space.best_sol.cost:
+                s_space.best_sol = NumericSS.Candidate(position=candidate.position, cost=candidate.cost)
         s_space.eval_count += 1
         return s_space
 

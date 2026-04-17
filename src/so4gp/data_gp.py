@@ -107,6 +107,8 @@ class DataGP:
     @property
     def str_gradual_patterns(self) -> list:
         str_gps = []
+        if self._gradual_patterns is None:
+            return str_gps
         for gp in self._gradual_patterns:
             str_gps.append(gp.print(self.titles))
         return str_gps
@@ -153,6 +155,9 @@ class DataGP:
 
         :param pattern: A gradual pattern
         """
+        if self._gradual_patterns is None:
+            self._gradual_patterns = list()
+
         if not isinstance(pattern, (GP, TGP)):
             raise Exception("Pattern must be of type GP, ExtGP, or TGP")
         self._gradual_patterns.append(pattern)
@@ -170,6 +175,9 @@ class DataGP:
         :return: List of GPs
         """
         gps = self._gradual_patterns if gradual_patterns is None else gradual_patterns
+        if gps is None:
+            return
+
         for gp in gps:
             result1 = set(gp.as_set).issubset(gi_arr)
             result2 = set(gp.as_swapped_set).issubset(gi_arr)
@@ -182,7 +190,7 @@ class DataGP:
         whose computed support values are greater or equal to the minimum support threshold value).
 
         :param attr_data: Stepped attribute objects
-        :type attr_data: np.ndarray
+        :type attr_data: np.ndarray | None
         :return: void
         """
         # (check) implement parallel multiprocessing
@@ -198,7 +206,7 @@ class DataGP:
         n = self._attr_size
         self._valid_bins = {}
         for col in self._attr_cols:
-            # 2a. Generate a 1-itemset gradual items
+            # 2a. Generate 1-itemset gradual-items
             col_data = np.array(attr_data[col], dtype=float)
             with np.errstate(invalid='ignore'):
                 if not self._include_equal_values:
@@ -207,13 +215,14 @@ class DataGP:
                     temp_pos = np.array(col_data >= col_data[:, np.newaxis])
                     np.fill_diagonal(temp_pos, False)
 
-                # 2b. Check support of each generated itemset
+                # 2b. Check support of each generated item set
                 supp = float(np.sum(temp_pos)) / float(n * (n - 1.0) / 2.0)
-                if supp >= self._thd_supp:
+                if (supp >= self._thd_supp )and (self._valid_bins is not None):
                     self._valid_bins[f"{col}+"] = PairwiseMatrix(bin_mat=temp_pos, support=supp)
                     self._valid_bins[f"{col}-"] = PairwiseMatrix(bin_mat=temp_pos.T, support=supp)
         # print(self._valid_bins)
-        if len(self._valid_bins) < 3:
+        valid_bins_len = len(self._valid_bins) if self._valid_bins is not None else 0
+        if valid_bins_len < 3:
             self._valid_bins = None
         gc.collect()
 
@@ -235,7 +244,7 @@ class DataGP:
             set_ij = {tuple(ij) for ij in arr_ij if ij[0] < ij[1]}
             tids_len = len(set_ij)
             supp = float((tids_len*0.5) * (tids_len - 1)) / float(n * (n - 1.0) / 2.0)
-            if supp >= self._thd_supp:
+            if (supp >= self._thd_supp) and self._valid_tids is not None:
                 self._valid_tids[gi_str] = set_ij
 
     @classmethod
@@ -310,7 +319,7 @@ class DataGP:
     def read(data_src) -> tuple[list, np.ndarray]:
         """
         Reads all the contents of a file (in CSV format) or a data-frame. Checks if its columns have numeric values. It
-        separates its columns headers (titles) from the objects.
+        separates its column headers (titles) from the objects.
 
         :param data_src: A data source, it can either be a 'file in csv format' or a 'Pandas DataFrame'
         :type data_src: pd.DataFrame | str
@@ -337,7 +346,7 @@ class DataGP:
                 pass
             except TypeError:
                 pass
-            # print("Data fetched from DataFrame")
+            # print ("Data fetched from DataFrame")
             return DataGP.clean_data(data_src)
         else:
             # b. CSV file
@@ -353,7 +362,7 @@ class DataGP:
                 if len(raw_data) <= 1:
                     raise Exception("CSV file read error. File has little or no data")
                 else:
-                    # print("Data fetched from CSV file")
+                    # print ("Data fetched from CSV file")
                     # 2. Get table headers
                     keys = np.arange(len(raw_data[0]))
                     if raw_data[0][0].replace('.', '', 1).isdigit() or raw_data[0][0].isdigit():

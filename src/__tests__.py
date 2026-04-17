@@ -12,7 +12,7 @@ if __name__ == "__main__":
 
     ## Test Algorithms
     mine_obj = GRAANK(dummy_df, min_sup=0.5, eq=False)
-    #mine_obj = ClusterGP(dummy_df, 0.5, max_iter=3, e_prob=0.0)
+    # mine_obj = ClusterGP(dummy_df, 0.5, max_iter=3, e_prob=0.0)
     # mine_obj = AntGRAANK(dummy_df)
     # mine_obj = GeneticGRAANK(dummy_df)
     # mine_obj = HillClimbingGRAANK(dummy_df)
@@ -29,6 +29,7 @@ if __name__ == "__main__":
     ## Test Time
     #print(sgp.DataGP.test_time("09-01-2005"))
 
+    """
     ## Test Warping Path
     tgt_col = 0
     graank = GRAANK(dummy_df)
@@ -88,3 +89,4 @@ if __name__ == "__main__":
     #estimated_gps.append(temp_gp)
     #res = sgp.analyze_gps(dummy_df, min_sup=0.4, est_gps=estimated_gps, approach='bfs')
     #print(res)
+    """

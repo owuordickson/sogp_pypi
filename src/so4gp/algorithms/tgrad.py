@@ -79,7 +79,7 @@ class TGrad(GRAANK):
 
     def discover_tgp(self, parallel: bool = False, num_cores: int = 1):
         """
-        Applies fuzzy-logic, data transformation and gradual pattern mining to mine for Fuzzy Temporal Gradual Patterns.
+        Applies fuzzy-logic, data transformation, and gradual pattern mining to mine for Fuzzy Temporal Gradual Patterns.
 
         :param parallel: Allow multiprocessing.
         :param num_cores: Number of CPU cores for the algorithm to use.
@@ -90,27 +90,35 @@ class TGrad(GRAANK):
         # 1. Mine FTGPs
         if parallel:
             # implement parallel multi-processing
-            steps = range(self._max_step)
-            pool = mp.Pool(num_cores)
-            patterns = pool.map(self.transform_and_mine, steps)
-            pool.close()
-            pool.join()
+            with mp.Pool(num_cores) as pool:
+                steps = range(self._max_step)
+                pattern_data = pool.map(self._safe_transform_and_mine, steps)
         else:
-            patterns = list()
+            pattern_data: list = []
             for step in range(self._max_step):
-                t_gps = self.transform_and_mine(step + 1)  # because for-loop it is not inclusive from range: 0 - max_step
-                if t_gps:
-                    patterns.append(t_gps)
+                t_gps = self._safe_transform_and_mine(step + 1)  # because for-loop it is not inclusive from range: 0 - max_step
+                pattern_data.append(t_gps)
 
         # 2. Organize FTGPs into a single list
-        for lst_obj in patterns:
+        for item in pattern_data:
+            if item is None:
+                continue
+
+            # Standardize 'item' into a list so we only need one loop
+            lst_pattern = item if isinstance(item, list) else [item]
+
+            for pat in lst_pattern:
+                if isinstance(pat, TGP):
+                    self.add_gradual_pattern(pat)
+
+        """for lst_obj in pattern_data:
             if lst_obj:
                 for lst_tgp in lst_obj:
                     if isinstance(lst_tgp, TGP):
                         self.add_gradual_pattern(lst_tgp)
                     else:
                         for tgp in lst_tgp:
-                            self.add_gradual_pattern(tgp)
+                            self.add_gradual_pattern(tgp)"""
         # Output
         out = json.dumps({"Algorithm": "TGrad", "Patterns": self.str_gradual_patterns})
         """:type out: object"""
@@ -172,7 +180,15 @@ class TGrad(GRAANK):
             msg = "Fatal Error: Time format in column could not be processed"
             raise Exception(msg)
 
-    def _mine_gps_at_step(self, time_delay_data: np.ndarray | dict = None, attr_data: np.ndarray = None, clustering_method: bool = False, decompose: bool = False) -> list[TGP] | tuple[list[TGP], dict]:
+    def _safe_transform_and_mine(self, step: int):
+        """Wrapper to catch exceptions during parallel mining."""
+        try:
+            return self.transform_and_mine(step)
+        except Exception as e:
+            print(f"Error at step {step}: {e}")
+            return None
+
+    def _mine_gps_at_step(self, time_delay_data: np.ndarray | dict, attr_data: np.ndarray = None, clustering_method: bool = False, decompose: bool = False) -> list[TGP] | tuple[list[TGP], dict]:
         """
         Uses apriori algorithm to find GP candidates based on the target-attribute. The candidates are validated if
         their computed support is greater than or equal to the minimum support threshold specified by the user.
@@ -190,10 +206,10 @@ class TGrad(GRAANK):
             return []
 
         t_gps: list[TGP] = []
-        valid_bins_dict = self.valid_bins.copy()
+        valid_bins_dict: dict = (self.valid_bins or {}).copy()
         tgp_warping_path: dict = {}
 
-        if clustering_method:
+        if clustering_method and isinstance(time_delay_data, np.ndarray):
             # Build the main triangular MF using the clustering algorithm
             a, b, c = TGrad.build_mf_w_clusters(time_delay_data)
             tri_mf_data = np.array([a, b, c])
@@ -211,9 +227,9 @@ class TGrad(GRAANK):
             invalid_count += inv_count
             for gp_set, gi_data in valid_bins_dict.items():
                 if type(self) is TGrad:
-                    t_lag = self.get_fuzzy_time_lag(gi_data.bin_mat, time_delay_data, gi_arr=None, tri_mf_data=tri_mf_data)
+                    t_lag = self.get_fuzzy_time_lag(gi_data.bin_mat, time_delay_data, gi_arr=None, tri_mf_data=tri_mf_data)  # dict
                 else:
-                    t_lag = self.get_fuzzy_time_lag(gi_data.bin_mat, time_delay_data, gp_set, tri_mf_data)
+                    t_lag = self.get_fuzzy_time_lag(gi_data.bin_mat, time_delay_data, gi_arr=gp_set, tri_mf_data=tri_mf_data)  # array
 
                 if t_lag.valid:
                     tgp: TGP = TGP()
@@ -258,7 +274,7 @@ class TGrad(GRAANK):
                         stamp_2 += temp_stamp_2
                 time_diff = (stamp_2 - stamp_1)
                 # if time_diff < 0:
-                # Error time CANNOT go backwards
+                # Error time CANNOT go backwards,
                 # print(f"Problem {i} and {i + step} - {self.time_cols}")
                 #    return False, [i + 1, i + step + 1]
                 time_diffs[int(i)] = float(abs(time_diff))
@@ -278,6 +294,12 @@ class TGrad(GRAANK):
 
         :return: TimeDelay object.
         """
+
+        if time_data is None:
+            return TimeDelay()
+
+        time_data_as_arr: np.ndarray|None = time_data if isinstance(time_data, np.ndarray)else None
+        time_data_as_dict: dict|None = time_data if isinstance(time_data, dict) else None
 
         def approx_time_slide_calculate(time_lag_arr: np.ndarray) -> TimeDelay:
             """
@@ -395,10 +417,10 @@ class TGrad(GRAANK):
                 elif (col != self._target_col) and (col > self._target_col):
                     selected_cols.append(col - (len(self.time_cols) + 1))
             selected_cols = np.array(selected_cols, dtype=int)
-            t_lag_arr = time_data[np.ix_(selected_cols, selected_rows)]
+            t_lag_arr = time_data_as_arr[np.ix_(selected_cols, selected_rows)] if time_data_as_arr is not None else np.array([])
         else:
             time_lags = []
-            for row, stamp_diff in time_data.items():  # {row: time-lag-stamp}
+            for row, stamp_diff in (time_data_as_dict or {}).items():  # {row: time-lag-stamp}
                 if int(row) in selected_rows:
                     time_lags.append(stamp_diff)
             t_lag_arr = np.array(time_lags)
@@ -447,7 +469,7 @@ class TGrad(GRAANK):
             return False
 
     @staticmethod
-    def build_mf_w_clusters(time_data: np.ndarray):
+    def build_mf_w_clusters(time_data: np.ndarray|None):
         """
         A method that builds the boundaries of a fuzzy Triangular membership function (MF) using Singular Value
         Decomposition (to estimate the number of centers) and KMeans algorithm to group time data according to the
@@ -457,46 +479,53 @@ class TGrad(GRAANK):
         :return: The boundary values of the triangular membership function.
         """
 
-        # 1. Reshape into 1-column dataset
-        time_data = time_data.reshape(-1, 1)
+        if time_data is None:
+            return 0, 0, 0
 
-        # 2. Standardize data
-        scaler = MinMaxScaler()
-        data_scaled = scaler.fit_transform(time_data)
+        try:
+            # 1. Reshape into 1-column dataset
+            time_data = time_data.reshape(-1, 1)
 
-        # 3. Apply SVD
-        u, s, vt = np.linalg.svd(data_scaled, full_matrices=False)
+            # 2. Standardize data
+            scaler = MinMaxScaler()
+            data_scaled = scaler.fit_transform(time_data)
 
-        # 4. Plot singular values to help determine the number of clusters
-        # Based on the plot, choose the number of clusters (e.g., 3 clusters)
-        num_clusters = int(s[0])
+            # 3. Apply SVD
+            u, s, vt = np.linalg.svd(data_scaled, full_matrices=False)
 
-        # 5. Perform k-means clustering
-        kmeans = KMeans(n_clusters=num_clusters)
-        kmeans.fit(data_scaled)
+            # 4. Plot singular values to help determine the number of clusters
+            # Based on the plot, choose the number of clusters (e.g., 3 clusters)
+            num_clusters = int(s[0])
 
-        # 6. Get cluster centers
-        centers = kmeans.cluster_centers_.flatten()
+            # 5. Perform k-means clustering
+            kmeans = KMeans(n_clusters=num_clusters)
+            kmeans.fit(data_scaled)
 
-        # 7. Define membership functions to ensure membership > 0.5
-        largest_mf = [0, 0, 0]
-        for center in centers:
-            half_width = 0.5 / 2  # since the membership value should be > 0.5
-            a = center - half_width
-            b = center
-            c = center + half_width
-            if abs(c - a) > abs(largest_mf[2] - largest_mf[0]):
-                largest_mf = [a, b, c]
+            # 6. Get cluster centers
+            centers = kmeans.cluster_centers_.flatten()
 
-        # 8. Reverse the scaling
-        a = scaler.inverse_transform([[largest_mf[0]]])[0, 0]
-        b = scaler.inverse_transform([[largest_mf[1]]])[0, 0]
-        c = scaler.inverse_transform([[largest_mf[2]]])[0, 0]
+            # 7. Define membership functions to ensure membership > 0.5
+            largest_mf = [0, 0, 0]
+            for center in centers:
+                half_width = 0.5 / 2  # since the membership value should be > 0.5
+                a = center - half_width
+                b = center
+                c = center + half_width
+                if abs(c - a) > abs(largest_mf[2] - largest_mf[0]):
+                    largest_mf = [a, b, c]
 
-        # 9. Shift to remove negative MF (we do not want negative timestamps)
-        if a < 0:
-            shift_by = abs(a)
-            a = a + shift_by
-            b = b + shift_by
-            c = c + shift_by
-        return a, b, c
+            # 8. Reverse the scaling
+            a = scaler.inverse_transform([[largest_mf[0]]])[0, 0]
+            b = scaler.inverse_transform([[largest_mf[1]]])[0, 0]
+            c = scaler.inverse_transform([[largest_mf[2]]])[0, 0]
+
+            # 9. Shift to remove negative MF (we do not want negative timestamps)
+            if a < 0:
+                shift_by = abs(a)
+                a = a + shift_by
+                b = b + shift_by
+                c = c + shift_by
+            return a, b, c
+        except Exception as e:
+            print(e)
+            return 0, 0, 0

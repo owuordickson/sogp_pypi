@@ -7,6 +7,7 @@
 import gc
 import json
 import numpy as np
+from typing import cast
 from ..data_gp import DataGP
 from ..gradual_patterns import GI, GP, PairwiseMatrix
 
@@ -49,7 +50,7 @@ class AntGRAANK(DataGP):
         self._evaporation_factor: float = e_factor
         self._max_iteration: int = max_iter
         self._distance_matrix: np.ndarray | None = None
-        self._attribute_keys: list | None = None
+        self._attribute_keys: list[str] | None = None
 
     def _fit(self):
         """
@@ -61,7 +62,7 @@ class AntGRAANK(DataGP):
         gi_dict = self.valid_bins
 
         # 1. Fetch valid bins group
-        gi_key_list = list(gi_dict.keys())
+        gi_key_list = list(gi_dict.keys()) if gi_dict is not None else []
         attr_keys = [GI.from_string(gi_str).to_string() for gi_str in gi_key_list]
 
         # 2. Initialize an empty d-matrix
@@ -73,12 +74,14 @@ class AntGRAANK(DataGP):
                     # Ignore similar attributes (+ or/and -)
                     continue
                 else:
+                    if gi_dict is None:
+                        continue
                     res_pw_mat: PairwiseMatrix = GP.perform_and(gi_dict[attr_keys[i]], gi_dict[attr_keys[j]], n)
                     # Cumulative sum of all segments for 2x2 (all attributes) gradual items
                     d[i][j] += np.sum(res_pw_mat.bin_mat)
         # print(d)
         self._distance_matrix = d
-        self._attribute_keys = attr_keys
+        self._attribute_keys: list[str] = attr_keys
         gc.collect()
 
     def _gen_aco_candidates(self, p_matrix):
@@ -91,6 +94,8 @@ class AntGRAANK(DataGP):
         """
         v_matrix = self._distance_matrix
         pattern: GP = GP()
+        if v_matrix is None:
+            return pattern, p_matrix
 
         # 1. Generate gradual items with the highest pheromone and visibility
         m = p_matrix.shape[0]
@@ -103,7 +108,8 @@ class AntGRAANK(DataGP):
             r = np.random.random_sample()
             try:
                 j = np.nonzero(cum_prob > r)[0][0]
-                gi: GI = GI.from_string(self._attribute_keys[j])
+                gi_str: str = cast(str, self._attribute_keys[j]) if self._attribute_keys is not None else ""
+                gi: GI = GI.from_string(gi_str)
                 if not pattern.contains_attr(gi):
                     pattern.add_gradual_item(gi)
             except IndexError:
@@ -121,6 +127,9 @@ class AntGRAANK(DataGP):
         :param p_matrix: an existing pheromone matrix
         :return: updated pheromone matrix
         """
+        if self._attribute_keys is None:
+            return p_matrix
+
         idx = [self._attribute_keys.index(x.to_string()) for x in pattern.gradual_items]
         for n in range(len(idx)):
             for m in range(n + 1, len(idx)):
@@ -144,6 +153,11 @@ class AntGRAANK(DataGP):
         self._fit()  # distance matrix (d) & attributes corresponding to d
         self.clear_gradual_patterns()
         d = self._distance_matrix
+        if d is None:
+            out = json.dumps(
+                {"Algorithm": "ACO-GRAANK", "Best Patterns": self.str_gradual_patterns, "Invalid Count": 0, "Iterations": 0})
+            """:type out: object"""
+            return out
 
         a = self.attr_size
         loser_gps = list()  # supersets

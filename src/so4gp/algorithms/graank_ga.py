@@ -36,7 +36,7 @@ class GeneticGRAANK(DataGP):
         :param pc: [optional] children proportion, default is 0.5
         :type pc: float
 
-        :param gamma: [optional] cross-over gamma ratio, default is 1
+        :param gamma: [optional] cross-over gamma ratio, the default is 1
         :type gamma: float
 
         :param mu: [optional] mutation mu ratio, default is 0.9
@@ -72,15 +72,15 @@ class GeneticGRAANK(DataGP):
         Crosses over the genes of 2 parents (an individual with a specific position and cost) to generate 2
         different offsprings.
 
-        :param p1: The parent 1 individual
-        :param p2: The parent 2 individuals
+        :param p1: The parent-1 individual
+        :param p2: The parent-2 individual
         :return: Two offsprings (children)
         """
         c1 = NumericSS.Candidate()
         c2 = NumericSS.Candidate()
         alpha = np.random.uniform(0, self._gamma, 1)
-        c1.position = alpha * p1.position + (1 - alpha) * p2.position
-        c2.position = alpha * p2.position + (1 - alpha) * p1.position
+        c1.position = float(alpha * p1.position + (1 - alpha) * p2.position)
+        c2.position = float(alpha * p2.position + (1 - alpha) * p1.position)
         return c1, c2
 
     def _mutate(self, x: NumericSS.Candidate):
@@ -92,7 +92,7 @@ class GeneticGRAANK(DataGP):
         :return: A new individual
         """
         y = NumericSS.Candidate(position=x.position, cost=x.cost)
-        str_x = str(int(y.position))
+        str_x = str(int(y.position) if y.position is not None else 0)
         flag = np.random.rand(*(len(str_x),)) <= self._mu
         ind = np.argwhere(flag)
         str_y = "0"

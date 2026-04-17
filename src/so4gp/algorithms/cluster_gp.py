@@ -84,7 +84,7 @@ class ClusterGP(DataGP):
         w_mat = []  # win matrix
         cum_wins = []  # Cumulative wins
 
-        # 3. Construct S matrix from data set
+        # 3. Construct S matrix from the data set
         for col in self.attr_cols:
             # Feature data objects
             col_data = np.array(attr_data[col], dtype=float)  # Feature data objects
@@ -148,7 +148,7 @@ class ClusterGP(DataGP):
 
             # Construct a win-matrix
             temp_vec = np.zeros(shape=(n,))
-            pair_count = arr_ij.shape[0]
+            pair_count = arr_ij.shape[0] if arr_ij is not None else 0
 
             # Compute score vector
             for _ in range(self._max_iteration):
@@ -156,19 +156,20 @@ class ClusterGP(DataGP):
                     break
                 else:
                     for pr in range(pair_count):
-                        pr_val = c_win_vec[pr]
-                        i = arr_ij[pr][0]
-                        j = arr_ij[pr][1]
-                        if pr_val == 1:
-                            log = math.log(
-                                math.exp(score_vector[i]) / (math.exp(score_vector[i]) + math.exp(score_vector[j])),
-                                10)
-                            temp_vec[i] += pr_val * log
-                        elif pr_val == -1:
-                            log = math.log(
-                                math.exp(score_vector[j]) / (math.exp(score_vector[i]) + math.exp(score_vector[j])),
-                                10)
-                            temp_vec[j] += -pr_val * log
+                        if arr_ij is not None:
+                            pr_val = c_win_vec[pr]
+                            i = arr_ij[pr][0]
+                            j = arr_ij[pr][1]
+                            if pr_val == 1:
+                                log = math.log(
+                                    math.exp(score_vector[i]) / (math.exp(score_vector[i]) + math.exp(score_vector[j])),
+                                    10)
+                                temp_vec[i] += pr_val * log
+                            elif pr_val == -1:
+                                log = math.log(
+                                    math.exp(score_vector[j]) / (math.exp(score_vector[i]) + math.exp(score_vector[j])),
+                                    10)
+                                temp_vec[j] += -pr_val * log
                     score_vector = abs(temp_vec / np.sum(temp_vec))
             return score_vector
 
@@ -199,8 +200,8 @@ class ClusterGP(DataGP):
         for grp_idx in lst_indices:
             if grp_idx.size > 1:
                 # 1. Retrieve all cluster-pairs and the corresponding GIs
-                cluster_gis = all_gis[grp_idx]
-                cluster_cum_wins = cum_wins[grp_idx]  # All the rows of selected groups
+                cluster_gis = all_gis[grp_idx] if all_gis is not None else []
+                cluster_cum_wins = cum_wins[grp_idx] if cum_wins is not None else [] # All the rows of selected groups
 
                 # 2. Compute score vector from R matrix
                 score_vectors = []  # Approach 2
@@ -234,7 +235,8 @@ class ClusterGP(DataGP):
         self.clear_gradual_patterns()
         # 1. Generate net-win matrices
         s_matrix = self._net_win_mat  # Net-win matrix (S)
-        if s_matrix.size < 1:
+        s_matrix_size = s_matrix.size if s_matrix is not None else 0
+        if s_matrix_size < 1:
             raise Exception("Erasure probability is too high, consider reducing it.")
         # print(s_matrix)
 

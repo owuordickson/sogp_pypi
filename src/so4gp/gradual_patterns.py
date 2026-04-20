@@ -493,25 +493,22 @@ class GP:
             :return: Number of connected components (κ_g)
             """
             nodes = np.unique(w_set) if active_only else range(obj_count)
-            parent = {int(i): int(i) for i in nodes}
+            parent = {node: node for node in nodes}
+            count = len(nodes)
 
-            def find(x):
-                while parent[x] != x:
-                    parent[x] = parent[parent[x]]
-                    x = parent[x]
-                return x
-
-            def union(x, y):
-                if x in parent and y in parent:
-                    px, py = find(x), find(y)
-                    if px != py:
-                        parent[px] = py
+            def find(i):
+                if parent[i] == i: return i
+                parent[i] = find(parent[i])
+                return parent[i]
 
             for u, v in w_set:
-                union(int(u), int(v))
-
-            roots = set(find(i) for i in nodes)
-            return len(roots)
+                # Skip edges if nodes aren't in your predefined set
+                if u in parent and v in parent:
+                    root_u, root_v = find(u), find(v)
+                    if root_u != root_v:
+                        parent[root_u] = root_v
+                        count -= 1
+            return count
 
         def compute_singularity_score() -> float:
             """
@@ -539,7 +536,7 @@ class GP:
         self._density = round(compute_density(), 3)
         self._avg_dev_from_diag = round(compute_avg_dev_from_diagonal(), 3)
         self._temporal_dispersion = round(compute_temporal_dispersion(), 3)
-        self._graph_connectivity = round(compute_graph_connectivity(), 3)
+        self._graph_connectivity = compute_graph_connectivity()
         self._singularity_score = round(compute_singularity_score(), 3)
         return True
 

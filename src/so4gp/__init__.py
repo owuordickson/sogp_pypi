@@ -16,7 +16,7 @@ def analyze_gps(*args, **kwargs):
     return DataGP.analyze_gps(*args, **kwargs)
 
 # Project Details
-__version__ = "0.7.9"
+__version__ = "0.8.0"
 __title__ = f"so4gp (v{__version__})"
 __author__ = "Dickson Owuor"
 __credits__ = "Montpellier University"

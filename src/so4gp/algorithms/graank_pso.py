@@ -64,11 +64,12 @@ class ParticleGRAANK(DataGP):
         """
 
         start = time.time()
+        if self.valid_bins is None:
+            return []
+
         # Prepare data set
         self.fit_bitmap()
         self.clear_gradual_patterns()
-        if self.valid_bins is None:
-            return []
 
         # Initialize search space
         s_space = NumericSS.initialize_search_space(self.valid_bins, self._n_particles, self._max_iteration)
@@ -115,31 +116,17 @@ class ParticleGRAANK(DataGP):
             self.add_gradual_pattern(gp)
 
         duration = time.time() - start
-        out: object = json.dumps({
+        out_dict: dict[str, str | list] = {
             "Algorithm": "PSO-GRAANK",
-            "Best Patterns": s_space.str_best_gps,
-            "Invalid Count": s_space.invalid_count,
-            "Iterations": s_space.iter_count,
-            "Run-time": f"{duration:.6f} seconds"},
-                         indent=4)
-        self._generate_output(out)
+            # "Memory Usage (MiB)": f{mem_use)}"
+            "Initial Population": f"{self._n_particles}",
+            "Velocity": f"{self._velocity}",
+            "Personal coefficient": f"{self._coeff_p}",
+            "Global coefficient": f"{self._coeff_g}",
+            "Number of iterations": s_space.iter_count,
+            "Run-time": f"{duration:.6f} seconds"}
+        self.generate_output_files(out_dict)
+
+        out_dict.update({"Best Patterns": s_space.str_best_gps, "Invalid Count": str(s_space.invalid_count)})
+        out: object = json.dumps(out_dict, indent=4)
         return out
-
-    def _generate_output(self, res):
-        """
-        Generates output of results (as files) for the GRAANK algorithm.
-        """
-
-        json_res = json.loads(res)
-        f_name = str(str(json_res['Algorithm']) + '_' + str(time.time()).replace('.', '', 1))
-
-        wr_line = f"Run-time: {json_res['Run-time']}\n"
-        # wr_line += f"Memory Usage (MiB): {str(mem_use)} \n"
-        wr_line += f"Algorithm: {json_res['Algorithm']}\n"
-        wr_line += f"Initial Population: {self._n_particles}\n"
-        wr_line += f"Velocity: {self._velocity}\n"
-        wr_line += f"Personal coefficient: {self._coeff_p}\n"
-        wr_line += f"Global coefficient: {self._coeff_g}\n"
-        wr_line += f"Number of iterations: {self._max_iteration}\n"
-        self.generate_output_files(wr_line, f_name)
-

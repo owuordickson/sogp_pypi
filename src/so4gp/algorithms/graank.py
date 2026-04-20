@@ -196,24 +196,12 @@ class GRAANK(DataGP):
                 break
 
         duration = time.time() - start
-        out: object = json.dumps({
+        out_dict: dict[str, str|list]= {
             "Algorithm": "GRAANK",
-            "Patterns": self.display_patterns,
-            "Invalid Count": invalid_count,
-            "Run-time": f"{duration:.6f} seconds"},
-                         indent=4)
-        self._generate_output(out)
+            # "Memory Usage (MiB)": f{mem_use)}"
+            "Run-time": f"{duration:.6f} seconds"}
+        self.generate_output_files(out_dict)
+
+        out_dict.update({"Patterns": self.display_patterns, "Invalid Count": str(invalid_count)})
+        out: object = json.dumps(out_dict,indent=4)
         return out
-
-    def _generate_output(self, res):
-        """
-        Generates output of results (as files) for the GRAANK algorithm.
-        """
-
-        json_res = json.loads(res)
-        f_name = str(str(json_res['Algorithm']) + '_' + str(time.time()).replace('.', '', 1))
-
-        wr_line = f"Run-time: {json_res['Run-time']}\n"
-        # wr_line += f"Memory Usage (MiB): {str(mem_use)} \n"
-        wr_line += f"Algorithm: {json_res['Algorithm']}\n"
-        self.generate_output_files(wr_line, f_name)

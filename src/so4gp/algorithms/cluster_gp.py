@@ -258,29 +258,14 @@ class ClusterGP(DataGP):
             self.add_gradual_pattern(gp)
 
         duration = time.time() - start_time
-        out: object = json.dumps({
+        out_dict: dict[str, str | list] = {
             "Algorithm": "Clu-GRAANK",
-            "Patterns": self.display_patterns,
-            "Invalid Count": 0,
-            "Run-time": f"{duration:.6f} seconds"},
-            indent=4)
-        self._generate_output(out)
+            # "Memory Usage (MiB)": f{mem_use)}"
+            "Erasure probability": f"{self._erasure_probability}",
+            "Number of iterations": f"{self._max_iteration}",
+            "Run-time": f"{duration:.6f} seconds"}
+        self.generate_output_files(out_dict)
+
+        out_dict.update({"Best Patterns": self.display_patterns, "Invalid Count": str(0)})
+        out: object = json.dumps(out_dict, indent=4)
         return out
-
-    def _generate_output(self, res):
-        """
-        Generates output of results (as files) for the GRAANK algorithm.
-        """
-
-        json_res = json.loads(res)
-        f_name = str(str(json_res['Algorithm']) + '_' + str(time.time()).replace('.', '', 1))
-
-        wr_line = f"Run-time: {json_res['Run-time']}\n"
-        # wr_line += f"Memory Usage (MiB): {str(mem_use)} \n"
-        wr_line += f"Algorithm: {json_res['Algorithm']}\n"
-        wr_line += f"Erasure probability: {self._erasure_probability}\n"
-        wr_line += f"Score vector iterations: {self._max_iteration}\n"
-
-        #res_compare = analyze_gps(filePath, minSup, alg.gradual_patterns, dev=True)
-        #wr_line += str(res_compare)
-        self.generate_output_files(wr_line, f_name)

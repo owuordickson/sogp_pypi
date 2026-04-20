@@ -270,13 +270,18 @@ class DataGP:
             if (supp >= self._thd_supp) and self._warping_set is not None:
                 self._warping_set[gi_str] = lst_ij
 
-    def generate_output_files(self, out_txt: str, f_name: str):
+    def generate_output_files(self, alg_data: dict):
         """
         Generates output of results (as files) for the GP mining algorithm.
         """
 
         list_gp = self.gradual_patterns
         num_patterns = len(list_gp) if list_gp is not None else 0
+        f_name = str(str(alg_data['Algorithm']) + '_' + str(time.time()).replace('.', '', 1))
+
+        out_txt = ""
+        for key, val in alg_data.items():
+            out_txt += f"{key}: {val}\n"
 
         out_txt += f"No. of (dataset) attributes: {self.col_count}\n"
         out_txt += f"No. of (dataset) objects: {self.row_count} \n"
@@ -284,7 +289,7 @@ class DataGP:
         # out_txt += f"Number of cores: {num_cores}\n"
         out_txt += f"Number of patterns: {num_patterns}\n"
 
-        out_txt += f"\n\nDataset Titles:\n"
+        out_txt += f"\nDataset Titles:\n"
         for i, txt in enumerate(self.titles):
             out_txt += f"{i}. {txt}\n"
 

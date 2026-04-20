@@ -4,7 +4,7 @@
 # See the LICENSE file at the root of this
 # repository for complete details.
 
-import json
+import time
 import numpy as np
 from sklearn.feature_selection import mutual_info_regression
 from .tgrad import TGrad
@@ -31,16 +31,15 @@ class TGradAMI(TGrad):
 
         >>> from so4gp.algorithms import TGradAMI
         >>> import pandas
-        >>> import json
         >>>
         >>> dummy_data = [["2021-03", 30, 3, 1, 10], ["2021-04", 35, 2, 2, 8], ["2021-05", 40, 4, 2, 7], ["2021-06", 50, 1, 1, 6], ["2021-07", 52, 7, 1, 2]]
         >>> dummy_df = pandas.DataFrame(dummy_data, columns=['Date', 'Age', 'Salary', 'Cars', 'Expenses'])
         >>>
         >>> mine_obj = TGradAMI(dummy_df, min_sup=0.5, target_col=1, min_rep=0.5, min_error=0.1)
-        >>> result_json = mine_obj.discover_tgp(use_clustering=True, eval_mode=False)
+        >>> result_dict = mine_obj.discover_tgp(use_clustering=True, eval_mode=False)
         >>>
         >>> # print(result['Patterns'])
-        >>> print(result_json)
+        >>> print(result_dict)
         """
 
         super(TGradAMI, self).__init__(*args, **kwargs)
@@ -174,9 +173,10 @@ class TGradAMI(TGrad):
 
         :param use_clustering: Use a clustering algorithm to estimate the best time-delay value.
         :param eval_mode: Run algorithm in evaluation mode.
-        :return: List of (FTGPs as JSON object) or (FTGPs and evaluation data as a Python dict) when executed in evaluation mode.
+        :return: List of (FTGPs as DICT object) or (FTGPs and evaluation data as a Python dict) when executed in evaluation mode.
         """
 
+        start = time.time()
         self.clear_gradual_patterns()
         # 1. Compute and find the lowest mutual information
         optimal_dict, max_step = self.find_best_mutual_info()
@@ -185,11 +185,7 @@ class TGradAMI(TGrad):
         delayed_data, time_data = self.gather_delayed_data(optimal_dict, max_step)
 
         # 3. Discover temporal-GPs from time-delayed data
-        if eval_mode:
-            lst_tgp, warping_path_dict = self._mine_gps_at_step(time_delay_data=time_data, attr_data=delayed_data, clustering_method=use_clustering, decompose=True)
-        else:
-            lst_tgp = self._mine_gps_at_step(time_delay_data=time_data, attr_data=delayed_data, clustering_method=use_clustering)
-            warping_path_dict = None
+        lst_tgp = self._mine_gps_at_step(time_delay_data=time_data, attr_data=delayed_data, clustering_method=use_clustering)
 
         # 4. Organize FTGPs into a single list
         if lst_tgp:
@@ -200,23 +196,24 @@ class TGradAMI(TGrad):
         if eval_mode:
             title_row = []
             time_title = []
-            # print(eval_data)
             for col, txt in enumerate(self.titles):
                 title_row.append(txt)
                 if (col != self.target_col) and (col not in self.time_cols):
                     time_title.append(txt)
-            eval_dict = {
-                'Algorithm': 'TGradAMI',
+            add_dict = {
                 'Patterns': self.display_patterns,
                 'Time Data': np.vstack((np.array(time_title), time_data.T)),
                 'Transformed Data': np.vstack((np.array(title_row), delayed_data.T if delayed_data is not None else np.array([]))),
-                'Warping Paths': warping_path_dict
             }
-            # Output
-            return eval_dict
         else:
-            # Output
-            out = json.dumps({"Algorithm": "TGradAMI", "Patterns": self.display_patterns},
-                             indent=4)
-            """:type out: object"""
-            return out
+            add_dict = {"Patterns": self.display_patterns}
+
+        duration = time.time() - start
+        out_dict: dict[str, str | list | np.ndarray | None | dict] = {
+            "Algorithm": "TGradAMI",
+            # "Memory Usage (MiB)": f{mem_use)}"
+            "Run-time": f"{duration:.6f} seconds"}
+        self.generate_output_files(out_dict)
+
+        out_dict.update(add_dict)
+        return out_dict

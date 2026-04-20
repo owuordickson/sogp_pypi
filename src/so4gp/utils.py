@@ -60,7 +60,7 @@ def write_file(data, path, wr=True) -> None:
     Writes data into a file
 
     :param data: information to be written
-    :param path: name of file and storage path
+    :param path: name of the file and storage path
     :param wr: writes data into the file if True
 
     :return:

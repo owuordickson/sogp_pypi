@@ -109,7 +109,7 @@ class TGrad(GRAANK):
                     self.add_gradual_pattern(pat)
 
         # Output
-        out = json.dumps({"Algorithm": "TGrad", "Patterns": self.str_gradual_patterns},
+        out = json.dumps({"Algorithm": "TGrad", "Patterns": self.display_patterns},
                          indent=4)
         """:type out: object"""
         return out

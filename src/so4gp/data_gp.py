@@ -105,13 +105,29 @@ class DataGP:
         return self._gradual_patterns
 
     @property
-    def str_gradual_patterns(self) -> list:
+    def display_patterns(self) -> list:
         str_gps = []
         if self._gradual_patterns is None:
             return str_gps
         for gp in self._gradual_patterns:
-            str_gps.append(gp.print(self.titles))
+            str_gp, gp_params = gp.print(self.titles)
+            str_gps.append([str_gp, *gp_params])
         return str_gps
+
+    @property
+    def display_patterns_as_df(self) -> pd.DataFrame:
+        if not self._gradual_patterns:
+            return pd.DataFrame(columns=['Pattern'])
+
+        all_rows = []
+        for gp in self._gradual_patterns:
+            str_gp, gp_params = gp.print(self.titles, descriptor_title=True)
+            # Create a clean dictionary for this row
+            row_data = {"Pattern": str_gp}
+            for param_dict in gp_params:
+                row_data.update(param_dict)
+            all_rows.append(row_data)
+        return pd.DataFrame(all_rows)
 
     def _init_attributes(self) -> None:
         """Initializes the attributes of the data-gp object."""

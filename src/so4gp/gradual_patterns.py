@@ -79,7 +79,7 @@ class GI:
         """Creates a GI from a string Gradual Item of the format '1+'"""
         if len(gi_str) != 2:
             raise ValueError("Invalid GI string format. Expected format: '1+' or '1-'")
-        
+
         try:
             attr_col = int(gi_str[0])
             symbol = gi_str[1]
@@ -198,6 +198,33 @@ class GP:
         gp = GP.swap_gp_symbols(self)
         return set(gp.to_string())
 
+    def get_computed_descriptors(self, descriptor_title) -> list[str] | list[dict]:
+        """
+        Returns the computed descriptors of the gradual pattern (GP)
+
+        :param descriptor_title: If True, returns a dictionary with column names as keys and descriptors as values
+
+        :return: List of descriptors
+        """
+        if self.density <= 0:
+            params = [f"sup={self.support}"] if not descriptor_title else [{"Support": f"{self.support}"}]
+        else:
+            if not descriptor_title:
+                params = [f"sup={self.support}",
+                          f"density={self.density}",
+                          f"avg_dev={self.avg_deviation_from_diagonal}",
+                          f"dispersion={self.temporal_dispersion}",
+                          f"connect={self.graph_connectivity}",
+                          f"singularity_scr={self.singularity_score}"]
+            else:
+                params = [{"Support": f"{self.support}"},
+                          {"Density": f"{self.density}"},
+                          {"Avg. Deviation from Diagonal": f"{self.avg_deviation_from_diagonal}"},
+                          {"Temporal Dispersion": f"{self.temporal_dispersion}"},
+                          {"Graph Connectivity": f"{self.graph_connectivity}"},
+                          {"Singularity Score": f"{self.singularity_score}"}]
+        return params
+
     def decompose(self) -> tuple[list[int], list[str]]:
         """
         Breaks down all the gradual items (GIs) in the gradual pattern into columns and variation symbols and returns
@@ -239,30 +266,29 @@ class GP:
             pattern.append(item.to_string())
         return pattern
 
-    def print(self, columns) -> list[list[str] | str]:
+    def print(self, columns: list[str], descriptor_title: bool = False) -> tuple[str, list[str] | list[dict]]:
         """
         A method that returns patterns with actual column names
 
         :param columns: Column names
-        :type columns: list[str]
+        :param descriptor_title: If True, returns a dictionary with column names as keys and descriptors as values
 
         :return: GP with actual column names
         """
-        pattern = "" # list()
+
+        # Pattern
+        pattern = ""
         i = 0
         for item in self._gradual_items:
             col_title = columns[item.attribute_col]
             pat = str(col_title + item.symbol)
-            #pattern.append(pat)  # (item.to_string())
+            # pattern.append(pat)  # (item.to_string())
             pattern += pat + ", " if i < len(self._gradual_items) - 1 else pat
             i += 1
-        if self.density <= 0:
-            params = [f"sup={self.support}"]
-        else:
-            params = [f"sup={self.support}", f"density={self.density}", f"avg_dev={self.avg_deviation_from_diagonal}",
-                      f"dispersion={self.temporal_dispersion}", f"connect={self.graph_connectivity}",
-                      f"singularity_scr={self.singularity_score}"]
-        return [[pattern], *params]
+
+        # Descriptors
+        params = self.get_computed_descriptors(descriptor_title)
+        return pattern, params
 
     def validate_graank(self, d_gp) -> "GP":
         """
@@ -281,7 +307,7 @@ class GP:
         gi_key_list = list(gi_dict.keys())
 
         gen_pattern: GP = GP()
-        pw_mat_1: PairwiseMatrix|None = None
+        pw_mat_1: PairwiseMatrix | None = None
         for gi in self.gradual_items:
             arg = np.argwhere(np.isin(np.array(gi_key_list), gi.to_string()))
             if len(arg) > 0:
@@ -341,7 +367,7 @@ class GP:
         else:
             return gen_pattern
 
-    def check_am(self, gp_list: list["GP"]|None, subset:bool=True) -> bool:
+    def check_am(self, gp_list: list["GP"] | None, subset: bool = True) -> bool:
         """
         Anti-monotonicity check. Checks if a GP is a subset or superset of an already existing GP
 
@@ -369,7 +395,7 @@ class GP:
                     break
         return result
 
-    def is_duplicate(self, valid_gps:list["GP"]|None, invalid_gps:list["GP"]=None) -> bool:
+    def is_duplicate(self, valid_gps: list["GP"] | None, invalid_gps: list["GP"] = None) -> bool:
         """
         Checks if a pattern is in the list of winner GPs or loser GPs
 
@@ -678,7 +704,6 @@ class TimeDelay:
 
 
 class TGP(GP):
-
     @dataclass
     class TemporalGI:
         gradual_item: GI
@@ -701,11 +726,11 @@ class TGP(GP):
         >>> t_gp.to_string()
         """
         super(TGP, self).__init__()
-        self._target_gradual_item: GI|None = None
+        self._target_gradual_item: GI | None = None
         self._temporal_gradual_items: list[TGP.TemporalGI] = list()
 
     @property
-    def target_gradual_item(self) -> GI|None:
+    def target_gradual_item(self) -> GI | None:
         return self._target_gradual_item
 
     @target_gradual_item.setter
@@ -744,12 +769,12 @@ class TGP(GP):
             pattern.append(f"({gi.to_string()}) {str_time}")
         return pattern
 
-    def print(self, columns) -> list[list[str] | str]:
+    def print(self, columns: list[str], descriptor_title: bool = False) -> tuple[str, list[str] | list[dict]]:
         """
         A method that returns a fuzzy temporal gradual pattern (TGP) with actual column names
 
         :param columns: Column names
-        :type columns: list[str]
+        :param descriptor_title: If True, prints the descriptor title
 
         :return: TGP with actual column names
         """
@@ -768,11 +793,7 @@ class TGP(GP):
             # pattern.append(pat)
             pattern += pat + ", " if i < len(self._temporal_gradual_items) - 1 else pat
             i += 1
-        # return [pattern, self.support]
-        if self.density <= 0:
-            params = [f"sup={self.support}"]
-        else:
-            params = [f"sup={self.support}", f"density={self.density}", f"avg_dev={self.avg_deviation_from_diagonal}",
-                      f"dispersion={self.temporal_dispersion}", f"connect={self.graph_connectivity}",
-                      f"singularity_scr={self.singularity_score}"]
-        return [[pattern], *params]
+
+        # Descriptors
+        params = self.get_computed_descriptors(descriptor_title)
+        return pattern, params

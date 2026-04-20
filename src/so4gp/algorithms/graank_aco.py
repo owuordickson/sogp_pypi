@@ -155,7 +155,7 @@ class AntGRAANK(DataGP):
         d = self._distance_matrix
         if d is None:
             out = json.dumps(
-                {"Algorithm": "ACO-GRAANK", "Best Patterns": self.str_gradual_patterns, "Invalid Count": 0, "Iterations": 0})
+                {"Algorithm": "ACO-GRAANK", "Best Patterns": self.display_patterns, "Invalid Count": 0, "Iterations": 0})
             """:type out: object"""
             return out
 
@@ -214,7 +214,7 @@ class AntGRAANK(DataGP):
             else:
                 counter = it_count
         # Output
-        out = json.dumps({"Algorithm": "ACO-GRAANK", "Best Patterns": self.str_gradual_patterns, "Invalid Count": invalid_count,
+        out = json.dumps({"Algorithm": "ACO-GRAANK", "Best Patterns": self.display_patterns, "Invalid Count": invalid_count,
                           "Iterations": it_count},
                          indent=4)
         """:type out: object"""

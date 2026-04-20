@@ -207,7 +207,7 @@ class TGradAMI(TGrad):
                     time_title.append(txt)
             eval_dict = {
                 'Algorithm': 'TGradAMI',
-                'Patterns': self.str_gradual_patterns,
+                'Patterns': self.display_patterns,
                 'Time Data': np.vstack((np.array(time_title), time_data.T)),
                 'Transformed Data': np.vstack((np.array(title_row), delayed_data.T if delayed_data is not None else np.array([]))),
                 'Warping Paths': warping_path_dict
@@ -216,7 +216,7 @@ class TGradAMI(TGrad):
             return eval_dict
         else:
             # Output
-            out = json.dumps({"Algorithm": "TGradAMI", "Patterns": self.str_gradual_patterns},
+            out = json.dumps({"Algorithm": "TGradAMI", "Patterns": self.display_patterns},
                              indent=4)
             """:type out: object"""
             return out

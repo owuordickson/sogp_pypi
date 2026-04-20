@@ -32,7 +32,6 @@ class ClusterGP(DataGP):
         :param max_iter: [optional] maximum iteration for score vector estimation, the default is 10
 
         >>> import pandas
-        >>> import json
         >>> from so4gp.algorithms import ClusterGP
         >>> dummy_data = [[30, 3, 1, 10], [35, 2, 2, 8], [40, 4, 2, 7], [50, 1, 1, 6], [52, 7, 1, 2]]
         >>> dummy_df = pandas.DataFrame(dummy_data, columns=['Age', 'Salary', 'Cars', 'Expenses'])

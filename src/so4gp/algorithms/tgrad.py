@@ -30,14 +30,12 @@ class TGrad(GRAANK):
 
         >>> import so4gp.algorithms import TGrad
         >>> import pandas
-        >>> import json
         >>>
         >>> dummy_data = [["2021-03", 30, 3, 1, 10], ["2021-04", 35, 2, 2, 8], ["2021-05", 40, 4, 2, 7], ["2021-06", 50, 1, 1, 6], ["2021-07", 52, 7, 1, 2]]
         >>> dummy_df = pandas.DataFrame(dummy_data, columns=['Date', 'Age', 'Salary', 'Cars', 'Expenses'])
         >>>
         >>> mine_obj = TGrad(dummy_df, min_sup=0.5, target_col=1, min_rep=0.5)
         >>> result_json = mine_obj.discover_tgp(parallel=True)
-        >>> result = json.loads(result_json)
         >>> # print(result['Patterns'])
         >>> print(result_json)
         """
@@ -110,14 +108,6 @@ class TGrad(GRAANK):
                 if isinstance(pat, TGP):
                     self.add_gradual_pattern(pat)
 
-        """for lst_obj in pattern_data:
-            if lst_obj:
-                for lst_tgp in lst_obj:
-                    if isinstance(lst_tgp, TGP):
-                        self.add_gradual_pattern(lst_tgp)
-                    else:
-                        for tgp in lst_tgp:
-                            self.add_gradual_pattern(tgp)"""
         # Output
         out = json.dumps({"Algorithm": "TGrad", "Patterns": self.str_gradual_patterns},
                          indent=4)

@@ -115,7 +115,8 @@ class TGradAMI(TGrad):
         max_step = int(np.max(optimal_steps_arr)) + 1
 
         # 5. Integrate feature indices with the computed steps
-        optimal_dict = {int(self._feature_cols[i]): int(optimal_steps_arr[i] + 1) for i in range(len(self._feature_cols))}
+        optimal_dict = {int(self._feature_cols[i]): int(optimal_steps_arr[i] + 1) for i in
+                        range(len(self._feature_cols))}
 
         self._mi_error = round(np.min(mse_arr), 5)
         self.min_rep = round(((self.row_count - max_step) / self.row_count), 5)
@@ -131,7 +132,7 @@ class TGradAMI(TGrad):
         :return: Combined transformed dataset with corresponding time-delay values.
         """
 
-        delayed_data: np.ndarray|None = None
+        delayed_data: np.ndarray | None = None
         time_data = []
         n = self.row_count
         k = (n - max_step)  # Number of rows created by the largest step-delay
@@ -185,7 +186,8 @@ class TGradAMI(TGrad):
         delayed_data, time_data = self.gather_delayed_data(optimal_dict, max_step)
 
         # 3. Discover temporal-GPs from time-delayed data
-        lst_tgp = self._mine_gps_at_step(time_delay_data=time_data, attr_data=delayed_data, clustering_method=use_clustering)
+        lst_tgp = self._mine_gps_at_step(time_delay_data=time_data, attr_data=delayed_data,
+                                         clustering_method=use_clustering)
 
         # 4. Organize FTGPs into a single list
         if lst_tgp:
@@ -203,7 +205,8 @@ class TGradAMI(TGrad):
             add_dict = {
                 'Patterns': self.display_patterns,
                 'Time Data': np.vstack((np.array(time_title), time_data.T)),
-                'Transformed Data': np.vstack((np.array(title_row), delayed_data.T if delayed_data is not None else np.array([]))),
+                'Transformed Data': np.vstack(
+                    (np.array(title_row), delayed_data.T if delayed_data is not None else np.array([]))),
             }
         else:
             add_dict = {"Patterns": self.display_patterns}
@@ -211,7 +214,11 @@ class TGradAMI(TGrad):
         duration = time.time() - start
         out_dict: dict[str, str | list | np.ndarray | None | dict] = {
             "Algorithm": "TGradAMI",
-            # "Memory Usage (MiB)": f{mem_use)}"
+            # "Memory Usage (MiB)": f{mem_use)}",
+            "Minimum Representation": f"{self.min_rep:.2f}",
+            "MI Minimum Error": f"{self.error_margin:.2f}",
+            "MI Error": f"{self.mi_error:.2f}",
+            "Target Column": f"{self._target_col}",
             "Run-time": f"{duration:.6f} seconds"}
         self.generate_output_files(out_dict)
 

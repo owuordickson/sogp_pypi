@@ -95,7 +95,8 @@ class TGrad(GRAANK):
         else:
             pattern_data: list = []
             for step in range(self._max_step):
-                t_gps = self._safe_transform_and_mine(step + 1)  # because for-loop it is not inclusive from range: 0 - max_step
+                t_gps = self._safe_transform_and_mine(
+                    step + 1)  # because for-loop it is not inclusive from range: 0 - max_step
                 pattern_data.append(t_gps)
 
         # 2. Organize FTGPs into a single list
@@ -113,7 +114,9 @@ class TGrad(GRAANK):
         duration = time.time() - start
         out_dict: dict[str, str | list] = {
             "Algorithm": "TGrad",
-            # "Memory Usage (MiB)": f{mem_use)}"
+            # "Memory Usage (MiB)": f{mem_use)}",
+            "Minimum Representation": f"{self.min_rep:.2f}",
+            "Target Column": f"{self._target_col}",
             "Run-time": f"{duration:.6f} seconds"}
         self.generate_output_files(out_dict)
 
@@ -185,7 +188,8 @@ class TGrad(GRAANK):
             print(f"Error at step {step}: {e}")
             return None
 
-    def _mine_gps_at_step(self, time_delay_data: np.ndarray | dict, attr_data: np.ndarray = None, clustering_method: bool = False) -> list[TGP] | tuple[list[TGP], dict]:
+    def _mine_gps_at_step(self, time_delay_data: np.ndarray | dict, attr_data: np.ndarray = None,
+                          clustering_method: bool = False) -> list[TGP] | tuple[list[TGP], dict]:
         """
         Uses apriori algorithm to find GP candidates based on the target-attribute. The candidates are validated if
         their computed support is greater than or equal to the minimum support threshold specified by the user.
@@ -218,9 +222,11 @@ class TGrad(GRAANK):
             invalid_count += inv_count
             for gp_set, gi_data in valid_bins_dict.items():
                 if type(self) is TGrad:
-                    t_lag = self.get_fuzzy_time_lag(gi_data.bin_mat, time_delay_data, gi_arr=None, tri_mf_data=tri_mf_data)  # dict
+                    t_lag = self.get_fuzzy_time_lag(gi_data.bin_mat, time_delay_data, gi_arr=None,
+                                                    tri_mf_data=tri_mf_data)  # dict
                 else:
-                    t_lag = self.get_fuzzy_time_lag(gi_data.bin_mat, time_delay_data, gi_arr=gp_set, tri_mf_data=tri_mf_data)  # array
+                    t_lag = self.get_fuzzy_time_lag(gi_data.bin_mat, time_delay_data, gi_arr=gp_set,
+                                                    tri_mf_data=tri_mf_data)  # array
 
                 if t_lag.valid:
                     tgp: TGP = TGP()
@@ -232,7 +238,7 @@ class TGrad(GRAANK):
                             tgp.add_temporal_gradual_item(gi, t_lag)
                     tgp.support = gi_data.support
                     warping_set_arr: np.ndarray = np.array(
-                    DataGP.gen_gradual_warping_set(gi_data.bin_mat, as_array=True))
+                        DataGP.gen_gradual_warping_set(gi_data.bin_mat, as_array=True))
                     tgp.compute_descriptors(warping_set_arr, obj_count=self.row_count)
                     t_gps.append(tgp)
         return t_gps
@@ -269,7 +275,8 @@ class TGrad(GRAANK):
                 time_diffs[int(i)] = float(abs(time_diff))
         return True, time_diffs
 
-    def get_fuzzy_time_lag(self, bin_data: np.ndarray, time_data: np.ndarray | dict, gi_arr: set = None, tri_mf_data: np.ndarray | None = None) -> TimeDelay:
+    def get_fuzzy_time_lag(self, bin_data: np.ndarray, time_data: np.ndarray | dict, gi_arr: set = None,
+                           tri_mf_data: np.ndarray | None = None) -> TimeDelay:
         """
         A method that uses a fuzzy membership function to select the most accurate time-delay value. We implement two
         methods: (1) uses classical slide and re-calculate dynamic programming to find the best time-delay value and,
@@ -287,8 +294,8 @@ class TGrad(GRAANK):
         if time_data is None:
             return TimeDelay()
 
-        time_data_as_arr: np.ndarray|None = time_data if isinstance(time_data, np.ndarray)else None
-        time_data_as_dict: dict|None = time_data if isinstance(time_data, dict) else None
+        time_data_as_arr: np.ndarray | None = time_data if isinstance(time_data, np.ndarray) else None
+        time_data_as_dict: dict | None = time_data if isinstance(time_data, dict) else None
 
         def approx_time_slide_calculate(time_lag_arr: np.ndarray) -> TimeDelay:
             """
@@ -333,7 +340,8 @@ class TGrad(GRAANK):
                         return TimeDelay(int(boundaries[1]), curr_sup)
                 return TimeDelay(center, highest_sup)
 
-        def approx_time_hill_climbing(x_train: np.ndarray, initial_bias: float = 0, step_size: float = 0.9, max_iterations: int = 10):
+        def approx_time_hill_climbing(x_train: np.ndarray, initial_bias: float = 0, step_size: float = 0.9,
+                                      max_iterations: int = 10):
             """
             A method that uses Hill-climbing algorithm to approximate the best time-delay value given a fuzzy triangular
             membership function.
@@ -406,7 +414,8 @@ class TGrad(GRAANK):
                 elif (col != self._target_col) and (col > self._target_col):
                     selected_cols.append(col - (len(self.time_cols) + 1))
             selected_cols = np.array(selected_cols, dtype=int)
-            t_lag_arr = time_data_as_arr[np.ix_(selected_cols, selected_rows)] if time_data_as_arr is not None else np.array([])
+            t_lag_arr = time_data_as_arr[
+                np.ix_(selected_cols, selected_rows)] if time_data_as_arr is not None else np.array([])
         else:
             time_lags = []
             for row, stamp_diff in (time_data_as_dict or {}).items():  # {row: time-lag-stamp}
@@ -458,7 +467,7 @@ class TGrad(GRAANK):
             return False
 
     @staticmethod
-    def build_mf_w_clusters(time_data: np.ndarray|None):
+    def build_mf_w_clusters(time_data: np.ndarray | None):
         """
         A method that builds the boundaries of a fuzzy Triangular membership function (MF) using Singular Value
         Decomposition (to estimate the number of centers) and KMeans algorithm to group time data according to the

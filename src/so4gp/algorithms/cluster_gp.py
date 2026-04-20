@@ -220,17 +220,17 @@ class ClusterGP(DataGP):
                     lst_gps.append(gp)
         return lst_gps
 
-    def discover(self, eval_mode: bool=False):
+    def discover(self):
         """
         Applies spectral clustering to determine which gradual items belong to the same group based on the similarity
         of net-win vectors. Gradual items in the same cluster should have almost the same score vector. The candidates
         are validated if their computed support is greater than or equal to the minimum support threshold specified by
         the user.
 
-        :param eval_mode: [optional] run algorithm in evaluation mode. Returns more evaluation data as dict.
-        :return: JSON | dict object
+        :return: JSON object
         """
 
+        start_time = time.time()
         self.clear_gradual_patterns()
         # 1. Generate net-win matrices
         s_matrix = self._net_win_mat  # Net-win matrix (S)
@@ -239,7 +239,6 @@ class ClusterGP(DataGP):
             raise Exception("Erasure probability is too high, consider reducing it.")
         # print(s_matrix)
 
-        start = time.time()  # TO BE REMOVED
         # 2a. Spectral Clustering: perform SVD to determine the independent rows
         u, s, vt = np.linalg.svd(s_matrix)
 
@@ -253,23 +252,35 @@ class ClusterGP(DataGP):
         kmeans = KMeans(n_clusters=r, random_state=0)
         y_predicted = kmeans.fit_predict(s_matrix_approx)
 
-        end = time.time()  # TO BE REMOVED
-
         # 3. Infer GPs
         estimated_gps = self._infer_gps(y_predicted)
         for gp in estimated_gps:
             self.add_gradual_pattern(gp)
 
-        # 4. Output - DO NOT ADD TO PyPi Package
-        out = {'estimated_gps': estimated_gps, 'max_iteration': self._max_iteration, 'titles': self.titles,
-               'col_count': self.col_count, 'row_count': self.row_count, 'e_prob': self._erasure_probability,
-               'cluster_time': (end - start)}
-        """:type out: dict"""
-        if eval_mode:
-            return out
-
-        # Output
-        out = json.dumps({"Algorithm": "Clu-GRAANK", "Patterns": self.display_patterns, "Invalid Count": 0},
-                         indent=4)
-        """:type out: object"""
+        duration = time.time() - start_time
+        out: object = json.dumps({
+            "Algorithm": "Clu-GRAANK",
+            "Patterns": self.display_patterns,
+            "Invalid Count": 0,
+            "Run-time": f"{duration:.6f} seconds"},
+            indent=4)
+        self._generate_output(out)
         return out
+
+    def _generate_output(self, res):
+        """
+        Generates output of results (as files) for the GRAANK algorithm.
+        """
+
+        json_res = json.loads(res)
+        f_name = str(str(json_res['Algorithm']) + '_' + str(time.time()).replace('.', '', 1))
+
+        wr_line = f"Run-time: {json_res['Run-time']}\n"
+        # wr_line += f"Memory Usage (MiB): {str(mem_use)} \n"
+        wr_line += f"Algorithm: {json_res['Algorithm']}\n"
+        wr_line += f"Erasure probability: {self._erasure_probability}\n"
+        wr_line += f"Score vector iterations: {self._max_iteration}\n"
+
+        #res_compare = analyze_gps(filePath, minSup, alg.gradual_patterns, dev=True)
+        #wr_line += str(res_compare)
+        self.generate_output_files(wr_line, f_name)

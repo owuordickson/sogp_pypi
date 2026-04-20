@@ -23,6 +23,7 @@ import numpy as np
 import pandas as pd
 from tabulate import tabulate
 from dateutil.parser import parse
+from .utils import write_file
 from .gradual_patterns import GP, TGP, PairwiseMatrix
 
 
@@ -268,6 +269,28 @@ class DataGP:
             supp = float((tids_len*0.5) * (tids_len - 1)) / float(n * (n - 1.0) / 2.0)
             if (supp >= self._thd_supp) and self._warping_set is not None:
                 self._warping_set[gi_str] = lst_ij
+
+    def generate_output_files(self, out_txt: str, f_name: str):
+        """
+        Generates output of results (as files) for the GP mining algorithm.
+        """
+
+        list_gp = self.gradual_patterns
+        num_patterns = len(list_gp) if list_gp is not None else 0
+
+        out_txt += f"No. of (dataset) attributes: {self.col_count}\n"
+        out_txt += f"No. of (dataset) objects: {self.row_count} \n"
+        out_txt += f"Minimum support: {self.thd_supp}\n"
+        # out_txt += f"Number of cores: {num_cores}\n"
+        out_txt += f"Number of patterns: {num_patterns}\n"
+
+        out_txt += f"\n\nDataset Titles:\n"
+        for i, txt in enumerate(self.titles):
+            out_txt += f"{i}. {txt}\n"
+
+        gp_df = self.display_patterns_as_df
+        gp_df.to_csv(str(f_name+'.csv'), index=False)
+        write_file(out_txt, str(f_name+'.txt'), wr=True)
 
     @classmethod
     def analyze_gps(cls, data_src: pd.DataFrame | str, min_sup: float, est_gps: list[GP], approach: str = 'bfs') -> str:

@@ -7,6 +7,7 @@
 import gc
 import json
 import copy
+import time
 import numpy as np
 from ..data_gp import DataGP
 from ..gradual_patterns import GI, GP, PairwiseMatrix
@@ -166,6 +167,7 @@ class GRAANK(DataGP):
         :return: JSON object
         """
 
+        start = time.time()
         self.fit_bitmap()
         self.clear_gradual_patterns()
         valid_bins_dict: dict|None = copy.deepcopy(self.valid_bins)
@@ -192,9 +194,26 @@ class GRAANK(DataGP):
             candidate_level += 1
             if (apriori_level is not None) and candidate_level >= apriori_level:
                 break
-        # Output
-        out = json.dumps({"Algorithm": "GRAANK", "Patterns": self.str_gradual_patterns, "Invalid Count": invalid_count},
+
+        duration = time.time() - start
+        out: object = json.dumps({
+            "Algorithm": "GRAANK",
+            "Patterns": self.display_patterns,
+            "Invalid Count": invalid_count,
+            "Run-time": f"{duration:.6f} seconds"},
                          indent=4)
-        """:type out: object"""
+        self._generate_output(out)
         return out
 
+    def _generate_output(self, res):
+        """
+        Generates output of results (as files) for the GRAANK algorithm.
+        """
+
+        json_res = json.loads(res)
+        f_name = str(str(json_res['Algorithm']) + '_' + str(time.time()).replace('.', '', 1))
+
+        wr_line = f"Run-time: {json_res['Run-time']}\n"
+        # wr_line += f"Memory Usage (MiB): {str(mem_use)} \n"
+        wr_line += f"Algorithm: {json_res['Algorithm']}\n"
+        self.generate_output_files(wr_line, f_name)

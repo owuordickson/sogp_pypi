@@ -7,7 +7,6 @@ from .gradual_patterns import PairwiseMatrix
 
 from .utils import get_num_cores
 from .utils import get_slurm_cores
-from .utils import write_file
 
 
 from functools import wraps
@@ -16,7 +15,7 @@ def analyze_gps(*args, **kwargs):
     return DataGP.analyze_gps(*args, **kwargs)
 
 # Project Details
-__version__ = "0.8.0"
+__version__ = "0.8.1"
 __title__ = f"so4gp (v{__version__})"
 __author__ = "Dickson Owuor"
 __credits__ = "Montpellier University"
@@ -31,6 +30,5 @@ __all__ = [
     "PairwiseMatrix",
     "get_num_cores",
     "get_slurm_cores",
-    "write_file",
     "analyze_gps"
 ]

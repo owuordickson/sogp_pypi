@@ -6,6 +6,7 @@
 
 
 import json
+import time
 import random
 import numpy as np
 from ..data_gp import DataGP
@@ -62,6 +63,7 @@ class ParticleGRAANK(DataGP):
         :return: JSON object
         """
 
+        start = time.time()
         # Prepare data set
         self.fit_bitmap()
         self.clear_gradual_patterns()
@@ -109,11 +111,35 @@ class ParticleGRAANK(DataGP):
 
             _, repeated = NumericSS.evaluate_gradual_pattern(repeated, s_space, self)
             
-        # Output
-        out = json.dumps({"Algorithm": "PSO-GRAANK", "Best Patterns": s_space.str_best_gps, 
-                          "Invalid Count": s_space.invalid_count, "Iterations": s_space.iter_count},
-                         indent=4)
-        """:type out: object"""
         for gp in s_space.best_patterns:
             self.add_gradual_pattern(gp)
+
+        duration = time.time() - start
+        out: object = json.dumps({
+            "Algorithm": "PSO-GRAANK",
+            "Best Patterns": s_space.str_best_gps,
+            "Invalid Count": s_space.invalid_count,
+            "Iterations": s_space.iter_count,
+            "Run-time": f"{duration:.6f} seconds"},
+                         indent=4)
+        self._generate_output(out)
         return out
+
+    def _generate_output(self, res):
+        """
+        Generates output of results (as files) for the GRAANK algorithm.
+        """
+
+        json_res = json.loads(res)
+        f_name = str(str(json_res['Algorithm']) + '_' + str(time.time()).replace('.', '', 1))
+
+        wr_line = f"Run-time: {json_res['Run-time']}\n"
+        # wr_line += f"Memory Usage (MiB): {str(mem_use)} \n"
+        wr_line += f"Algorithm: {json_res['Algorithm']}\n"
+        wr_line += f"Initial Population: {self._n_particles}\n"
+        wr_line += f"Velocity: {self._velocity}\n"
+        wr_line += f"Personal coefficient: {self._coeff_p}\n"
+        wr_line += f"Global coefficient: {self._coeff_g}\n"
+        wr_line += f"Number of iterations: {self._max_iteration}\n"
+        self.generate_output_files(wr_line, f_name)
+

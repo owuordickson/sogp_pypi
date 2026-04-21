@@ -94,7 +94,7 @@ class DataGP:
         return self._valid_bins
 
     @property
-    def warping_set(self) -> dict | None:
+    def warping_set(self) -> dict[str, list] | None:
         return self._warping_set
 
     @property

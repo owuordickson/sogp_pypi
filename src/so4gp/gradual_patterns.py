@@ -352,11 +352,11 @@ class GP:
             for gi_str, gi_tids in d_gp.warping_set.items():
                 if (node == gi_str) or (node_inv == gi_str):
                     if temp_tids is None:
-                        temp_tids = gi_tids
+                        temp_tids = set(gi_tids)
                         gen_pattern.add_gradual_item(gi)
                     else:
                         temp = (temp_tids or {}).copy()
-                        temp = temp.intersection(gi_tids)
+                        temp = temp.intersection(set(gi_tids))
                         supp = float(len(temp)) / float(n * (n - 1.0) / 2.0)
                         if supp >= min_supp:
                             temp_tids = temp.copy()

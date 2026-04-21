@@ -139,7 +139,7 @@ class GP:
         self._support: float = 0
         self._density: float = 0
         self._avg_dev_from_diag: float = 0
-        self._temporal_dispersion: float = 0
+        self._rank_dispersion: float = 0
         self._graph_connectivity: int = 0
         self._singularity_score: float = 0
 
@@ -164,8 +164,8 @@ class GP:
         return self._avg_dev_from_diag
 
     @property
-    def temporal_dispersion(self) -> float:
-        return self._temporal_dispersion
+    def rank_dispersion(self) -> float:
+        return self._rank_dispersion
 
     @property
     def graph_connectivity(self) -> int:
@@ -213,14 +213,14 @@ class GP:
                 params = [f"sup={self.support}",
                           f"density={self.density}",
                           f"avg_dev={self.avg_deviation_from_diagonal}",
-                          f"dispersion={self.temporal_dispersion}",
+                          f"dispersion={self.rank_dispersion}",
                           f"connect={self.graph_connectivity}",
                           f"singularity_scr={self.singularity_score}"]
             else:
                 params = [{"Support": f"{self.support}"},
                           {"Density": f"{self.density}"},
                           {"Avg. Deviation from Diagonal": f"{self.avg_deviation_from_diagonal}"},
-                          {"Temporal Dispersion": f"{self.temporal_dispersion}"},
+                          {"Rank Dispersion": f"{self.rank_dispersion}"},
                           {"Graph Connectivity": f"{self.graph_connectivity}"},
                           {"Singularity Score": f"{self.singularity_score}"}]
         return params
@@ -432,8 +432,8 @@ class GP:
         2. Average Deviation from Diagonal (μ_g):
             Mean absolute distance |i - j| across all pairs in W_g.
 
-        3. Temporal Dispersion (σ_g):
-            Standard deviation of |i - j|, capturing variability of temporal delays.
+        3. Rank Dispersion (σ_g):
+            Standard deviation of |i - j|, capturing variability of index distances across all pairs in W_g.
 
         4. Graph Connectivity (κ_g):
             Number of connected components when W_g is interpreted as an undirected graph.
@@ -479,9 +479,9 @@ class GP:
             deviations = np.abs(i_vals - j_vals)
             return float(np.mean(deviations))
 
-        def compute_temporal_dispersion() -> float:
+        def compute_rank_dispersion() -> float:
             """
-            Temporal Dispersion
+            Rank Dispersion
 
             σ_g = sqrt((1 / |W_g|) * Σ (|i - j| - μ_g)^2)
             """
@@ -561,7 +561,7 @@ class GP:
         # Compute descriptors
         self._density = round(compute_density(), 3)
         self._avg_dev_from_diag = round(compute_avg_dev_from_diagonal(), 3)
-        self._temporal_dispersion = round(compute_temporal_dispersion(), 3)
+        self._rank_dispersion = round(compute_rank_dispersion(), 3)
         self._graph_connectivity = compute_graph_connectivity()
         self._singularity_score = round(compute_singularity_score(), 3)
         return True

@@ -50,6 +50,7 @@ class GI:
         if symbol == "-" or symbol == "+":
             self._symbol = symbol
         else:
+            print(f"Invalid variation symbol: {symbol}")
             raise ValueError("Invalid variation symbol. It should be either '+' or '-'.")
 
     @property
@@ -76,16 +77,21 @@ class GI:
 
     @classmethod
     def from_string(cls, gi_str: str) -> "GI":
-        """Creates a GI from a string Gradual Item of the format '1+'"""
-        if len(gi_str) != 2:
-            raise ValueError("Invalid GI string format. Expected format: '1+' or '1-'")
+        """Creates a GI from a string like '1+', '12-', or '125+'"""
+        if not gi_str or gi_str[-1] not in ('+', '-'):
+            print(f"Invalid GI format: '{gi_str}'. Must end with '+' or '-'.")
+            raise ValueError(f"Invalid GI format: '{gi_str}'. Must end with '+' or '-'.")
 
         try:
-            attr_col = int(gi_str[0])
-            symbol = gi_str[1]
+            # Everything except the last char is the column
+            attr_col = int(gi_str[:-1])
+            # Only the last char is the symbol
+            symbol = gi_str[-1]
+
             return cls(attr_col, symbol)
         except ValueError:
-            raise ValueError("Invalid attribute column number in GI string")
+            print(f"Invalid GI format: '{gi_str}'. Must be in the format 'column_number+'.")
+            raise ValueError(f"Invalid column number in: '{gi_str}'")
 
     @staticmethod
     def swap_gi_symbol(gi_obj: "GI") -> "GI":

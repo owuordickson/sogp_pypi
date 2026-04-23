@@ -45,6 +45,7 @@ class DataGP:
         :type eq: bool
 
         """
+        self._data_src = data_source
         self._thd_supp: float = min_sup
         self._include_equal_values: bool = eq
         self._titles, self._data = DataGP.read(data_source)
@@ -270,7 +271,7 @@ class DataGP:
             if (supp >= self._thd_supp) and self._warping_set is not None:
                 self._warping_set[gi_str] = lst_ij
 
-    def generate_output_files(self, alg_data: dict):
+    def generate_output_files(self, alg_data: dict, save_to_file: bool = True):
         """
         Generates output of results (as files) for the GP mining algorithm.
         """
@@ -289,13 +290,26 @@ class DataGP:
         # out_txt += f"Number of cores: {num_cores}\n"
         out_txt += f"Number of patterns: {num_patterns}\n"
 
-        out_txt += f"\nDataset Titles:\n"
+        out_txt += f"\nAttributes:\n"
         for i, txt in enumerate(self.titles):
             out_txt += f"{i}. {txt}\n"
 
-        gp_df = self.display_patterns_as_df
-        gp_df.to_csv(str(f_name+'.csv'), index=False)
-        write_file(out_txt, str(f_name+'.txt'), wr=True)
+        out_txt += f"\nFile: {self._data_src if isinstance(self._data_src, str) else 'a dataframe'}\n"
+        out_txt += str("\nPattern : Support" + '\n')
+
+        list_tgp = self.gradual_patterns
+        if list_tgp is not None:
+            for tgp in list_tgp:
+                gp_str = f"{tgp.to_string()} :  {tgp.support}"
+                if len(gp_str) > 100:
+                    gp_str = gp_str[:100] + '\n' + gp_str[100:]
+                out_txt += f"{gp_str}\n"
+        print(out_txt)
+
+        if save_to_file:
+            gp_df = self.display_patterns_as_df
+            gp_df.to_csv(str(f_name+'.csv'), index=False)
+            write_file(out_txt, str(f_name+'.txt'), wr=True)
 
     @classmethod
     def analyze_gps(cls, data_src: pd.DataFrame | str, min_sup: float, est_gps: list[GP], approach: str = 'bfs') -> str:

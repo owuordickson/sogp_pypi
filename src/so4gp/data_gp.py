@@ -312,7 +312,8 @@ class DataGP:
                 if len(gp_str) > 100:
                     gp_str = gp_str[:100] + '\n' + gp_str[100:]
                 out_txt += f"{gp_str}\n"
-        print(out_txt)
+        if not save_to_file:
+            print(out_txt)
 
         if save_to_file:
             gp_df = self.display_patterns_as_df

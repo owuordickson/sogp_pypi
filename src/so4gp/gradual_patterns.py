@@ -746,6 +746,10 @@ class TGP(GP):
             raise TypeError("Target gradual item must be of type GI")
         self._target_gradual_item = item
 
+    @property
+    def temporal_gradual_items(self) -> list[TemporalGI]:
+        return self._temporal_gradual_items
+
     def add_temporal_gradual_item(self, item: GI, time_delay: TimeDelay):
         """
             Adds a fuzzy temporal gradual item (fTGI) into the fuzzy temporal gradual pattern (fTGP)
@@ -803,3 +807,44 @@ class TGP(GP):
         # Descriptors
         params = self.get_computed_descriptors(descriptor_title)
         return pattern, params
+
+    def is_similar_to(self, ftgp) -> bool:
+        """
+        Checks if two fuzzy temporal gradual patterns are similar.
+
+        :param ftgp: Fuzzy temporal gradual pattern to compare with.
+
+        :return: True if the patterns are similar, False otherwise.
+        """
+
+        if not isinstance(ftgp, TGP):
+            return False
+
+        # Compare target gradual items
+        tgt1 = self.target_gradual_item
+        tgt2 = ftgp.target_gradual_item
+        if tgt1 is None or tgt2 is None:
+            return False
+        if tgt1 is not None and tgt2 is not None:
+            if tgt1.to_string() != tgt2.to_string():
+                return False
+
+        # Compare temporal gradual items
+        lst_tgi1 = self.temporal_gradual_items
+        lst_tgi2 = ftgp.temporal_gradual_items
+        if (len(lst_tgi1) != len(lst_tgi2)) and (len(lst_tgi1) <= 0) or (len(lst_tgi2) <= 0):
+            return False
+
+        gi_set1 = set([tgi.gradual_item.to_string() for tgi in lst_tgi1])
+        gi_set2 = set([tgi.gradual_item.to_string() for tgi in lst_tgi2])
+        if gi_set1 != gi_set2:
+            return False
+
+        # Compare time delays
+        td_set1 = set([f"{tgi.time_delay.sign}{tgi.time_delay.formatted_time['value']} {tgi.time_delay.formatted_time['duration']}" for tgi in lst_tgi1])
+        td_set2 = set([f"{tgi.time_delay.sign}{tgi.time_delay.formatted_time['value']} {tgi.time_delay.formatted_time['duration']}" for tgi in lst_tgi2])
+        if td_set1 != td_set2:
+            return False
+
+        # All checks passed, patterns are similar
+        return True

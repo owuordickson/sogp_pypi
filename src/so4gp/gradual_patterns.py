@@ -823,12 +823,15 @@ class TGP(GP):
         # Compare target gradual items
         tgt1 = self.target_gradual_item
         tgt2 = ftgp.target_gradual_item
+        swapped = False
         if tgt1 is None or tgt2 is None:
             return False
         if tgt1 is not None and tgt2 is not None:
             if tgt1.to_string() != tgt2.to_string():
                 if GI.swap_gi_symbol(tgt1).to_string() != tgt2.to_string():
                     return False
+                else:
+                    swapped = True
 
         # Compare temporal gradual items
         lst_tgi1 = self.temporal_gradual_items
@@ -840,7 +843,9 @@ class TGP(GP):
         gi_set1_swap = set([GI.swap_gi_symbol(tgi.gradual_item).to_string() for tgi in lst_tgi1])
         gi_set2 = set([tgi.gradual_item.to_string() for tgi in lst_tgi2])
         if gi_set1 != gi_set2:
-            if gi_set1_swap != gi_set2:
+            if swapped and gi_set1_swap != gi_set2:
+                return False
+            else:
                 return False
 
         # Compare time delays

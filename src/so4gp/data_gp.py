@@ -271,9 +271,13 @@ class DataGP:
             if (supp >= self._thd_supp) and self._warping_set is not None:
                 self._warping_set[gi_str] = lst_ij
 
-    def generate_output_files(self, alg_data: dict, save_to_file: bool = True):
+    def generate_output_files(self, alg_data: dict, target_col: int = None, save_to_file: bool = True):
         """
         Generates output of results (as files) for the GP mining algorithm.
+
+        :param alg_data: Dictionary of algorithm parameters.
+        :param target_col: Index of the target column.
+        :param save_to_file: If True, saves the output to files.
         """
 
         list_gp = self.gradual_patterns
@@ -291,8 +295,12 @@ class DataGP:
         out_txt += f"Number of patterns: {num_patterns}\n"
 
         out_txt += f"\nAttributes:\n"
+        tgt_col = target_col if target_col is not None else -1
         for i, txt in enumerate(self.titles):
-            out_txt += f"{i}. {txt}\n"
+            if i == tgt_col:
+                out_txt += f"{i}. {txt}**\n"
+            else:
+                out_txt += f"{i}. {txt}\n"
 
         out_txt += f"\nFile: {self._data_src if isinstance(self._data_src, str) else 'a dataframe'}\n"
         out_txt += str("\nPattern : Support" + '\n')

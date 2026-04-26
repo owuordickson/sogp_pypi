@@ -200,7 +200,7 @@ class GRAANK(DataGP):
             "Algorithm": "GRAANK",
             # "Memory Usage (MiB)": f{mem_use)}"
             "Run-time": f"{duration:.6f} seconds"}
-        self.generate_output_files(out_dict)
+        self.generate_output_files(out_dict, target_col=target_col)
 
         out_dict.update({"Patterns": self.display_patterns, "Invalid Count": str(invalid_count)})
         out: object = json.dumps(out_dict,indent=4)

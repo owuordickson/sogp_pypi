@@ -89,7 +89,6 @@ class HillClimbingGRAANK(DataGP):
             self.add_gradual_pattern(gp)
 
         duration = time.time() - start
-        duration = time.time() - start
         out_dict: dict[str, str | list] = {
             "Algorithm": "LS-GRAANK",
             # "Memory Usage (MiB)": f{mem_use)}"

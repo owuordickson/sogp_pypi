@@ -178,6 +178,8 @@ class DataGP:
         if self._time_cols.size == 0 and create_time_index:
             self._titles.append(NO_TIME_LABEL)
             no_time = np.arange(self._data.shape[0])
+            # d.index = pd.DatetimeIndex(d.index.values, freq=d.index.inferred_freq)
+
             self._data = np.column_stack((self._data, no_time))
             self._time_cols = np.append(self._time_cols, [len(self._titles)-1]).astype(int)
             self._row_count, self._col_count = self._data.shape

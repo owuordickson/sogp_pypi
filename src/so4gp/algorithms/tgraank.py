@@ -5,9 +5,8 @@
 
 
 import json
-
+import pandas
 import numpy as np
-import pandas as pd
 from .base.tgrad import TGrad
 
 
@@ -231,10 +230,11 @@ class TGRAANK:
         except Exception as e:
             res_dict = {"Error": str(e)}
 
+        import json
         out: str = json.dumps(res_dict, indent=4)
         return out
 
-    def get_lagged_dependencies(self, max_lag: int = 0) -> pd.DataFrame:
+    def get_lagged_dependencies(self, max_lag: int = 0) -> pandas.DataFrame:
         """
         Compute the lagged dependency matrix between all features.
 
@@ -306,8 +306,8 @@ class TGRAANK:
             self._mine_obj.titles[i] for i in feature_cols
         ]
 
-        return pd.DataFrame(
+        return pandas.DataFrame(
             dependency_matrix,
-            index=pd.Index(feature_titles, name="Effect"),
-            columns=pd.Index(feature_titles, name="Cause"),
+            index=pandas.Index(feature_titles, name="Effect"),
+            columns=pandas.Index(feature_titles, name="Cause"),
         )

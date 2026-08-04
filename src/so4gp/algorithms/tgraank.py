@@ -302,9 +302,7 @@ class TGRAANK:
         # Keep only feature columns (exclude time columns, etc.)
         dependency_matrix = dependency_matrix[np.ix_(feature_cols, feature_cols)]
 
-        feature_titles = [
-            self._mine_obj.titles[i] for i in feature_cols
-        ]
+        feature_titles = [self._mine_obj.titles[i] for i in feature_cols]
 
         return pandas.DataFrame(
             dependency_matrix,

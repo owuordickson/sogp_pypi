@@ -13,39 +13,34 @@ from sklearn.cluster import KMeans
 from sklearn.preprocessing import MinMaxScaler
 from .graank_alg import OrigGRAANK
 from ...data_gp import DataGP
-from ...gradual_patterns import GI, TGP, TimeDelay
+from ...gradual_patterns import GI, TGP, TimeDelay, NO_TIME_LABEL
 
 
 class TGrad(OrigGRAANK):
 
-    def __init__(self, *args, target_col: int, min_rep: float = 0.5, **kwargs):
+    def __init__(self, *args, min_rep: float = 0.5, **kwargs):
         """
         TGrad is an algorithm used to extract temporal gradual patterns from numeric datasets. An algorithm for mining
         temporal gradual patterns using fuzzy membership functions. It uses a technique
         published in: https://ieeexplore.ieee.org/abstract/document/8858883.
 
         :param args: [required] a data source path of Pandas DataFrame, [optional] minimum-support, [optional] eq
-        :param target_col: [required] Target column.
         :param min_rep: [optional] minimum representativity value.
 
         """
 
         super(TGrad, self).__init__(*args, **kwargs)
-        self._target_col: int = target_col
+        self._target_col: int|None = None
         self._min_rep: float = min_rep
         self._max_step: int = self.row_count - int(min_rep * self.row_count)
         self._full_attr_data: np.ndarray = self.data.copy().T
         if len(self.time_cols) > 0:
-            print("Dataset Ok")
+            # print("Dataset Ok")
             self._time_ok: bool = True
         else:
-            print("Dataset Error")
+            # print("Dataset Error")
             self._time_ok: bool = False
             raise Exception('No date-time datasets found')
-
-    @property
-    def target_col(self):
-        return self._target_col
 
     @property
     def min_rep(self):
@@ -64,18 +59,20 @@ class TGrad(OrigGRAANK):
         if 0 < value <= 1:
             self._min_rep = value
 
-    def discover_tgp(self, num_cores: int = 1) -> dict:
+    def discover_tgp(self, target_col: int, num_cores: int = 1) -> dict:
         """
         Applies fuzzy-logic, data transformation, and gradual pattern mining to mine for Fuzzy Temporal Gradual
         Patterns. It uses multiprocessing to achieve the highest performance.
 
-
+        :param target_col: [required] Index of the target attribute/feature/column. Temporal transformations are
+        estimated relative to this attribute.
         :param num_cores: Number of CPU cores for the algorithm to use.
 
         :return: List of FTGPs as a dict object
         """
 
         start = time.time()
+        self._target_col = target_col
         self.clear_gradual_patterns()
         # 1. Mine FTGPs (using parallel multi-processing)
         with mp.Pool(num_cores) as pool:
@@ -99,7 +96,7 @@ class TGrad(OrigGRAANK):
             "Algorithm": "TGrad",
             # "Memory Usage (MiB)": f{mem_use)}",
             "Minimum Representation": f"{self.min_rep:.2f}",
-            "Target Column": f"{self._target_col}",
+            "Target Column": f"{target_col}",
             "Run-time": f"{duration:.6f} seconds"}
         return out_dict
 
@@ -234,6 +231,12 @@ class TGrad(OrigGRAANK):
                 stamp_1 = 0
                 stamp_2 = 0
                 for col in self.time_cols:  # sum timestamps from all time-columns
+                    time_col_title = self.titles[col]
+                    if time_col_title == NO_TIME_LABEL:
+                        stamp_1 += int(self.data[i][int(col)])
+                        stamp_2 += int(self.data[i + step][int(col)])
+                        continue
+
                     temp_1 = str(self.data[i][int(col)])
                     temp_2 = str(self.data[i + step][int(col)])
                     temp_stamp_1 = TGrad.get_timestamp(temp_1)
@@ -252,7 +255,7 @@ class TGrad(OrigGRAANK):
                 time_diffs[int(i)] = float(abs(time_diff))
         return True, time_diffs
 
-    def get_fuzzy_time_lag(self, bin_data: np.ndarray, time_data: np.ndarray | dict, gi_arr: set|None = None,
+    def get_fuzzy_time_lag(self, bin_data: np.ndarray, time_data: np.ndarray | dict | None, gi_arr: set|None = None,
                            tri_mf_data: np.ndarray | None = None) -> TimeDelay:
         """
         A method that uses a fuzzy membership function to select the most accurate time-delay value. We implement two

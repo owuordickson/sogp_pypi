@@ -25,12 +25,12 @@ import pandas as pd
 from tabulate import tabulate
 from dateutil.parser import parse
 from .utils import write_file
-from .gradual_patterns import GI, GP, TGP, PairwiseMatrix
+from .gradual_patterns import GI, GP, TGP, PairwiseMatrix, NO_TIME_LABEL
 
 
 class DataGP:
 
-    def __init__(self, data_source, min_sup=0.5, eq=False) -> None:
+    def __init__(self, data_source, min_sup=0.5, eq=False, add_time: bool = False) -> None:
         """
         A class for creating data-gp objects. A data-gp object is meant to store all the parameters required by GP
         algorithms to extract gradual patterns (GP). It takes a numeric file (in CSV format) as input and converts it
@@ -44,6 +44,8 @@ class DataGP:
 
         :param eq: [optional] encode equal values as gradual, the default is False
         :type eq: bool
+
+        :param add_time: [optional] add a dummy time column if the dataset is not a time-series
 
         """
         self._data_src = data_source
@@ -61,7 +63,7 @@ class DataGP:
         self._attr_size: int = 0
         self._gradual_patterns = None
         """:type _gradual_patterns: list[GP] | None"""
-        self._init_attributes()
+        self._init_attributes(create_time_index=add_time)
 
     @property
     def thd_supp(self) -> float:
@@ -132,8 +134,13 @@ class DataGP:
             all_rows.append(row_data)
         return pd.DataFrame(all_rows)
 
-    def _init_attributes(self) -> None:
-        """Initializes the attributes of the data-gp object."""
+    def _init_attributes(self, create_time_index: bool) -> None:
+        """
+        Initializes the attributes of the data-gp object.
+
+        :param create_time_index: adds a time index column if none exists.
+
+        """
 
         def get_attr_cols() -> np.ndarray:
             """
@@ -152,12 +159,12 @@ class DataGP:
             :return: A ndarray object containing the indices of the time columns.
             """
             # Retrieve the first column only
-            time_cols = list()
+            time_cols = []
             n = self._col_count
             for i in range(n):  # check every column/attribute for time format
                 row_data = str(self._data[0][i])
                 try:
-                    time_ok, t_stamp = DataGP.test_time(row_data)
+                    time_ok, _ = DataGP.test_time(row_data)
                     if time_ok:
                         time_cols.append(i)
                 except ValueError:
@@ -166,6 +173,16 @@ class DataGP:
 
         self._row_count, self._col_count = self._data.shape
         self._time_cols = get_time_cols()
+
+        # Add Dummy Time
+        if self._time_cols.size == 0 and create_time_index:
+            self._titles.append(NO_TIME_LABEL)
+            no_time = np.arange(self._data.shape[0])
+            # d.index = pd.DatetimeIndex(d.index.values, freq=d.index.inferred_freq)
+
+            self._data = np.column_stack((self._data, no_time))
+            self._time_cols = np.append(self._time_cols, [len(self._titles)-1]).astype(int)
+            self._row_count, self._col_count = self._data.shape
         self._attr_cols = get_attr_cols()
 
     def add_gradual_pattern(self, pattern) -> None:
@@ -514,69 +531,87 @@ class DataGP:
                 raise Exception("Error: " + str(error))
 
     @staticmethod
-    def test_time(date_str) -> None | tuple[bool, float] | tuple[bool, bool]:
+    def test_time(date_str: str) -> tuple[bool, float| None] :
         """
         Tests if a str represents a date-time variable.
 
         :param date_str: A string
-        :type date_str: str
         :return: bool (True if it is a date-time variable, False otherwise)
         """
         # add all the possible formats
+        # Exclude numeric values
         try:
-            if type(int(date_str)):
-                return False, False
+            int(date_str)
+            return False, None
         except ValueError:
-            try:
-                if type(float(date_str)):
-                    return False, False
-            except ValueError:
-                try:
-                    date_time = parse(date_str)
-                    t_stamp = time.mktime(date_time.timetuple())
-                    return True, t_stamp
-                except ValueError:
-                    raise ValueError('no valid date-time format found')
+            pass
+
+        try:
+            float(date_str)
+            return False, None
+        except ValueError:
+            pass
+
+        try:
+            dt = parse(date_str)
+            return True, time.mktime(dt.timetuple())
+        except ValueError as exc:
+            raise ValueError("No valid date-time format found.") from exc
 
     @staticmethod
     def clean_data(df) -> tuple[list, np.ndarray]:
         """
-        Cleans a data-frame (i.e., missing values, outliers) before extraction of GPs
+        Cleans a data frame by removing missing values and non-numeric columns,
+        while preserving valid time columns.
 
-        :param df: data-frame
-        :type df: pd.DataFrame
-        :return: list (column titles), numpy (cleaned data)
+        Args:
+            df: Input pandas DataFrame.
+
+        Returns:
+            A tuple containing:
+
+            - List of column names.
+            - NumPy array of the cleaned data.
+
+        Raises:
+            Exception:
+                If the cleaned dataset contains no remaining columns or rows.
         """
-        # 1. Remove objects with Null values
+        # 1. Remove rows containing missing values
         df = df.dropna()
 
-        # 2. Remove columns with Strings
+        # 2. Remove non-numeric columns (except valid time columns)
         cols_to_remove = []
+
         for col in df.columns:
+            series = df[col]
+
             try:
-                _ = df[col].astype(float)
+                series.astype(float)
             except ValueError:
-                # Keep time columns
-                first_valid_idx = df[col].first_valid_index()
+                # Preserve valid time columns
+                first_valid_idx = series.first_valid_index()
                 if first_valid_idx is None:
-                    cols_to_remove.append(col)  # Entirely empty column
+                    cols_to_remove.append(col)
                     continue
-                sample_val = str(df[col].loc[first_valid_idx])
+
+                sample_val = str(series.at[first_valid_idx])
 
                 try:
-                    ok, stamp = DataGP.test_time(sample_val)
-                    if not ok:
+                    is_time, _ = DataGP.test_time(sample_val)
+                    if not is_time:
                         cols_to_remove.append(col)
                 except ValueError:
                     cols_to_remove.append(col)
-                pass
+
             except TypeError:
                 cols_to_remove.append(col)
-                pass
-        # keep only the columns in df that do not contain string
-        df = df[[col for col in df.columns if col not in cols_to_remove]]
+
+        # Keep only numeric and valid time columns
+        df = df.drop(columns=cols_to_remove)
 
         # 3. Return titles and data
         if df.empty:
-            raise Exception("Data set is empty after cleaning.")
-        return list(df.columns), df.values
+            raise ValueError("Dataset is empty after cleaning.")
+
+        return list(df.columns), df.to_numpy()

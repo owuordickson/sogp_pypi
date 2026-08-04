@@ -106,12 +106,12 @@ df = pd.DataFrame(
     columns=["Age", "Salary", "Cars", "Expenses"],
 )
 
-miner = GRAANK(
+miner_gp = GRAANK(
     data_source=df,
     min_sup=0.5,
 )
 
-results = miner.discover()
+results = miner_gp.discover()
 
 print(results)
 ```
@@ -141,14 +141,13 @@ df = pd.DataFrame(
     columns=["Date", "Age", "Salary", "Cars", "Expenses"],
 )
 
-miner = TGRAANK(
+miner_tgp = TGRAANK(
     data_source=df,
-    target_col=1,
     min_sup=0.5,
     min_rep=0.5,
 )
 
-results = miner.discover()
+results = miner_tgp.discover(target_col=1)
 
 print(results)
 ```
@@ -160,7 +159,7 @@ print(results)
 `GRAANK` supports multiple search strategies through the `discover()` method.
 
 ```python
-results = miner.discover(search_type="ga")
+results = miner_gp.discover(search_type="ga")
 ```
 
 Supported search algorithms include:
@@ -177,7 +176,7 @@ Supported search algorithms include:
 Similarly, `TGRAANK` supports multiple temporal transformation algorithms.
 
 ```python
-results = miner.discover(transformation_algorithm="ami")
+results = miner_tgp.discover(transformations="ami")
 ```
 
 Supported transformation algorithms include:

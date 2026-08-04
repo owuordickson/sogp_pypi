@@ -18,6 +18,8 @@ import numpy as np
 from dataclasses import dataclass
 
 
+NO_TIME_LABEL = "NoTime"
+
 @dataclass
 class PairwiseMatrix:
     """A data-class for storing pairwise (bitmap) matrix and its support value."""
@@ -263,7 +265,7 @@ class GP:
             syms.append(gi[1])
         return attrs, syms
 
-    def contains_attr(self, gi: GI) -> bool:
+    def contains_attr(self, gi: GI|None) -> bool:
         """
         Checks if any gradual item (GI) in the gradual pattern (GP) is composed of the column
         :param gi: gradual item
@@ -273,6 +275,7 @@ class GP:
         """
         if gi is None:
             return False
+
         for gi_obj in self._gradual_items:
             if gi.attribute_col == gi_obj.attribute_col:
                 return True
@@ -377,7 +380,7 @@ class GP:
                         temp_tids = set(gi_tids)
                         gen_pattern.add_gradual_item(gi)
                     else:
-                        temp = (temp_tids or {}).copy()
+                        temp = set((temp_tids or {}).copy())
                         temp = temp.intersection(set(gi_tids))
                         supp = float(len(temp)) / float(n * (n - 1.0) / 2.0)
                         if supp >= min_supp:
@@ -575,7 +578,7 @@ class GP:
                 degree[int(v)] += 1
 
             mean_deg = np.mean(degree)
-            if mean_deg == 0:
+            if mean_deg == 0.0:
                 return 0.0
 
             return float(np.var(degree) / mean_deg)
@@ -799,7 +802,7 @@ class TGP(GP):
         """
         A method that returns a fuzzy temporal gradual pattern (TGP) with actual column names
 
-        :param columns: Column names
+        :param columns: Column names of the dataset
         :param descriptor_title: If True, prints the descriptor title
 
         :return: TGP with actual column names
@@ -808,12 +811,13 @@ class TGP(GP):
         target_gi = self._target_gradual_item
         col_title = columns[target_gi.attribute_col if target_gi else -1]
         pattern = f"{col_title}{target_gi.symbol if target_gi else ''}, "
+        has_no_time = True if NO_TIME_LABEL in columns else False
 
         i = 0
         for temp_gi in self._temporal_gradual_items:
             gi = temp_gi.gradual_item
             t_lag = temp_gi.time_delay
-            str_time = f"{t_lag.sign}{t_lag.formatted_time['value']} {t_lag.formatted_time['duration']}"
+            str_time = f"{t_lag.sign}{t_lag.formatted_time['value']} {"lag" if has_no_time else t_lag.formatted_time['duration']}"
             col_title = columns[gi.attribute_col]
             pat = f"({col_title}{gi.symbol}) {str_time}"
             # pattern.append(pat)
@@ -872,3 +876,65 @@ class TGP(GP):
 
         # All checks passed, patterns are similar
         return True
+
+    def get_causal_relations(self, columns: list) -> list[dict[str, object]]:
+        """
+        Return the causal relationships represented by this temporal gradual pattern.
+
+        Each temporal gradual item is interpreted as having a causal relationship
+        with the target gradual item. The returned metadata includes the causal
+        direction, estimated time lag, and the support of the temporal gradual
+        pattern.
+
+        :param columns: Column names of the dataset
+
+        Returns:
+            A list of dictionaries, where each dictionary contains:
+
+            - ``causality``: A pair of attribute indices in the form
+              ``[target_attribute, related_attribute]``.
+            - ``direction``: ``"+"`` if both gradual items have the same trend
+              (increasing/increasing or decreasing/decreasing), otherwise ``"-"``.
+            - ``time_lag``: Human-readable estimated time lag.
+            - ``support``: Support value of the temporal gradual pattern.
+
+        Notes:
+            The returned relationships describe inferred temporal associations.
+            They should not be interpreted as proof of statistical or causal
+            inference without additional domain validation.
+        """
+        relations: list[dict[str, object]] = []
+        has_no_time = True if NO_TIME_LABEL in columns else False
+
+        target = self.target_gradual_item
+        if target is None:
+            return relations
+
+        for temporal_item in self.temporal_gradual_items:
+            lag = temporal_item.time_delay
+
+            time_lag = None
+            if lag is not None:
+                time_lag = (
+                    f"{lag.sign}"
+                    f"{lag.formatted_time['value']} "
+                    f"{"lag" if has_no_time else lag.formatted_time['duration']}"
+                )
+
+            relations.append(
+                {
+                    "correlation": [
+                        target.attribute_col,
+                        temporal_item.gradual_item.attribute_col,
+                    ],
+                    "direction": (
+                        "+"
+                        if target.symbol == temporal_item.gradual_item.symbol
+                        else "-"
+                    ),
+                    "time lag": time_lag,
+                    "support": self.support,
+                }
+            )
+
+        return relations

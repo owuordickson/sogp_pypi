@@ -33,7 +33,7 @@ class TGRAANK:
           https://ieeexplore.ieee.org/abstract/document/11197674/
     """
 
-    def __init__(self, data_source, target_col: int, min_sup: float = 0.5, min_rep: float = 0.5, eq: bool = False):
+    def __init__(self, data_source, min_sup: float = 0.5, min_rep: float = 0.5, eq: bool = False):
         """
         Initialize a temporal gradual pattern miner.
 
@@ -52,11 +52,6 @@ class TGRAANK:
 
                 The first column typically contains timestamps, while the remaining
                 columns contain numerical attributes.
-
-            target_col:
-                Zero-based index of the target attribute.
-
-                Temporal transformations are estimated relative to this attribute.
 
             min_sup:
                 Minimum gradual pattern support threshold.
@@ -95,17 +90,16 @@ class TGRAANK:
             >>> result = miner.discover()
         """
         self._data_src = data_source
-        self._target_col: int = target_col
         self._min_supp: float = min_sup
         self._min_rep: float = min_rep
         self._eq: bool = eq
-        self._mine_obj = TGrad(data_source, target_col=target_col, min_sup=min_sup, min_rep=min_rep, eq=eq, add_time=True)
+        self._mine_obj = TGrad(data_source, min_sup=min_sup, min_rep=min_rep, eq=eq, add_time=True)
 
     @property
     def mining_engine(self):
         return self._mine_obj
 
-    def discover(self, transformations: str= 'ami', transformation_steps: dict | None = None,
+    def discover(self, target_col: int, transformations: str= 'ami', transformation_steps: dict | None = None,
                  eval_mode: bool = False, save_results: bool = True, **kwargs) -> str:
         """
         Discover fuzzy temporal gradual patterns.
@@ -135,6 +129,11 @@ class TGRAANK:
                 candidate transformations that must be evaluated.
 
         Args:
+            target_col:
+                [required] Index of the target attribute/feature/column.
+
+                Temporal transformations are estimated relative to this attribute.
+
             transformations:
                 Type of data transformations to be performed.
 
@@ -196,11 +195,11 @@ class TGRAANK:
         try:
 
             if transformations == 'all':
-                res_dict = self._mine_obj.discover_tgp(**kwargs)
+                res_dict = self._mine_obj.discover_tgp(target_col=target_col, **kwargs)
             elif transformations == 'ami':
                 from .base.tgrad_ami import TGradAMI
-                self._mine_obj = TGradAMI(self._data_src, target_col=self._target_col, min_sup=self._min_supp, min_rep=self._min_rep, eq=self._eq, add_time=True)
-                res_dict = self._mine_obj.discover_tgp(transformation_steps=transformation_steps, eval_mode=eval_mode, **kwargs)
+                self._mine_obj = TGradAMI(self._data_src, min_sup=self._min_supp, min_rep=self._min_rep, eq=self._eq, add_time=True)
+                res_dict = self._mine_obj.discover_tgp_ami(target_col=target_col, transformation_steps=transformation_steps, eval_mode=eval_mode, **kwargs)
             else:
                 raise ValueError("Invalid transformation algorithm")
 
@@ -211,7 +210,7 @@ class TGRAANK:
                 causal_relations.extend(res)
 
             if save_results:
-                self._mine_obj.generate_output_files(res_dict, target_col=self._target_col)
+                self._mine_obj.generate_output_files(res_dict, target_col=target_col)
             res_dict.update({"Patterns": self._mine_obj.display_patterns})
             res_dict.update({"Causality": causal_relations})
         except Exception as e:

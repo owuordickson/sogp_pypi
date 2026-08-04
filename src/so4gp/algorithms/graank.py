@@ -127,7 +127,7 @@ class GRAANK:
                  search_type: str = "apriori",
                  ignore_support: bool = False, max_iteration: int | None = None,
                  target_col: int | None = None, exclude_target: bool = False,
-                 compute_descriptors: bool = True, save_results: bool = True,
+                 compute_descriptors: bool = True, save_results: bool = False,
                  **kwargs) -> str:
         """
         Discover gradual patterns using the selected search strategy.

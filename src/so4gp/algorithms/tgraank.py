@@ -5,6 +5,9 @@
 
 
 import json
+
+import numpy as np
+import pandas as pd
 from .base.tgrad import TGrad
 
 
@@ -99,8 +102,8 @@ class TGRAANK:
     def mining_engine(self):
         return self._mine_obj
 
-    def discover(self, target_col: int, transformations: str= 'ami', transformation_steps: dict | None = None,
-                 eval_mode: bool = False, save_results: bool = True, **kwargs) -> str:
+    def discover(self, target_col: int, transformations: str = 'ami', transformation_steps: dict | None = None,
+                 eval_mode: bool = False, save_results: bool = False, **kwargs) -> str:
         """
         Discover fuzzy temporal gradual patterns.
 
@@ -198,10 +201,17 @@ class TGRAANK:
                 res_dict = self._mine_obj.discover_tgp(target_col=target_col, **kwargs)
             elif transformations == 'ami':
                 from .base.tgrad_ami import TGradAMI
-                self._mine_obj = TGradAMI(self._data_src, min_sup=self._min_supp, min_rep=self._min_rep, eq=self._eq, add_time=True)
-                res_dict = self._mine_obj.discover_tgp_ami(target_col=target_col, transformation_steps=transformation_steps, eval_mode=eval_mode, **kwargs)
+                self._mine_obj = TGradAMI(self._data_src, min_sup=self._min_supp, min_rep=self._min_rep, eq=self._eq,
+                                          add_time=True)
+                res_dict = self._mine_obj.discover_tgp_ami(target_col=target_col,
+                                                           transformation_steps=transformation_steps,
+                                                           eval_mode=eval_mode, **kwargs)
             else:
                 raise ValueError("Invalid transformation algorithm")
+
+            if save_results:
+                self._mine_obj.generate_output_files(res_dict, target_col=target_col)
+            res_dict.update({"Patterns": self._mine_obj.display_patterns})
 
             # Causal Inference
             causal_relations = []
@@ -209,12 +219,95 @@ class TGRAANK:
                 res = tgp.get_causal_relations(self._mine_obj.titles)
                 causal_relations.extend(res)
 
-            if save_results:
-                self._mine_obj.generate_output_files(res_dict, target_col=target_col)
-            res_dict.update({"Patterns": self._mine_obj.display_patterns})
-            res_dict.update({"Causality": causal_relations})
+            # Only retain the best causal relations (due to GP subsets)
+            best = {}
+            for relation in causal_relations:
+                key = tuple(relation["correlation"])  # e.g. (4, 1)
+
+                if key not in best or relation["support"] > best[key]["support"]:
+                    best[key] = relation
+            filtered_causality = list(best.values())
+            res_dict.update({"Causality": filtered_causality})
         except Exception as e:
             res_dict = {"Error": str(e)}
 
-        out:str = json.dumps(res_dict, indent=4)
+        out: str = json.dumps(res_dict, indent=4)
         return out
+
+    def get_lagged_dependencies(self, max_lag: int = 0) -> pd.DataFrame:
+        """
+        Compute the lagged dependency matrix between all features.
+
+        Each feature is treated as the target attribute in turn, and temporal
+        gradual patterns are mined using the selected transformation algorithm.
+        For every discovered causal relationship, the support value is accumulated
+        into an adjacency matrix representing the strength of the dependency from
+        each cause feature to each effect feature.
+
+        The resulting matrix is returned as a ``pandas.DataFrame`` whose:
+
+        - Rows represent **effect** variables.
+        - Columns represent **cause** variables.
+        - Cell ``(i, j)`` contains the cumulative support of all temporal gradual
+          patterns indicating that feature ``j`` influences feature ``i``.
+
+        Args:
+            max_lag:
+                Maximum temporal lag (transformation step) considered during
+                temporal pattern mining. This value determines the minimum
+                representativity threshold used when generating transformed
+                datasets.
+
+        Returns:
+            pandas.DataFrame:
+                A square dependency matrix indexed by feature names, where rows
+                correspond to effects and columns correspond to causes.
+
+        Raises:
+            ValueError:
+                If ``max_lag`` is negative or greater than or equal to the number
+                of observations in the dataset.
+
+        Notes:
+            Dependency strengths are obtained by summing the support values of
+            all temporal gradual patterns supporting the same cause–effect
+            relationship.
+        """
+
+        if not 0 <= max_lag < self._mine_obj.row_count:
+            raise ValueError(f"'max_lag' must be between 0 and {self._mine_obj.row_count - 1}.")
+
+        # Compute minimum representativity from the maximum lag
+        if max_lag > 0:
+            self._min_rep = (self._mine_obj.row_count - max_lag) / self._mine_obj.row_count
+
+        feature_cols = self._mine_obj.attr_cols
+
+        # Full adjacency matrix indexed by original column numbers
+        n = self._mine_obj.col_count
+        dependency_matrix = np.zeros((n, n), dtype=np.float32)
+
+        for target in feature_cols:
+            result = json.loads(
+                self.discover(target_col=target, transformations="ami")
+            )
+
+            for relation in result.get("Causality", []):
+                cause_col, effect_col = relation["correlation"]
+                support = relation["support"]
+
+                if cause_col == target:
+                    dependency_matrix[effect_col, cause_col] += support
+
+        # Keep only feature columns (exclude time columns, etc.)
+        dependency_matrix = dependency_matrix[np.ix_(feature_cols, feature_cols)]
+
+        feature_titles = [
+            self._mine_obj.titles[i] for i in feature_cols
+        ]
+
+        return pd.DataFrame(
+            dependency_matrix,
+            index=pd.Index(feature_titles, name="Effect"),
+            columns=pd.Index(feature_titles, name="Cause"),
+        )

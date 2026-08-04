@@ -17,7 +17,7 @@ if __name__ == "__main__":
     ## Test Algorithms
     #mine_obj = GRAANK(dummy_df, min_sup=0.5, eq=False)
     # mine_obj = ClusterGP(dummy_df, 0.5, max_iter=3, e_prob=0.0)
-    mine_obj1 = TGRAANK(dummy_df, min_sup=0.2, min_rep=0.1)
+    mine_obj1 = TGRAANK(dummy_df, min_sup=0.5, min_rep=0.1)
     # result_json = mine_obj.discover(target_col=2, compute_descriptors=True)  # GRAANK
     #result_json = mine_obj.discover()                                          # GRAANK/ClusterGP
     # result_json = mine_obj.discover(search_type='aco', target_col=1, exclude_target=False)    # ACO
@@ -27,8 +27,10 @@ if __name__ == "__main__":
     # result_json = mine_obj.discover(search_type='random', target_col=1, exclude_target=False) # Random
 
     # result_json = mine_obj1.discover(target_col=2, transformation_algorithm='all')                                      # TGRAANK
-    result_json = mine_obj1.discover(target_col=1, transformations='ami', use_clustering=False, eval_mode=True)  # TGRAANK-AMI
-    print(f"{result_json}\n")
+    #result_json = mine_obj1.discover(target_col=1, transformations='ami', use_clustering=False, eval_mode=True)  # TGRAANK-AMI
+    #print(f"{result_json}\n")
+    corr_df = mine_obj1.get_lagged_dependencies(max_lag=3)
+    print(corr_df.values)
 
     ## Test Time
     #print(sgp.DataGP.test_time("09-01-2005"))

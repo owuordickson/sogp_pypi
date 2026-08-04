@@ -35,10 +35,10 @@ class TGrad(OrigGRAANK):
         self._max_step: int = self.row_count - int(min_rep * self.row_count)
         self._full_attr_data: np.ndarray = self.data.copy().T
         if len(self.time_cols) > 0:
-            print("Dataset Ok")
+            # print("Dataset Ok")
             self._time_ok: bool = True
         else:
-            print("Dataset Error")
+            # print("Dataset Error")
             self._time_ok: bool = False
             raise Exception('No date-time datasets found')
 

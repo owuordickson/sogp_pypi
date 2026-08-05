@@ -102,7 +102,7 @@ class TGRAANK:
         return self._mine_obj
 
     def discover(self, target_col: int, transformations: str = 'ami', transformation_steps: dict | None = None,
-                 eval_mode: bool = False, save_results: bool = False, **kwargs) -> str:
+                 eval_mode: bool = False, compute_causality: bool = False, save_results: bool = False, **kwargs) -> str:
         """
         Discover fuzzy temporal gradual patterns.
 
@@ -153,6 +153,11 @@ class TGRAANK:
                 Enables evaluation mode.
 
                 Intended for benchmarking and experimental studies.
+
+            compute_causality:
+                Whether to compute causal relations between attributes based on the valid extracted gradual pattern.
+
+                The target column/attribute is taken as the "cause" and the other attributes the "effects".
 
             save_results:
                 Whether to generate CSV output files.
@@ -212,21 +217,22 @@ class TGRAANK:
                 self._mine_obj.generate_output_files(res_dict, target_col=target_col)
             res_dict.update({"Patterns": self._mine_obj.display_patterns})
 
-            # Causal Inference
-            causal_relations = []
-            for tgp in self._mine_obj.gradual_patterns or []:
-                res = tgp.get_causal_relations(self._mine_obj.titles)
-                causal_relations.extend(res)
+            if compute_causality:
+                # Causal Inference
+                causal_relations = []
+                for tgp in self._mine_obj.gradual_patterns or []:
+                    res = tgp.get_causal_relations(self._mine_obj.titles)
+                    causal_relations.extend(res)
 
-            # Only retain the best causal relations (due to GP subsets)
-            best = {}
-            for relation in causal_relations:
-                key = tuple(relation["correlation"])  # e.g. (4, 1)
+                # Only retain the best causal relations (due to GP subsets)
+                best = {}
+                for relation in causal_relations:
+                    key = tuple(relation["correlation"])  # e.g. (4, 1)
 
-                if key not in best or relation["support"] > best[key]["support"]:
-                    best[key] = relation
-            filtered_causality = list(best.values())
-            res_dict.update({"Causality": filtered_causality})
+                    if key not in best or relation["support"] > best[key]["support"]:
+                        best[key] = relation
+                filtered_causality = list(best.values())
+                res_dict.update({"Causality": filtered_causality})
         except Exception as e:
             res_dict = {"Error": str(e)}
 
@@ -289,7 +295,7 @@ class TGRAANK:
 
         for target in feature_cols:
             result = json.loads(
-                self.discover(target_col=target, transformations="ami")
+                self.discover(target_col=target, transformations="ami", compute_causality=True)
             )
 
             for relation in result.get("Causality", []):

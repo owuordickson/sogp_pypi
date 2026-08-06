@@ -731,8 +731,7 @@ class TimeDelay:
         return txt
 
     @classmethod
-    def approx_time_lag(cls, bin_data: np.ndarray, time_data: np.ndarray | dict | None, target_col: int|None, time_cols: np.ndarray, gi_arr: set | None = None,
-                        tri_mf_data: np.ndarray | None = None) -> "TimeDelay":
+    def approx_time_lag(cls, bin_data: np.ndarray, time_data: dict|np.ndarray|None, gi_arr: set|None = None, tri_mf_data: np.ndarray|None = None) -> "TimeDelay":
         """
         A method that uses a fuzzy membership function to select the most accurate time-delay value. We implement two
         methods: (1) uses classical slide and re-calculate dynamic programming to find the best time-delay value and,
@@ -749,9 +748,6 @@ class TimeDelay:
 
         if time_data is None:
             return cls(-1, 0)
-
-        time_data_as_arr: np.ndarray | None = time_data if isinstance(time_data, np.ndarray) else None
-        time_data_as_dict: dict | None = time_data if isinstance(time_data, dict) else None
 
         def approx_time_slide_calculate(time_lag_arr: np.ndarray) -> TimeDelay:
             """
@@ -860,26 +856,19 @@ class TimeDelay:
 
         # 2. Get TimeDelay Array
         selected_rows = np.unique(indices.flatten())
-        if gi_arr is not None:
-            selected_cols = []
+        if gi_arr is not None and time_data is not None:
+            ## time_data = {col1: [row time-lags], col2: [row time-lags]}
+            t_lag_lst = []
+            sel_cols: set = set(time_data.keys())
             for gi_str in gi_arr:
-                # Ignore target-col and remove time-cols and target-col from the count
                 col = GI.from_string(gi_str).attribute_col
-                if (col != target_col) and (col < target_col):
-                    selected_cols.append(col - (len(time_cols)))
-                elif (col != target_col) and (col > target_col):
-                    selected_cols.append(col - (len(time_cols) + 1))
-            selected_cols = np.array(selected_cols, dtype=int)
-            t_lag_arr = time_data_as_arr[
-                np.ix_(selected_cols, selected_rows)] if time_data_as_arr is not None else np.array([])
+                if col in sel_cols:
+                    t_lag_lst.append(time_data[col])
+            t_lag_arr = np.array(t_lag_lst)
+            t_lag_arr = t_lag_arr[:, selected_rows]
         else:
-            time_lags = []
-            for row, stamp_diff in (time_data_as_dict or {}).items():  # {row: time-lag-stamp}
-                if int(row) in selected_rows:
-                    time_lags.append(stamp_diff)
-            t_lag_arr = np.array(time_lags)
-            best_time_lag = approx_time_slide_calculate(t_lag_arr)
-            return best_time_lag
+            ## time_data = [row time-lags]
+            t_lag_arr = [time_data[selected_rows]]
 
         # 3. Approximate TimeDelay value
         best_time_lag: TimeDelay = cls(-1, 0)

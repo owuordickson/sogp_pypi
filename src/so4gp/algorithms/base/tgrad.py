@@ -111,10 +111,10 @@ class TGrad(OrigGRAANK):
         # NB: Restructure dataset based on target/reference col
         if self._time_ok:
             # 1. Calculate the time difference using a step
-            ok, time_diffs = self.get_time_diffs(step)
+            ok, time_diffs, time_diffs_arr = self.get_time_diffs(step)
             if not ok:
-                msg = "Error: Time in row " + str(time_diffs[0]) \
-                      + " or row " + str(time_diffs[1]) + " is not valid."
+                msg = "Error: Time in row " + str(time_diffs.keys()) \
+                      + " or row " + str(time_diffs.values()) + " is not valid."
                 raise Exception(msg)
             else:
                 tgt_col = self._target_col
@@ -146,7 +146,7 @@ class TGrad(OrigGRAANK):
 
                     if return_patterns:
                         # 2. Execute t-graank for each transformation
-                        t_gps = self._mine_gps_at_step(time_delay_data=time_diffs, attr_data=delayed_attr_data)
+                        t_gps = self._mine_gps_at_step(time_delay_data=time_diffs_arr, attr_data=delayed_attr_data)
                         if len(t_gps) > 0:
                             return t_gps
                         return False
@@ -164,7 +164,7 @@ class TGrad(OrigGRAANK):
             print(f"Error at step {step}: {e}")
             return None
 
-    def _mine_gps_at_step(self, time_delay_data: np.ndarray | dict, attr_data: np.ndarray|None = None,
+    def _mine_gps_at_step(self, time_delay_data: dict|np.ndarray, attr_data: np.ndarray|None = None,
                           clustering_method: bool = False) -> list[TGP] | tuple[list[TGP], dict]:
         """
         Uses apriori algorithm to find GP candidates based on the target-attribute. The candidates are validated if
@@ -175,6 +175,7 @@ class TGrad(OrigGRAANK):
         :param clustering_method: Find and approximate the best time-delay value using KMeans and Hill-climbing approach.
         :return: Temporal-GPs as a list.
         """
+        print(f"{self}\n{time_delay_data}\n\n")
 
         try:
             # If min-rep is too low
@@ -185,9 +186,14 @@ class TGrad(OrigGRAANK):
         t_gps: list[TGP] = []
         valid_bins_dict: dict | None = copy.deepcopy(self.valid_bins)
 
-        if clustering_method and isinstance(time_delay_data, np.ndarray):
+        if clustering_method:
+            if isinstance(time_delay_data, dict):
+                t_lag_arr = np.array(list(time_delay_data.values()))
+            else:
+                t_lag_arr = np.array(time_delay_data)
+
             # Build the main triangular MF using the clustering algorithm
-            a, b, c = TGrad.build_mf_w_clusters(time_delay_data)
+            a, b, c = TGrad.build_mf_w_clusters(t_lag_arr)
             tri_mf_data = np.array([a, b, c])
         else:
             tri_mf_data = None
@@ -198,9 +204,9 @@ class TGrad(OrigGRAANK):
             invalid_count += inv_count
             for gp_set, gi_data in (valid_bins_dict or {}).items():
                 if type(self) is TGrad:
-                    t_lag = TimeDelay.approx_time_lag(gi_data.bin_mat, time_delay_data, self._target_col, self.time_cols, gi_arr=None, tri_mf_data=tri_mf_data)
+                    t_lag = TimeDelay.approx_time_lag(gi_data.bin_mat, time_delay_data, gi_arr=None, tri_mf_data=None)
                 else:
-                    t_lag = TimeDelay.approx_time_lag(gi_data.bin_mat, time_delay_data, self._target_col, self.time_cols, gi_arr=gp_set, tri_mf_data=tri_mf_data)
+                    t_lag = TimeDelay.approx_time_lag(gi_data.bin_mat, time_delay_data, gi_arr=gp_set, tri_mf_data=tri_mf_data)
 
                 if t_lag.valid:
                     tgp: TGP = TGP()
@@ -216,7 +222,7 @@ class TGrad(OrigGRAANK):
                     t_gps.append(tgp)
         return t_gps
 
-    def get_time_diffs(self, step: int):  # optimized
+    def get_time_diffs(self, step: int) -> tuple[bool, dict, np.ndarray]:  # optimized
         """
         A method that computes the difference between 2 timestamps separated by a specific transformation step.
 
@@ -225,6 +231,7 @@ class TGrad(OrigGRAANK):
         """
         size = self.row_count
         time_diffs = {}  # {row: time-lag}
+        time_diffs_arr = []
         for i in range(size):
             if i < (size - step):
                 stamp_1 = 0
@@ -242,7 +249,7 @@ class TGrad(OrigGRAANK):
                     temp_stamp_2 = TGrad.get_timestamp(temp_2)
                     if (not temp_stamp_1) or (not temp_stamp_2):
                         # Unable to read time
-                        return False, [i + 1, i + step + 1]
+                        return False, {i + 1: i + step + 1}, np.array(time_diffs_arr)
                     else:
                         stamp_1 += temp_stamp_1
                         stamp_2 += temp_stamp_2
@@ -251,8 +258,10 @@ class TGrad(OrigGRAANK):
                 # Error time CANNOT go backwards,
                 # print(f"Problem {i} and {i + step} - {self.time_cols}")
                 #    return False, [i + 1, i + step + 1]
-                time_diffs[int(i)] = float(abs(time_diff))
-        return True, time_diffs
+                time_diff_abs = float(abs(time_diff))
+                time_diffs[int(i)] = time_diff_abs
+                time_diffs_arr.append(time_diff_abs)
+        return True, time_diffs, np.array(time_diffs_arr)
 
     @staticmethod
     def get_timestamp(time_str: str):

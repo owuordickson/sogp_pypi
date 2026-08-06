@@ -6,6 +6,7 @@
 
 
 import time
+import copy
 import numpy as np
 import skfuzzy as fuzzy
 import multiprocessing as mp
@@ -183,7 +184,7 @@ class TGrad(OrigGRAANK):
             return []
 
         t_gps: list[TGP] = []
-        valid_bins_dict: dict = (self.valid_bins or {}).copy()
+        valid_bins_dict: dict | None = copy.deepcopy(self.valid_bins)
 
         if clustering_method and isinstance(time_delay_data, np.ndarray):
             # Build the main triangular MF using the clustering algorithm
@@ -193,12 +194,13 @@ class TGrad(OrigGRAANK):
             tri_mf_data = None
 
         invalid_count = 0
-        while len(valid_bins_dict) > 0:
+        while valid_bins_dict:
             valid_bins_dict, inv_count = self._gen_apriori_candidates(valid_bins_dict, target_col=self._target_col)
             invalid_count += inv_count
-            for gp_set, gi_data in valid_bins_dict.items():
-                if type(self) is TGrad:
-                    t_lag = self.get_fuzzy_time_lag(gi_data.bin_mat, time_delay_data, gi_arr=None, tri_mf_data=tri_mf_data)
+            for gp_set, gi_data in (valid_bins_dict or {}).items():
+                #if type(self) is TGrad:
+                if isinstance(self, TGrad):
+                    t_lag = TimeDelay.approx_time_lag(gi_data.bin_mat, time_delay_data, self._target_col, self.time_cols, gi_arr=None, tri_mf_data=tri_mf_data)
                 else:
                     t_lag = self.get_fuzzy_time_lag(gi_data.bin_mat, time_delay_data, gi_arr=gp_set, tri_mf_data=tri_mf_data)
 
@@ -211,8 +213,7 @@ class TGrad(OrigGRAANK):
                         else:
                             tgp.add_temporal_gradual_item(gi, t_lag)
                     tgp.support = gi_data.support
-                    warping_set_arr: np.ndarray = np.array(
-                        DataGP.gen_gradual_warping_set(gi_data.bin_mat, as_array=True))
+                    warping_set_arr = np.array(DataGP.gen_gradual_warping_set(gi_data.bin_mat, as_array=True))
                     tgp.compute_descriptors(warping_set_arr, obj_count=self.row_count)
                     t_gps.append(tgp)
         return t_gps

@@ -236,7 +236,6 @@ class TGRAANK:
         except Exception as e:
             res_dict = {"Error": str(e)}
 
-        import json
         out: str = json.dumps(res_dict, indent=4)
         return out
 

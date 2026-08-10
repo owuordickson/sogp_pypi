@@ -11,7 +11,7 @@ import numpy as np
 
 from .graank_base import BaseGrad
 from ...data_gp import DataGP
-from ...gradual_patterns import GI, GP, PairwiseMatrix
+from ...gradual_patterns import GI, GP, TGP, PairwiseMatrix
 
 
 class OrigGRAANK(BaseGrad):
@@ -161,10 +161,14 @@ class OrigGRAANK(BaseGrad):
             invalid_count += inv_count
             for gp_set, gi_data in (valid_bins_dict or {}).items():
                 self.remove_subsets(set(gp_set))
-                gp: GP = GP()
+                if time_data is not None:
+                    gp: TGP = TGP()
+                else:
+                    gp: GP = GP()
+
                 for gi_str in gp_set:
                     gi: GI = GI.from_string(gi_str)
-                    gp.add_gradual_item(gi)
+                    GP.add_gradual_item_strict(gp, gi, target_col=target_col, time_lag=gi_data.time_lag)
                 gp.support = gi_data.support
                 if compute_descriptors:
                     warping_set_arr: np.ndarray = np.array(DataGP.gen_gradual_warping_set(gi_data.bin_mat, as_array=True))

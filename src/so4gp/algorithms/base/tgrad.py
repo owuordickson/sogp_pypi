@@ -206,16 +206,17 @@ class TGrad(OrigGRAANK):
             time_data: dict = {"time_data": time_delay_data, "use_gp": True, "tri_mf": tri_mf_data}
         data_df = pd.DataFrame(attr_data.T, columns=self.titles)
         mine_obj = GRAANK(data_df, min_sup=self.thd_supp, eq=self._include_equal_values)
-        mine_obj.discover(search_type='aco', target_col=self._target_col, time_data=time_data, compute_descriptors=False, max_iteration=10)
+        mine_obj.discover(search_type='apriori', target_col=self._target_col, time_data=time_data, compute_descriptors=False, max_iteration=10)
+        return mine_obj.mining_engine.gradual_patterns
         for raw_gp in mine_obj.mining_engine.gradual_patterns:
-            t_lag = TimeDelay(6400, 0.5)
-            if t_lag.valid:
+            # t_lag = TimeDelay(6400, 0.5)
+            if raw_gp.time_lag.valid:
                 tgp: TGP = TGP()
                 for gi in raw_gp.gradual_items:
                     if gi.attribute_col == self._target_col:
                         tgp.target_gradual_item = gi
                     else:
-                        tgp.add_temporal_gradual_item(gi, t_lag)
+                        tgp.add_temporal_gradual_item(gi, raw_gp.time_lag)
                 tgp.support = raw_gp.support
                 #warping_set_arr = np.array(DataGP.gen_gradual_warping_set(gi_data.bin_mat, as_array=True))
                 #tgp.compute_descriptors(warping_set_arr, obj_count=self.row_count)

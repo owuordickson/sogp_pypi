@@ -205,15 +205,24 @@ class GP:
     def singularity_score(self) -> float:
         return self._singularity_score
 
-    def add_gradual_item(self, item: GI) -> bool:
+    def add_gradual_item(self, item: GI) -> None|bool:
         """
-        Adds a gradual item (GI) into the gradual pattern (GP)
-        :param item: gradual item
+        Add a gradual item to this gradual pattern.
 
-        :return: True if gradual item is added, None otherwise
+        Args:
+            item:
+                Gradual item to add.
+
+        Returns:
+            True if the item was added successfully, None otherwise.
+
+        Raises:
+            TypeError:
+                If ``item`` is not a :class:`GI`.
         """
         if not isinstance(item, GI):
-            raise TypeError("Invalid gradual item")
+            raise TypeError("item must be an instance of GI.")
+
         self._gradual_items.append(item)
         return True
 
@@ -336,29 +345,33 @@ class GP:
         min_supp = d_gp.thd_supp
         n = d_gp.attr_size
         gi_dict = copy.deepcopy(d_gp.valid_bins)
-        gi_key_list = list(gi_dict.keys())
 
+        if time_data is not None:
+            gen_pattern: TGP = TGP()
+        #else:
         gen_pattern: GP = GP()
         pw_mat_1: PairwiseMatrix | None = None
+        #print(f"Validate: {self.as_set}")
         for gi in self.gradual_items:
-            arg = np.argwhere(np.isin(np.array(gi_key_list), gi.to_string()))
-            if len(arg) > 0:
-                i = arg[0][0]
-                if pw_mat_1 is None:
-                    pw_mat_1 = gi_dict[gi_key_list[i]]
+            temp_pw_mat = gi_dict[gi.to_string()]
+            if pw_mat_1 is None:
+                pw_mat_1 = copy.deepcopy(temp_pw_mat)
+                gen_pattern.add_gradual_item(gi)
+                #print(f"First GI: {gi.to_string()} to {gen_pattern.as_set}")
+                # GP.add_gradual_item_strict(gen_pattern, gi, target_col=target_col, time_lag=gi_data.time_lag)
+            else:
+                # pw_mat_2 = temp_pw_mat
+                #print(f"Adding GI: {gi.to_string()} to {gen_pattern.as_set}")
+                res_pw_mat = GP.perform_and(pw_mat_1, temp_pw_mat, n, time_data=time_data)
+                if res_pw_mat.support >= min_supp:
                     gen_pattern.add_gradual_item(gi)
-                else:
-                    pw_mat_2 = gi_dict[gi_key_list[i]]
-                    res_pw_mat = GP.perform_and(pw_mat_1, pw_mat_2, n)
-                    if res_pw_mat.support >= min_supp:
-                        # gen_pattern.add_gradual_item(gi)
-                        # gen_pattern.support = res_pw_mat.support
-                        gen_pattern.add_gradual_item(gi)
-                        gen_pattern.support = res_pw_mat.support
-                        pw_mat_1 = PairwiseMatrix(
-                            bin_mat=copy.deepcopy(res_pw_mat.bin_mat),
-                            support=res_pw_mat.support,
-                            pattern=gen_pattern.as_set)
+                    gen_pattern.support = res_pw_mat.support
+                    pw_mat_1 = PairwiseMatrix(
+                        bin_mat=copy.deepcopy(res_pw_mat.bin_mat),
+                        support=res_pw_mat.support,
+                        pattern=gen_pattern.as_set,
+                        time_lag=res_pw_mat.time_lag)
+        #print("\n")
         if len(gen_pattern.gradual_items) <= 1:
             return self
         else:
@@ -602,6 +615,65 @@ class GP:
         self._graph_connectivity = compute_graph_connectivity()
         self._singularity_score = round(compute_singularity_score(), 3)
         return True
+
+    @staticmethod
+    def add_gradual_item_strict(gp: GP|TGP, gi: GI, target_col: int|None = None, time_lag: TimeDelay|None = None) -> GP|TGP:
+        """
+        Add a gradual item to a gradual pattern using pattern-aware placement.
+
+        Handles the structural differences between regular gradual patterns (GPs) and
+        temporal gradual patterns (TGPs). For a TGP, the gradual item is
+        assigned as the target gradual item when its attribute corresponds
+        to ``target_col``; otherwise, it is added as a temporal gradual item
+        together with its associated time lag.
+
+        For a regular GP, the gradual item is added directly to the pattern.
+
+        Args:
+            gp:
+                Gradual pattern to which the gradual item should be added.
+                Must be an instance of :class:`GP` or :class:`TGP`.
+
+            gi:
+                Gradual item to add to the pattern.
+
+            target_col:
+                Column index of the target attribute. When ``gp`` is a
+                :class:`TGP` and ``gi.attribute_col`` matches this value,
+                ``gi`` is assigned as the TGP's target gradual item.
+
+            time_lag:
+                Temporal delay associated with ``gi`` when it is added to a
+                TGP as a temporal gradual item.
+
+        Returns:
+            The modified gradual pattern with the added gradual item.
+
+        Raises:
+            TypeError:
+                If ``gp`` is not a :class:`GP` or :class:`TGP`, or if ``gi``
+                is not a valid gradual item.
+
+            ValueError:
+                If a temporal gradual item requires a time lag but
+                ``time_lag`` is not provided.
+        """
+        if not isinstance(gp, (GP, TGP)):
+            raise TypeError("gp must be an instance of GP or TGP.")
+
+        if not isinstance(gi, GI):
+            raise TypeError("gi must be an instance of GI.")
+
+        if isinstance(gp, TGP) and target_col is not None:
+            if gi.attribute_col == target_col:
+                gp.target_gradual_item = gi
+            else:
+                if time_lag is None:
+                    raise ValueError("time_lag must be provided for temporal gradual items.")
+                gp.add_temporal_gradual_item(gi, time_lag)
+        else:
+            gp.add_gradual_item(gi)
+        return gp
 
     @staticmethod
     def swap_gp_symbols(gp_obj: "GP") -> "GP":
@@ -956,7 +1028,7 @@ class TGP(GP):
     def temporal_gradual_items(self) -> list[TemporalGI]:
         return self._temporal_gradual_items
 
-    def add_temporal_gradual_item(self, item: GI, time_delay: TimeDelay):
+    def add_temporal_gradual_item(self, item: GI, time_delay: TimeDelay|None):
         """
             Adds a fuzzy temporal gradual item (fTGI) into the fuzzy temporal gradual pattern (fTGP)
             :param item: gradual item
@@ -967,6 +1039,9 @@ class TGP(GP):
 
             :return: void
         """
+        if item is None or time_delay is None:
+            return
+
         if isinstance(item, GI) and isinstance(time_delay, TimeDelay):
             temp_gi = TGP.TemporalGI(gradual_item=item, time_delay=time_delay)
             self._temporal_gradual_items.append(temp_gi)

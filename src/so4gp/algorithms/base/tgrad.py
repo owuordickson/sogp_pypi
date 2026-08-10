@@ -33,6 +33,7 @@ class TGrad(OrigGRAANK):
 
         super(TGrad, self).__init__(*args, **kwargs)
         self._target_col: int|None = None
+        self._search_algorithm: str = "apriori"
         self._min_rep: float = min_rep
         self._max_step: int = self.row_count - int(min_rep * self.row_count)
         self._full_attr_data: np.ndarray = copy.deepcopy(self.data).T
@@ -61,20 +62,90 @@ class TGrad(OrigGRAANK):
         if 0 < value <= 1:
             self._min_rep = value
 
-    def discover_tgp(self, target_col: int, num_cores: int = 1) -> dict:
+    def discover_tgp(self, target_col: int, search_algorithm: str="apriori", num_cores: int = 1) -> dict:
         """
-        Applies fuzzy-logic, data transformation, and gradual pattern mining to mine for Fuzzy Temporal Gradual
-        Patterns. It uses multiprocessing to achieve the highest performance.
+        Mine Fuzzy Temporal Gradual Patterns (FTGPs) from a temporal dataset.
 
-        :param target_col: [required] Index of the target attribute/feature/column. Temporal transformations are
-        estimated relative to this attribute.
-        :param num_cores: Number of CPU cores for the algorithm to use.
+        The method applies the complete temporal gradual pattern mining pipeline:
+        fuzzy-logic-based data transformation, temporal transformation, and
+        gradual pattern mining. The temporal transformations are estimated
+        relative to a specified target attribute, after which a gradual pattern
+        search algorithm is applied to the transformed dataset.
 
-        :return: List of FTGPs as a dict object
+        The gradual pattern search can use the classical APRIORI (GRAANK) algorithm or
+        one of several metaheuristic and alternative search strategies.
+
+        Supported search algorithms are:
+
+        * ``apriori``:
+          Classical APRIORI level-wise search for exhaustive gradual pattern
+          candidate generation.
+
+        * ``ga``:
+          Genetic GRAANK. Uses a genetic algorithm to search the gradual pattern
+          space.
+
+        * ``aco``:
+          ACO-GRAANK. Uses Ant Colony Optimization and pheromone-guided search
+          to identify promising gradual pattern candidates.
+
+        * ``pso``:
+          PSO-GRAANK. Uses Particle Swarm Optimization to search for high-support
+          gradual patterns.
+
+        * ``hc``:
+          Hill-Climbing GRAANK. Iteratively searches neighboring candidates and
+          moves toward patterns with improved support.
+
+        * ``random``:
+          Random Search GRAANK. Randomly samples and evaluates gradual pattern
+          candidates.
+
+        * ``clustergp``:
+          ClusterGP. Uses clustering-based search to identify gradual patterns
+          from the transformed dataset.
+
+        Args:
+            target_col:
+                Index of the target attribute or feature. Temporal transformations
+                and time-delay estimation are performed relative to this attribute.
+
+            search_algorithm:
+                Gradual pattern mining algorithm to apply to the transformed
+                dataset. Supported values are ``apriori``, ``ga``, ``aco``,
+                ``pso``, ``hc``, ``random``, and ``clustergp``.
+                Defaults to ``"apriori"``.
+
+            num_cores:
+                Number of CPU cores available for parallel computation during
+                temporal transformation and pattern mining.
+
+        Returns:
+            A list containing the mined Fuzzy Temporal Gradual Patterns.
+
+        Raises:
+            ValueError:
+                If ``target_col`` is invalid or ``search_algorithm`` is not one
+                of the supported algorithms.
+
+            TypeError:
+                If ``target_col`` or another argument has an invalid type.
+
+        Notes:
+            Metaheuristic search algorithms such as ``ga``, ``aco``, ``pso``,
+            ``hc``, and ``random`` generally provide approximate solutions and
+            may not enumerate all frequent gradual patterns. APRIORI provides
+            exhaustive level-wise candidate generation subject to the configured
+            search constraints.
+
+            Multiprocessing can significantly reduce computation time for large
+            datasets, particularly during the temporal transformation and
+            evaluation stages.
         """
 
         start = time.time()
         self._target_col = target_col
+        self._search_algorithm = search_algorithm
         self.clear_gradual_patterns()
         # 1. Mine FTGPs (using parallel multi-processing)
         with mp.Pool(num_cores) as pool:
@@ -97,6 +168,7 @@ class TGrad(OrigGRAANK):
         out_dict: dict[str, str | list] = {
             "Algorithm": "TGrad",
             # "Memory Usage (MiB)": f{mem_use)}",
+            "GP Search Algorithm": f"{self._search_algorithm}",
             "Minimum Representation": f"{self.min_rep:.2f}",
             "Target Column": f"{target_col}",
             "Run-time": f"{duration:.6f} seconds"}
@@ -167,7 +239,7 @@ class TGrad(OrigGRAANK):
             return None
 
     def _mine_gps_at_step(self, time_delay_data: dict|np.ndarray, attr_data: np.ndarray|None = None,
-                          clustering_method: bool = False) -> list[TGP] | tuple[list[TGP], dict]:
+                          clustering_method: bool = False) -> list[TGP]:
         """
         Uses apriori algorithm to find GP candidates based on the target-attribute. The candidates are validated if
         their computed support is greater than or equal to the minimum support threshold specified by the user.
@@ -177,16 +249,9 @@ class TGrad(OrigGRAANK):
         :param clustering_method: Find and approximate the best time-delay value using KMeans and Hill-climbing approach.
         :return: Temporal-GPs as a list.
         """
-        #print(f"{self}\n{time_delay_data}\n\n")
 
-        try:
-            # If min-rep is too low
-            self.fit_bitmap(attr_data)
-        except ZeroDivisionError:
+        if attr_data is None:
             return []
-
-        t_gps: list[TGP] = []
-        valid_bins_dict: dict | None = copy.deepcopy(self.valid_bins)
 
         if clustering_method:
             if isinstance(time_delay_data, dict):
@@ -206,7 +271,8 @@ class TGrad(OrigGRAANK):
             time_data: dict = {"time_data": time_delay_data, "use_gp": True, "tri_mf": tri_mf_data}
         data_df = pd.DataFrame(attr_data.T, columns=self.titles)
         mine_obj = GRAANK(data_df, min_sup=self.thd_supp, eq=self._include_equal_values)
-        mine_obj.discover(search_type='aco', target_col=self._target_col, time_data=time_data, compute_descriptors=False, max_iteration=10)
+        mine_obj.discover(search_type=self._search_algorithm, target_col=self._target_col, time_data=time_data,
+                          compute_descriptors=False, max_iteration=10)
         return mine_obj.mining_engine.gradual_patterns
         for raw_gp in mine_obj.mining_engine.gradual_patterns:
             # t_lag = TimeDelay(6400, 0.5)

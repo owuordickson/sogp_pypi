@@ -176,9 +176,10 @@ class TGradAMI(TGrad):
                 else np.vstack((delayed_data, temp_col))
         return delayed_data, time_data
 
-    def discover_tgp_ami(self, target_col: int, use_clustering: bool = False, transformation_steps: dict|None = None,
-                     error_margin: float = 0.0001,
-                     eval_mode: bool = False) -> dict:
+    def discover_tgp_ami(self, target_col: int, use_clustering: bool = False, search_algorithm: str = "apriori",
+                         transformation_steps: dict|None = None,
+                         error_margin: float = 0.0001,
+                         eval_mode: bool = False) -> dict:
         """
         A method that applies mutual information concept, clustering, and hill-climbing algorithm to find the best data
         transformation that maintains MI and estimate the best time-delay value of the mined Fuzzy Temporal Gradual
@@ -187,6 +188,8 @@ class TGradAMI(TGrad):
         :param target_col: [required] Index of the target attribute/feature/column. Temporal transformations are
         estimated relative to this attribute.
         :param use_clustering: Use a clustering algorithm to estimate the best time-delay value.
+        :param search_algorithm: Gradual pattern mining algorithm to apply to the transformed dataset. Supported values
+        are ``apriori``, ``ga``, ``aco``, ``pso``, ``hc``, ``random``, and ``clustergp``. Defaults to ``"apriori"``.
         :param transformation_steps: Data transformation steps (used to override the computed transformation steps).
         :param error_margin: [optional] minimum Mutual Information error margin.
         :param eval_mode: Run algorithm in evaluation mode.
@@ -196,6 +199,7 @@ class TGradAMI(TGrad):
 
         start = time.time()
         self._target_col = target_col
+        self._search_algorithm = search_algorithm
         self.clear_gradual_patterns()
         # 1. Compute and find the lowest mutual information
         if transformation_steps is not None:
@@ -240,6 +244,7 @@ class TGradAMI(TGrad):
         out_dict: dict[str, str | list | np.ndarray | None | dict] = {
             "Algorithm": "TGradAMI",
             # "Memory Usage (MiB)": f{mem_use)}",
+            "GP Search Algorithm": f"{self._search_algorithm}",
             "Minimum Representation": f"{self.min_rep:.2f}",
             "MI Minimum Error": f"{error_margin:.2f}",
             "MI Error": f"{self.mi_error:.2f}",

@@ -35,7 +35,7 @@ class OrigGRAANK(BaseGrad):
         super(OrigGRAANK, self).__init__(*args, **kwargs)
 
     def _gen_apriori_candidates(self, gi_dict: dict|None, ignore_sup: bool = False,
-                                target_col: int | None = None, exclude_target: bool = False):
+                                target_col: int | None = None, time_data: dict|None= None, exclude_target: bool = False):
         """
         Generates Apriori GP candidates (w.r.t target-feature/reference-column if provided). If a user wishes to generate
         candidates that do not contain the target-feature, then they do so by specifying the exclude_target parameter.
@@ -43,6 +43,7 @@ class OrigGRAANK(BaseGrad):
         :param gi_dict: List of GIs together with bitmap arrays.
         :param ignore_sup: Do not filter GPs based on the minimum support threshold.
         :param target_col: Target feature's column index.
+
         :param exclude_target: Only accepts GP candidates that do not contain the target feature.
         :return: List of extracted GPs and the invalid count.
         """
@@ -79,17 +80,6 @@ class OrigGRAANK(BaseGrad):
                 gi_str_i = gi_key_list[i]
                 gi_str_j = gi_key_list[j]
 
-                """
-                TO DELETE
-                try:
-                    gi_i = {list(gi_str_i) if isinstance(gi_str_i, tuple) else gi_str_i}
-                    gi_j = {gi_str_j}
-                    gi_o = {gi_key_list[0]}
-                except TypeError:
-                    gi_i = set(list(gi_str_i) if isinstance(gi_str_i, tuple) else gi_str_i)
-                    gi_j = set(list(gi_str_j) if isinstance(gi_str_j, tuple) else gi_str_j)
-                    gi_o = set(gi_key_list[0])
-                """
                 if isinstance(gi_str_i, (tuple, list)):
                     gi_i = set(gi_str_i)
                     gi_o = set(gi_key_list[0])
@@ -127,7 +117,7 @@ class OrigGRAANK(BaseGrad):
                         else:
                             repeated_attr = k[0]
                     if test == 1:
-                        res_pw_mat: PairwiseMatrix = GP.perform_and(gi_dict[gi_str_i], gi_dict[gi_str_j], n)
+                        res_pw_mat: PairwiseMatrix = GP.perform_and(gi_dict[gi_str_i], gi_dict[gi_str_j], n, time_data)
                         if res_pw_mat.support > min_sup or ignore_sup:
                             # res_dict.append([gp_cand, bin_mat, sup])
                             res_dict[tuple(res_pw_mat.pattern)] = res_pw_mat
@@ -138,7 +128,7 @@ class OrigGRAANK(BaseGrad):
         return res_dict, invalid_count
 
     def discover(self, ignore_support: bool = False, apriori_level: int | None = None,
-                 target_col: int | None = None, exclude_target: bool = False, compute_descriptors: bool = True) -> dict:
+                 target_col: int | None = None, time_data: dict|None= None, exclude_target: bool = False, compute_descriptors: bool = True) -> dict:
         """
         Uses apriori algorithm to find gradual pattern (GP) candidates. The candidates are validated if their computed
         support is greater than or equal to the minimum support threshold specified by the user.
@@ -146,6 +136,7 @@ class OrigGRAANK(BaseGrad):
         :param ignore_support: Do not filter extracted GPs using a user-defined minimum support threshold.
         :param apriori_level: Maximum APRIORI level for generating candidates.
         :param target_col: Target feature's column index.
+        :param time_data: (optional) time data for estimating time lag.
         :param exclude_target: Only accept GP candidates that do not contain the target feature.
         :param compute_descriptors: [optional] compute descriptors for each GP candidate.
 
@@ -165,6 +156,7 @@ class OrigGRAANK(BaseGrad):
             valid_bins_dict, inv_count = self._gen_apriori_candidates(valid_bins_dict,
                                                                  ignore_sup=ignore_support,
                                                                  target_col=target_col,
+                                                                 time_data=time_data,
                                                                  exclude_target=exclude_target)
             invalid_count += inv_count
             for gp_set, gi_data in (valid_bins_dict or {}).items():

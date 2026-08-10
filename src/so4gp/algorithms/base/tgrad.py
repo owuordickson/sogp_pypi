@@ -8,10 +8,12 @@
 import time
 import copy
 import numpy as np
+import pandas as pd
 import multiprocessing as mp
 from sklearn.cluster import KMeans
 from sklearn.preprocessing import MinMaxScaler
 from .graank_alg import OrigGRAANK
+from ..graank import GRAANK
 from ...data_gp import DataGP
 from ...gradual_patterns import GI, TGP, TimeDelay, NO_TIME_LABEL
 
@@ -33,7 +35,7 @@ class TGrad(OrigGRAANK):
         self._target_col: int|None = None
         self._min_rep: float = min_rep
         self._max_step: int = self.row_count - int(min_rep * self.row_count)
-        self._full_attr_data: np.ndarray = self.data.copy().T
+        self._full_attr_data: np.ndarray = copy.deepcopy(self.data).T
         if len(self.time_cols) > 0:
             # print("Dataset Ok")
             self._time_ok: bool = True
@@ -133,13 +135,13 @@ class TGrad(OrigGRAANK):
                         # Transform the datasets using (row) n+step
                         if (col_index == tgt_col) or (col_index in self.time_cols):
                             # date-time column OR target column
-                            temp_row = self._full_attr_data[col_index][0: (n - step)]
+                            temp_col = self._full_attr_data[col_index][0: (n - step)]
                         else:
                             # other attributes
-                            temp_row = self._full_attr_data[col_index][step: n]
+                            temp_col = self._full_attr_data[col_index][step: n]
 
-                        delayed_attr_data = temp_row if (delayed_attr_data is None) \
-                            else np.vstack((delayed_attr_data, temp_row))
+                        delayed_attr_data = temp_col if (delayed_attr_data is None) \
+                            else np.vstack((delayed_attr_data, temp_col))
                     # print(f"Time Diffs: {time_diffs}\n")
                     # print(f"{self.full_attr_data}: {type(self.full_attr_data)}\n")
                     # print(f"{delayed_attr_data}: {type(delayed_attr_data)}\n")
@@ -198,7 +200,28 @@ class TGrad(OrigGRAANK):
         else:
             tri_mf_data = None
 
-        time_data: dict = {"time_data": time_delay_data, "gp_set": None, "tri_mf": tri_mf_data, "alg": "TGrad"}
+        if type(self) is TGrad:
+            time_data: dict = {"time_data": time_delay_data, "use_gp": False, "tri_mf": tri_mf_data}
+        else:
+            time_data: dict = {"time_data": time_delay_data, "use_gp": True, "tri_mf": tri_mf_data}
+        data_df = pd.DataFrame(attr_data.T, columns=self.titles)
+        mine_obj = GRAANK(data_df, min_sup=self.thd_supp, eq=self._include_equal_values)
+        mine_obj.discover(search_type='apriori', target_col=self._target_col, time_data=time_data, compute_descriptors=False)
+        for raw_gp in mine_obj.mining_engine.gradual_patterns:
+            t_lag = TimeDelay(6400, 0.5)
+            if t_lag.valid:
+                tgp: TGP = TGP()
+                for gi in raw_gp.gradual_items:
+                    if gi.attribute_col == self._target_col:
+                        tgp.target_gradual_item = gi
+                    else:
+                        tgp.add_temporal_gradual_item(gi, t_lag)
+                tgp.support = raw_gp.support
+                #warping_set_arr = np.array(DataGP.gen_gradual_warping_set(gi_data.bin_mat, as_array=True))
+                #tgp.compute_descriptors(warping_set_arr, obj_count=self.row_count)
+                t_gps.append(tgp)
+        return t_gps
+
         invalid_count = 0
         while valid_bins_dict:
             valid_bins_dict, inv_count = self._gen_apriori_candidates(valid_bins_dict, target_col=self._target_col)

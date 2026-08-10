@@ -181,13 +181,14 @@ class BaseGrad(DataGP):
         return temp_gp
 
     @staticmethod
-    def cost_function(position: float|None, valid_bins_dict: dict|None) -> float:
+    def cost_function(position: float|None, valid_bins_dict: dict|None, time_data: dict|None= None) -> float:
         """Description
 
         Computes the fitness of a GP
 
         :param position: a value in the numeric search space
         :param valid_bins_dict: a dictionary of valid bins
+        :param time_data: (optional) time data for estimating time lag
         :return: a floating point value that represents the fitness of the position
         """
 
@@ -207,7 +208,7 @@ class BaseGrad(DataGP):
                 if pw_mat is None:
                     pw_mat = PairwiseMatrix(bin_mat=bin_dict.bin_mat, support=bin_dict.support, pattern=bin_dict.pattern)
                 else:
-                    pw_mat = GP.perform_and(pw_mat, bin_dict, -1)
+                    pw_mat = GP.perform_and(pw_mat, bin_dict, -1, time_data=time_data)
         bin_sum = int(np.sum(pw_mat.bin_mat)) if pw_mat is not None else 0
         if bin_sum > 0:
             cost = (1 / bin_sum)
@@ -217,7 +218,8 @@ class BaseGrad(DataGP):
         return cost
 
     @staticmethod
-    def evaluate_candidate(candidate: "BaseGrad.Candidate|None", s_space: "BaseGrad.SearchSpace|None", valid_bins_dict: dict | None)-> "BaseGrad.SearchSpace|None":
+    def evaluate_candidate(candidate: "BaseGrad.Candidate|None", s_space: "BaseGrad.SearchSpace|None",
+                           valid_bins_dict: dict|None, time_data: dict|None= None)-> "BaseGrad.SearchSpace|None":
         """"""
 
         if candidate is None or s_space is None or valid_bins_dict is None:
@@ -234,7 +236,7 @@ class BaseGrad(DataGP):
         apply_bound()
         # Update: What about duplicate candidate (position already exists in the search-space)?
         
-        candidate.cost = BaseGrad.cost_function(candidate.position, valid_bins_dict)
+        candidate.cost = BaseGrad.cost_function(candidate.position, valid_bins_dict, time_data)
         if candidate.cost == 1:
             s_space.invalid_count += 1
         if candidate.cost is not None and s_space.best_sol.cost is not None:

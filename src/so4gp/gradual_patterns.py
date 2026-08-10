@@ -629,9 +629,12 @@ class GP:
         sup = float(np.sum(bin_mat)) / float(dim * (dim - 1.0) / 2.0)
         if time_data is not None:
             t_data = time_data["time_data"]
-            gp_set = time_data["gp_set"]
+            use_gp = time_data["use_gp"]
             fuzzy_mf = time_data["tri_mf"]
+            gp_set = gp if use_gp else None
             t_lag = TimeDelay.approx_time_lag(bin_mat, t_data, gi_arr=gp_set, tri_mf_data=fuzzy_mf)
+            #if t_lag.valid:
+            #print(t_lag.formatted_time)
             return PairwiseMatrix(bin_mat=bin_mat, support=sup, time_lag=t_lag, pattern=gp)
         return PairwiseMatrix(bin_mat=bin_mat, support=sup, pattern=gp)
 

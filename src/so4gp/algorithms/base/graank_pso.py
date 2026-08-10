@@ -42,13 +42,14 @@ class ParticleGRAANK(BaseGrad):
         self._coeff_p: float = coeff_p
         self._coeff_g: float = coeff_g
 
-    def discover(self, ignore_support: bool = False, target_col: int | None = None, exclude_target: bool = False) -> dict:
+    def discover(self, ignore_support: bool = False, target_col: int | None = None, time_data: dict|None= None, exclude_target: bool = False) -> dict:
         """
         Searches through particle positions to find GP candidates. The candidates are validated if their computed
         support is greater than or equal to the minimum support threshold specified by the user.
 
         :param ignore_support: Do not filter extracted GPs using a user-defined minimum support threshold.
         :param target_col: Target feature's column index.
+        :param time_data: (optional) time data for estimating time lag.
         :param exclude_target: Only accept GP candidates that do not contain the target feature.
 
         :return: A dict object

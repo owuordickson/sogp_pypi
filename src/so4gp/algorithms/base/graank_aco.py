@@ -136,7 +136,7 @@ class AntGRAANK(BaseGrad):
                 p_matrix[j][i] += 1
         return p_matrix
 
-    def discover(self, ignore_support: bool = False, target_col: int | None = None, exclude_target: bool = False) -> dict:
+    def discover(self, ignore_support: bool = False, target_col: int|None = None, time_data: dict|None= None, exclude_target: bool = False) -> dict:
         """
         Applies ant-colony optimization algorithm and uses pheromone levels to find GP candidates. The candidates are
         validated if their computed support is greater than or equal to the minimum support threshold specified by the
@@ -144,6 +144,7 @@ class AntGRAANK(BaseGrad):
 
         :param ignore_support: Do not filter extracted GPs using a user-defined minimum support threshold.
         :param target_col: Target feature's column index.
+        :param time_data: (optional) time data for estimating time lag.
         :param exclude_target: Only accept GP candidates that do not contain the target feature.
 
         :return: A dict object
@@ -189,7 +190,7 @@ class AntGRAANK(BaseGrad):
                     is_sub = rand_gp.check_am(self.gradual_patterns, subset=True)
                     if is_super or is_sub:
                         continue
-                    gen_gp: GP = rand_gp.validate_graank(self)
+                    gen_gp: GP = rand_gp.validate_graank(self, time_data=time_data)
                     is_present = gen_gp.is_duplicate(self.gradual_patterns, loser_gps)
                     is_sub = gen_gp.check_am(self.gradual_patterns, subset=True)
                     if is_present or is_sub:

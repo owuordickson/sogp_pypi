@@ -321,13 +321,14 @@ class GP:
         params = self.get_computed_descriptors(descriptor_title)
         return pattern, params
 
-    def validate_graank(self, d_gp) -> "GP":
+    def validate_graank(self, d_gp, time_data: dict|None=None) -> "GP":
         """
         Validates a candidate gradual pattern (GP) based on support computation. A GP is invalid if its support value is
         less than the minimum support threshold set by the user. It uses a breath-first approach to compute support.
 
-        :param d_gp: Data_GP object
+        :param d_gp: a DataGP object
         :type d_gp: so4gp.DataGP # noinspection PyTypeChecker
+        :param time_data: (optional) time data for estimating time lag.
 
         :return: A valid GP or an empty GP
         """

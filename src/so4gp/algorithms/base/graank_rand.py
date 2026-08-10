@@ -57,7 +57,7 @@ class RandomGRAANK(BaseGrad):
             candidate.position = ((s_space.var_min + random.random()) * (s_space.var_max - s_space.var_min))
 
             # Evaluate candidate
-            BaseGrad.evaluate_candidate(candidate, s_space, self.valid_bins)
+            BaseGrad.evaluate_candidate(candidate, s_space, self.valid_bins, time_data=time_data)
 
             # Evaluate GP
             _, repeated = BaseGrad.evaluate_gradual_pattern(repeated, s_space, self, ignore_support, target_col, exclude_target)

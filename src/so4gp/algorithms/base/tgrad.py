@@ -175,7 +175,7 @@ class TGrad(OrigGRAANK):
         :param clustering_method: Find and approximate the best time-delay value using KMeans and Hill-climbing approach.
         :return: Temporal-GPs as a list.
         """
-        print(f"{self}\n{time_delay_data}\n\n")
+        #print(f"{self}\n{time_delay_data}\n\n")
 
         try:
             # If min-rep is too low
@@ -198,6 +198,7 @@ class TGrad(OrigGRAANK):
         else:
             tri_mf_data = None
 
+        time_data: dict = {"time_data": time_delay_data, "gp_set": None, "tri_mf": tri_mf_data, "alg": "TGrad"}
         invalid_count = 0
         while valid_bins_dict:
             valid_bins_dict, inv_count = self._gen_apriori_candidates(valid_bins_dict, target_col=self._target_col)

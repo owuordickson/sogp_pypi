@@ -28,6 +28,7 @@ class PairwiseMatrix:
     """A data-class for storing pairwise (bitmap) matrix and its support value."""
     bin_mat: np.ndarray
     support: float
+    time_lag: TimeDelay|None=None
 
 
 class GI:
@@ -605,18 +606,25 @@ class GP:
         return new_gp
 
     @staticmethod
-    def perform_and(bin_data_1: "PairwiseMatrix|None", bin_data_2: "PairwiseMatrix|None", dim: int) -> "PairwiseMatrix":
+    def perform_and(bin_data_1: "PairwiseMatrix|None", bin_data_2: "PairwiseMatrix|None", dim: int, time_data: dict|None=None) -> "PairwiseMatrix":
         """
         Perform logical AND operation on two bitmaps.
 
         :param bin_data_1: Bitmap 1
         :param bin_data_2: bitmap 2
         :param dim: dimension of the bitmaps
+        :param time_data: (optional) time data for estimating time lag
         """
         if bin_data_1 is None or bin_data_2 is None:
             return PairwiseMatrix(bin_mat=np.zeros((dim, dim)), support=0)
         bin_mat = bin_data_1.bin_mat * bin_data_2.bin_mat
         sup = float(np.sum(bin_mat)) / float(dim * (dim - 1.0) / 2.0)
+        if time_data is not None:
+            t_data = time_data["time_data"]
+            gp_set = time_data["gp_set"]
+            fuzzy_mf = time_data["tri_mf"]
+            t_lag = TimeDelay.approx_time_lag(bin_mat, t_data, gi_arr=gp_set, tri_mf_data=fuzzy_mf)
+            return PairwiseMatrix(bin_mat=bin_mat, support=sup, time_lag=t_lag)
         return PairwiseMatrix(bin_mat=bin_mat, support=sup)
 
 
@@ -856,7 +864,7 @@ class TimeDelay:
 
         # 2. Get TimeDelay Array
         selected_rows = np.unique(indices.flatten())
-        if gi_arr is not None and time_data is not None:
+        if gi_arr is not None and isinstance(time_data, dict):
             ## time_data = {col1: [row time-lags], col2: [row time-lags]}
             t_lag_lst = []
             sel_cols: set = set(time_data.keys())

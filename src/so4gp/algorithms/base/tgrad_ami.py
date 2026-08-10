@@ -235,7 +235,6 @@ class TGradAMI(TGrad):
                 'Transformed Data': np.vstack(
                     (np.array(title_row), delayed_data.T if delayed_data is not None else np.array([]))),
             }
-            print(self.transformation_data)
 
         duration = time.time() - start
         out_dict: dict[str, str | list | np.ndarray | None | dict] = {

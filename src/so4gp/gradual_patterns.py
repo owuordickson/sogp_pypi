@@ -16,6 +16,7 @@ A collection of Gradual Pattern classes and methods.
 """
 
 
+import copy
 import numpy as np
 import skfuzzy as fuzzy
 from dataclasses import dataclass
@@ -28,6 +29,7 @@ class PairwiseMatrix:
     """A data-class for storing pairwise (bitmap) matrix and its support value."""
     bin_mat: np.ndarray
     support: float
+    pattern: set[str]
     time_lag: TimeDelay|None=None
 
 
@@ -332,7 +334,7 @@ class GP:
         # pattern = [('2', "+"), ('4', "+")]
         min_supp = d_gp.thd_supp
         n = d_gp.attr_size
-        gi_dict = d_gp.valid_bins.copy()
+        gi_dict = copy.deepcopy(d_gp.valid_bins)
         gi_key_list = list(gi_dict.keys())
 
         gen_pattern: GP = GP()
@@ -348,9 +350,14 @@ class GP:
                     pw_mat_2 = gi_dict[gi_key_list[i]]
                     res_pw_mat = GP.perform_and(pw_mat_1, pw_mat_2, n)
                     if res_pw_mat.support >= min_supp:
-                        pw_mat_1 = PairwiseMatrix(bin_mat=res_pw_mat.bin_mat.copy(), support=res_pw_mat.support)
+                        # gen_pattern.add_gradual_item(gi)
+                        # gen_pattern.support = res_pw_mat.support
                         gen_pattern.add_gradual_item(gi)
                         gen_pattern.support = res_pw_mat.support
+                        pw_mat_1 = PairwiseMatrix(
+                            bin_mat=copy.deepcopy(res_pw_mat.bin_mat),
+                            support=res_pw_mat.support,
+                            pattern=gen_pattern.as_set)
         if len(gen_pattern.gradual_items) <= 1:
             return self
         else:
@@ -384,11 +391,11 @@ class GP:
                         temp_tids = set(gi_tids)
                         gen_pattern.add_gradual_item(gi)
                     else:
-                        temp = set((temp_tids or {}).copy())
+                        temp = set(copy.deepcopy(temp_tids or {}))
                         temp = temp.intersection(set(gi_tids))
                         supp = float(len(temp)) / float(n * (n - 1.0) / 2.0)
                         if supp >= min_supp:
-                            temp_tids = temp.copy()
+                            temp_tids = copy.deepcopy(temp)
                             gen_pattern.add_gradual_item(gi)
                             gen_pattern.support = supp
         if len(gen_pattern.gradual_items) <= 1:
@@ -616,16 +623,17 @@ class GP:
         :param time_data: (optional) time data for estimating time lag
         """
         if bin_data_1 is None or bin_data_2 is None:
-            return PairwiseMatrix(bin_mat=np.zeros((dim, dim)), support=0)
+            return PairwiseMatrix(bin_mat=np.zeros((dim, dim)), support=0, pattern=set())
         bin_mat = bin_data_1.bin_mat * bin_data_2.bin_mat
+        gp = bin_data_1.pattern | bin_data_2.pattern  # union of both sets to create a GP with only unique GIs
         sup = float(np.sum(bin_mat)) / float(dim * (dim - 1.0) / 2.0)
         if time_data is not None:
             t_data = time_data["time_data"]
             gp_set = time_data["gp_set"]
             fuzzy_mf = time_data["tri_mf"]
             t_lag = TimeDelay.approx_time_lag(bin_mat, t_data, gi_arr=gp_set, tri_mf_data=fuzzy_mf)
-            return PairwiseMatrix(bin_mat=bin_mat, support=sup, time_lag=t_lag)
-        return PairwiseMatrix(bin_mat=bin_mat, support=sup)
+            return PairwiseMatrix(bin_mat=bin_mat, support=sup, time_lag=t_lag, pattern=gp)
+        return PairwiseMatrix(bin_mat=bin_mat, support=sup, pattern=gp)
 
 
 class TimeDelay:

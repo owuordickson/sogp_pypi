@@ -254,8 +254,8 @@ class DataGP:
                 # 2b. Check support of each generated item set
                 supp = float(np.sum(temp_pos)) / float(n * (n - 1.0) / 2.0)
                 if (supp >= self._thd_supp )and (self._valid_bins is not None):
-                    self._valid_bins[f"{col}+"] = PairwiseMatrix(bin_mat=temp_pos, support=supp)
-                    self._valid_bins[f"{col}-"] = PairwiseMatrix(bin_mat=temp_pos.T, support=supp)
+                    self._valid_bins[f"{col}+"] = PairwiseMatrix(bin_mat=temp_pos, support=supp, pattern={f"{col}+"})
+                    self._valid_bins[f"{col}-"] = PairwiseMatrix(bin_mat=temp_pos.T, support=supp, pattern={f"{col}-"})
         # print(self._valid_bins)
         valid_bins_len = len(self._valid_bins) if self._valid_bins is not None else 0
         if valid_bins_len < 3:

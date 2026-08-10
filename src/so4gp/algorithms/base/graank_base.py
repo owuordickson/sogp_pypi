@@ -205,7 +205,7 @@ class BaseGrad(DataGP):
                 i = arg[0][0]
                 bin_dict = valid_bins_dict[gi_key_list[i]]
                 if pw_mat is None:
-                    pw_mat = PairwiseMatrix(bin_mat=bin_dict.bin_mat, support=bin_dict.support)
+                    pw_mat = PairwiseMatrix(bin_mat=bin_dict.bin_mat, support=bin_dict.support, pattern=bin_dict.pattern)
                 else:
                     pw_mat = GP.perform_and(pw_mat, bin_dict, -1)
         bin_sum = int(np.sum(pw_mat.bin_mat)) if pw_mat is not None else 0

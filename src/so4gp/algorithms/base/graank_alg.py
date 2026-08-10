@@ -103,7 +103,7 @@ class OrigGRAANK(BaseGrad):
                     gi_j = {gi_str_j}
 
                 # 2. Identify a GP candidate (create its inverse)
-                gp_cand = gi_i | gi_j
+                gp_cand = gi_i | gi_j  # Union of both sets
                 inv_gp_cand = {invert_symbol(x) for x in gp_cand}
 
                 # 3. Apply target-feature search
@@ -130,7 +130,7 @@ class OrigGRAANK(BaseGrad):
                         res_pw_mat: PairwiseMatrix = GP.perform_and(gi_dict[gi_str_i], gi_dict[gi_str_j], n)
                         if res_pw_mat.support > min_sup or ignore_sup:
                             # res_dict.append([gp_cand, bin_mat, sup])
-                            res_dict[tuple(gp_cand)] = res_pw_mat
+                            res_dict[tuple(res_pw_mat.pattern)] = res_pw_mat
                         else:
                             invalid_count += 1
                     all_candidates.append(gp_cand)

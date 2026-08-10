@@ -23,8 +23,8 @@ if __name__ == "__main__":
     # result_json = mine_obj.discover(search_type='aco', target_col=1, exclude_target=False)    # ACO
     # result_json = mine_obj.discover(search_type='ga', target_col=1, exclude_target=False, n_pop=10)     # GA
     # result_json = mine_obj.discover(search_type='pso', target_col=1, exclude_target=False)    # PSO
-    # result_json = mine_obj.discover(search_type='hl', target_col=1, exclude_target=False)     # HL
-    # result_json = mine_obj.discover(search_type='random', target_col=1, exclude_target=False) # Random
+    # result_json = mine_obj.discover(search_type='hc', target_col=1, exclude_target=False)     # HL
+    # result_json = mine_obj.discover(search_type='random', target_col=1, exclude_target=False, max_iteration=10) # Random
 
     # result_json = mine_obj1.discover(target_col=1, transformations='all')                                      # TGRAANK
     result_json = mine_obj1.discover(target_col=1, transformations='ami', use_clustering=False, eval_mode=True)  # TGRAANK-AMI

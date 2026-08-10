@@ -62,7 +62,7 @@ class DataGP:
         self._warping_set: dict | None = None
         self._attr_size: int = 0
         self._gradual_patterns = None
-        """:type _gradual_patterns: list[GP] | None"""
+        """:type _gradual_patterns: list[GP|TGP] | None"""
         self._init_attributes(create_time_index=add_time)
 
     @property
@@ -106,7 +106,7 @@ class DataGP:
         return self._attr_size
 
     @property
-    def gradual_patterns(self) -> list | None:
+    def gradual_patterns(self) -> list[GP|TGP] | None:
         return self._gradual_patterns
 
     @property
@@ -430,7 +430,7 @@ class DataGP:
             if approach == 'dfs':
                 true_gp = est_gp.validate_tree(d_set)
             else:
-                true_gp = est_gp.validate_graank(d_set)
+                true_gp = est_gp.validate_graank(d_set, target_col=None)
             true_sup = true_gp.support
 
             if true_sup == 0:

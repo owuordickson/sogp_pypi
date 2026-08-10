@@ -10,7 +10,7 @@ import numpy as np
 from typing import cast
 
 from .graank_base import BaseGrad
-from ...gradual_patterns import GI, GP, PairwiseMatrix
+from ...gradual_patterns import GI, GP, TGP, PairwiseMatrix
 
 
 class AntGRAANK(BaseGrad):
@@ -116,7 +116,7 @@ class AntGRAANK(BaseGrad):
         p_matrix = (1 - self._evaporation_factor) * p_matrix
         return pattern, p_matrix
 
-    def _update_pheromones(self, pattern: GP, p_matrix: np.ndarray):
+    def _update_pheromones(self, pattern: GP|TGP, p_matrix: np.ndarray):
         """
         Updates the pheromone level of the pheromone matrix
 
@@ -190,7 +190,7 @@ class AntGRAANK(BaseGrad):
                     is_sub = rand_gp.check_am(self.gradual_patterns, subset=True)
                     if is_super or is_sub:
                         continue
-                    gen_gp: GP = rand_gp.validate_graank(self, time_data=time_data)
+                    gen_gp: GP|TGP = rand_gp.validate_graank(self, target_col=target_col, time_data=time_data)
                     is_present = gen_gp.is_duplicate(self.gradual_patterns, loser_gps)
                     is_sub = gen_gp.check_am(self.gradual_patterns, subset=True)
                     if is_present or is_sub:

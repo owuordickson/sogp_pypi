@@ -330,13 +330,14 @@ class GP:
         params = self.get_computed_descriptors(descriptor_title)
         return pattern, params
 
-    def validate_graank(self, d_gp, time_data: dict|None=None) -> "GP":
+    def validate_graank(self, d_gp, target_col:int|None, time_data: dict|None=None) -> "GP|TGP":
         """
         Validates a candidate gradual pattern (GP) based on support computation. A GP is invalid if its support value is
         less than the minimum support threshold set by the user. It uses a breath-first approach to compute support.
 
         :param d_gp: a DataGP object
         :type d_gp: so4gp.DataGP # noinspection PyTypeChecker
+        :param target_col: (optional) target column for estimating time lag.
         :param time_data: (optional) time data for estimating time lag.
 
         :return: A valid GP or an empty GP
@@ -348,33 +349,49 @@ class GP:
 
         if time_data is not None:
             gen_pattern: TGP = TGP()
-        #else:
-        gen_pattern: GP = GP()
-        pw_mat_1: PairwiseMatrix | None = None
+        else:
+            gen_pattern: GP = GP()
+
+        target_gi = self.gradual_items[0]
+        if target_col is not None:
+            if f"{target_col}+" in self.as_set:
+                target_gi = GI(target_col, "+")
+            elif f"{target_col}-" in self.as_set:
+                target_gi = GI(target_col, "-")
+
+        pw_mat_1: PairwiseMatrix = gi_dict[target_gi.to_string()]
+        # gen_pattern.add_gradual_item(gi)
+        # print(f"First GI: {target_gi.to_string()} to {gen_pattern.as_set}")
+        time_lag = gi_dict[target_gi.to_string()].time_lag
+        GP.add_gradual_item_strict(gen_pattern, target_gi, target_col=target_col, time_lag=time_lag)
+
         #print(f"Validate: {self.as_set}")
         for gi in self.gradual_items:
-            temp_pw_mat = gi_dict[gi.to_string()]
-            if pw_mat_1 is None:
-                pw_mat_1 = copy.deepcopy(temp_pw_mat)
-                gen_pattern.add_gradual_item(gi)
+            if gi.to_string() == target_gi.to_string():
+                ## gen_pattern.add_gradual_item(gi)
                 #print(f"First GI: {gi.to_string()} to {gen_pattern.as_set}")
-                # GP.add_gradual_item_strict(gen_pattern, gi, target_col=target_col, time_lag=gi_data.time_lag)
+                #time_lag = gi_dict[target_gi.to_string()].time_lag
+                #GP.add_gradual_item_strict(gen_pattern, gi, target_col=target_col, time_lag=time_lag)
+                continue
             else:
-                # pw_mat_2 = temp_pw_mat
-                #print(f"Adding GI: {gi.to_string()} to {gen_pattern.as_set}")
-                res_pw_mat = GP.perform_and(pw_mat_1, temp_pw_mat, n, time_data=time_data)
+                pw_mat_2 = gi_dict[gi.to_string()]
+                # print(f"Adding GI: {gi.to_string()} to {gen_pattern.as_set}")
+                res_pw_mat = GP.perform_and(pw_mat_1, pw_mat_2, n, time_data=time_data)
                 if res_pw_mat.support >= min_supp:
-                    gen_pattern.add_gradual_item(gi)
+                    #gen_pattern.add_gradual_item(gi)
+                    #gen_pattern.time_lag = res_pw_mat.time_lag
+                    GP.add_gradual_item_strict(gen_pattern, gi, target_col=target_col, time_lag=res_pw_mat.time_lag)
                     gen_pattern.support = res_pw_mat.support
                     pw_mat_1 = PairwiseMatrix(
                         bin_mat=copy.deepcopy(res_pw_mat.bin_mat),
                         support=res_pw_mat.support,
-                        pattern=gen_pattern.as_set,
+                        pattern=res_pw_mat.pattern,
                         time_lag=res_pw_mat.time_lag)
         #print("\n")
         if len(gen_pattern.gradual_items) <= 1:
             return self
         else:
+            # print(f"Gen GIs: {gen_pattern.gradual_items}")
             return gen_pattern
 
     def validate_tree(self, d_gp):
@@ -417,7 +434,7 @@ class GP:
         else:
             return gen_pattern
 
-    def check_am(self, gp_list: list["GP"] | None, subset: bool = True) -> bool:
+    def check_am(self, gp_list: list["GP|TGP"] | None, subset: bool = True) -> bool:
         """
         Anti-monotonicity check. Checks if a GP is a subset or superset of an already existing GP
 
@@ -445,7 +462,7 @@ class GP:
                     break
         return result
 
-    def is_duplicate(self, valid_gps: list["GP"] | None, invalid_gps: list["GP"]|None = None) -> bool:
+    def is_duplicate(self, valid_gps: list["GP|TGP"] | None, invalid_gps: list["GP|TGP"]|None = None) -> bool:
         """
         Checks if a pattern is in the list of winner GPs or loser GPs
 
@@ -706,8 +723,6 @@ class GP:
             fuzzy_mf = time_data["tri_mf"]
             gp_set = gp if use_gp else None
             t_lag = TimeDelay.approx_time_lag(bin_mat, t_data, gi_arr=gp_set, tri_mf_data=fuzzy_mf)
-            #if t_lag.valid:
-            #print(t_lag.formatted_time)
             return PairwiseMatrix(bin_mat=bin_mat, support=sup, time_lag=t_lag, pattern=gp)
         return PairwiseMatrix(bin_mat=bin_mat, support=sup, pattern=gp)
 
@@ -1023,6 +1038,7 @@ class TGP(GP):
         if not isinstance(item, GI):
             raise TypeError("Target gradual item must be of type GI")
         self._target_gradual_item = item
+        self.add_gradual_item(item)
 
     @property
     def temporal_gradual_items(self) -> list[TemporalGI]:
@@ -1045,6 +1061,7 @@ class TGP(GP):
         if isinstance(item, GI) and isinstance(time_delay, TimeDelay):
             temp_gi = TGP.TemporalGI(gradual_item=item, time_delay=time_delay)
             self._temporal_gradual_items.append(temp_gi)
+            self.add_gradual_item(item)
         else:
             raise TypeError("Invalid arguments - require GI and TimeDelay objects")
 

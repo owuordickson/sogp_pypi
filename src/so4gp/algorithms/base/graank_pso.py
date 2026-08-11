@@ -70,14 +70,14 @@ class ParticleGRAANK(BaseGrad):
             for i in range(self._n_particles):
                 part_pos = s_space.pop[i].position
                 if part_pos is None:
-                    s_space.pop[i].cost = BaseGrad.cost_function(part_pos, self.valid_bins, time_data=time_data)
+                    s_space.pop[i].cost = self.cost_function(part_pos, time_data=time_data)
                     if s_space.pop[i].cost == 1:
                         s_space.invalid_count += 1
                     s_space.eval_count += 1
                 elif part_pos < s_space.var_min or part_pos > s_space.var_max:
                     s_space.pop[i].cost = 1
                 else:
-                    s_space.pop[i].cost = BaseGrad.cost_function(part_pos, self.valid_bins, time_data=time_data)
+                    s_space.pop[i].cost = self.cost_function(part_pos, time_data=time_data)
                     if s_space.pop[i].cost == 1:
                         s_space.invalid_count += 1
                     s_space.eval_count += 1
@@ -105,7 +105,7 @@ class ParticleGRAANK(BaseGrad):
                                (self._coeff_g * random.random()) * (gbest_particle.position - part_pos)
                     s_space.pop[i].position = s_space.pop[i].position + new_velocity
 
-            _, repeated = BaseGrad.evaluate_gradual_pattern(repeated, s_space, self, ignore_support, target_col, exclude_target)
+            _, repeated = self.evaluate_gradual_pattern(repeated, s_space, ignore_support, target_col, exclude_target)
             
         for gp in s_space.best_patterns:
             self.add_gradual_pattern(gp)

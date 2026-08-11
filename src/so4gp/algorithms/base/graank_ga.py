@@ -126,14 +126,14 @@ class GeneticGRAANK(BaseGrad):
 
                 # a. Perform Crossover
                 c1, c2 = self._crossover(p1, p2)
-                BaseGrad.evaluate_candidate(c1, s_space, self.valid_bins, time_data=time_data)
-                BaseGrad.evaluate_candidate(c2, s_space, self.valid_bins, time_data=time_data)
+                self.evaluate_candidate(c1, s_space, time_data=time_data)
+                self.evaluate_candidate(c2, s_space, time_data=time_data)
 
                 # b. Perform Mutation
                 c1 = self._mutate(c1)
                 c2 = self._mutate(c2)
-                BaseGrad.evaluate_candidate(c1, s_space, self.valid_bins, time_data=time_data)
-                BaseGrad.evaluate_candidate(c2, s_space, self.valid_bins, time_data=time_data)
+                self.evaluate_candidate(c1, s_space, time_data=time_data)
+                self.evaluate_candidate(c2, s_space, time_data=time_data)
 
                 # c. Add Offsprings to c_pop
                 c_pop.append(c1)
@@ -145,7 +145,7 @@ class GeneticGRAANK(BaseGrad):
             s_space.pop = s_space.pop[0:self._parent_pop]
 
             # Evaluate GP
-            _, repeated = BaseGrad.evaluate_gradual_pattern(repeated, s_space, self, ignore_support, target_col, exclude_target)
+            _, repeated = self.evaluate_gradual_pattern(repeated, s_space, ignore_support, target_col, exclude_target)
 
         for gp in s_space.best_patterns:
             self.add_gradual_pattern(gp)

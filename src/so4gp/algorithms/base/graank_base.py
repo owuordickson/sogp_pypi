@@ -55,19 +55,18 @@ class BaseGrad(DataGP):
             return "Population size is zero!"
 
         # Initialize search space
-        s_space = BaseGrad.initialize_numeric_search_space(self.valid_bins, pop_size, max_iter)
+        s_space = self._initialize_numeric_search_space(pop_size, max_iter)
         if s_space is None:
             return "Search space is empty!"
         return s_space
 
-    @staticmethod
-    def initialize_numeric_search_space(valid_bins_dict: dict | None, total_pop: int, max_iter: int):
+    def _initialize_numeric_search_space(self, total_pop: int, max_iter: int):
         """Create a population of candidate solutions."""
+        valid_bins_dict = self.valid_bins
         if valid_bins_dict is None:
             return None
 
-        gi_key_list = list(valid_bins_dict.keys())
-        attr_keys = [GI.from_string(gi_str).to_string() for gi_str in gi_key_list]
+        attr_keys = list(valid_bins_dict.keys())
 
         # Empty Individual Template
         empty_candidate = BaseGrad.Candidate (
@@ -86,7 +85,7 @@ class BaseGrad(DataGP):
         # Initialize best candidate
         best_candidate = BaseGrad.Candidate(
             position=pop[0].position,
-            cost = BaseGrad.cost_function(pop[0].position, valid_bins_dict)
+            cost = self.cost_function(pop[0].position)
         )
 
         # Initialize SearchSpace parameters
@@ -152,8 +151,7 @@ class BaseGrad(DataGP):
         # Accept only candidates containing the target feature.
         return has_target
 
-    @staticmethod
-    def decode_gp(position: float|None, valid_bins_dict: dict|None) -> GP:
+    def _decode_gp(self, position: float|None) -> GP:
         """Description
 
         Decodes a numeric value (position) into a GP
@@ -164,6 +162,7 @@ class BaseGrad(DataGP):
         """
 
         temp_gp: GP = GP()
+        valid_bins_dict = self.valid_bins
         if position is None or valid_bins_dict is None:
             return temp_gp
 
@@ -178,10 +177,10 @@ class BaseGrad(DataGP):
                 gi = GI.from_string(attr_keys[i])
                 if not temp_gp.contains_attr(gi):
                     temp_gp.add_gradual_item(gi)
+                    # GP.add_gradual_item_strict(temp_gp, gi, target_col=target_col, time_lag=res_pw_mat.time_lag)
         return temp_gp
 
-    @staticmethod
-    def cost_function(position: float|None, valid_bins_dict: dict|None, time_data: dict|None= None) -> float:
+    def cost_function(self, position: float|None, time_data: dict|None= None) -> float:
         """Description
 
         Computes the fitness of a GP
@@ -193,22 +192,18 @@ class BaseGrad(DataGP):
         """
 
         cost = 1
+        valid_bins_dict = self.valid_bins
         if valid_bins_dict is None or position is None:
             return cost
 
-        gi_key_list = list(valid_bins_dict.keys())
-        pattern = BaseGrad.decode_gp(position, valid_bins_dict)
-
+        pattern = self._decode_gp(position)
         pw_mat: PairwiseMatrix|None = None
         for gi in pattern.gradual_items:
-            arg = np.argwhere(np.isin(np.array(gi_key_list), gi.to_string()))
-            if len(arg) > 0:
-                i = arg[0][0]
-                bin_dict = valid_bins_dict[gi_key_list[i]]
-                if pw_mat is None:
-                    pw_mat = PairwiseMatrix(bin_mat=bin_dict.bin_mat, support=bin_dict.support, pattern=bin_dict.pattern)
-                else:
-                    pw_mat = GP.perform_and(pw_mat, bin_dict, -1, time_data=time_data)
+            bin_dict = valid_bins_dict[gi.to_string()]
+            if pw_mat is None:
+                pw_mat = PairwiseMatrix(bin_mat=bin_dict.bin_mat, support=bin_dict.support, pattern=bin_dict.pattern)
+            else:
+                pw_mat = GP.perform_and(pw_mat, bin_dict, dim=-1, time_data=time_data)
         bin_sum = int(np.sum(pw_mat.bin_mat)) if pw_mat is not None else 0
         if bin_sum > 0:
             cost = (1 / bin_sum)
@@ -217,11 +212,11 @@ class BaseGrad(DataGP):
             #    gp.compute_descriptors(warping_set_arr, obj_count=self.row_count)
         return cost
 
-    @staticmethod
-    def evaluate_candidate(candidate: "BaseGrad.Candidate|None", s_space: "BaseGrad.SearchSpace|None",
-                           valid_bins_dict: dict|None, time_data: dict|None= None)-> "BaseGrad.SearchSpace|None":
+    def evaluate_candidate(self, candidate: "BaseGrad.Candidate|None", s_space: "BaseGrad.SearchSpace|None",
+                           time_data: dict|None= None)-> "BaseGrad.SearchSpace|None":
         """"""
 
+        valid_bins_dict = self.valid_bins
         if candidate is None or s_space is None or valid_bins_dict is None:
             return s_space
 
@@ -236,7 +231,7 @@ class BaseGrad(DataGP):
         apply_bound()
         # Update: What about duplicate candidate (position already exists in the search-space)?
         
-        candidate.cost = BaseGrad.cost_function(candidate.position, valid_bins_dict, time_data)
+        candidate.cost = self.cost_function(candidate.position, time_data)
         if candidate.cost == 1:
             s_space.invalid_count += 1
         if candidate.cost is not None and s_space.best_sol.cost is not None:
@@ -245,13 +240,12 @@ class BaseGrad(DataGP):
         s_space.eval_count += 1
         return s_space
 
-    @staticmethod
-    def evaluate_gradual_pattern(repeat_count: int, s_space: "BaseGrad.SearchSpace", base_grad: BaseGrad,
-                                 ignore_support: bool = False, target_col: int | None = None, exclude_target: bool = False) -> tuple["BaseGrad.SearchSpace", int]:
+    def evaluate_gradual_pattern(self, repeat_count: int, s_space: "BaseGrad.SearchSpace", ignore_support: bool = False,
+                                 target_col: int | None = None, exclude_target: bool = False) -> tuple["BaseGrad.SearchSpace", int]:
         """"""
 
-        dim = base_grad.attr_size
-        best_gp: GP = BaseGrad.decode_gp(s_space.best_sol.position, base_grad.valid_bins)
+        dim = self.attr_size
+        best_gp: GP = self._decode_gp(s_space.best_sol.position)
         best_gp.support = float(1 / s_space.best_sol.cost) / float(dim * (dim - 1.0) / 2.0)
 
         is_present = best_gp.is_duplicate(s_space.best_patterns)
@@ -265,9 +259,9 @@ class BaseGrad(DataGP):
             if not target_col_ok:
                 return s_space, repeat_count
 
-            if best_gp.support >= base_grad.thd_supp or ignore_support:
+            if best_gp.support >= self.thd_supp or ignore_support:
                 s_space.best_patterns.append(best_gp)
-                s_space.str_best_gps.append(best_gp.print(base_grad.titles))
+                s_space.str_best_gps.append(best_gp.print(self.titles))
 
         try:
             # Show Iteration Information (store Best Cost)

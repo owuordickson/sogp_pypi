@@ -65,8 +65,8 @@ class RandomGRAANK(BaseGrad):
 
             # Evaluate GP
             repeated = self.evaluate_gradual_pattern(repeated, ignore_support, target_col, exclude_target)
-
-        for gp in s_space.best_patterns:
+            s_space.iter_count += 1
+        for gp in s_space.valid_patterns:
             self.add_gradual_pattern(gp)
 
         duration = time.time() - start

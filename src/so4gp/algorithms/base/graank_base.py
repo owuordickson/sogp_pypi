@@ -6,6 +6,8 @@
 
 
 import random
+from wsgiref import validate
+
 import numpy as np
 from dataclasses import dataclass
 from ...data_gp import DataGP
@@ -27,9 +29,8 @@ class BaseGrad(DataGP):
         iter_count: int
         eval_count: int
         invalid_count: int
-        best_sol: "BaseGrad.Candidate"
-        best_patterns: list[GP|TGP]
-        str_best_gps: list
+        best_candidate: "BaseGrad.Candidate"
+        valid_patterns: list[GP | TGP]
         pop: list["BaseGrad.Candidate"]
 
     def __init__(self, *args, **kwargs):
@@ -98,9 +99,8 @@ class BaseGrad(DataGP):
             invalid_count=0,
             var_min=var_min,
             var_max=var_max,
-            best_sol=best_candidate,
-            best_patterns=[],
-            str_best_gps=[],
+            best_candidate=best_candidate,
+            valid_patterns=[],
             pop=pop,
         )
         return search_space
@@ -172,6 +172,7 @@ class BaseGrad(DataGP):
 
         valid_bins_dict = self.valid_bins
         s_space = self.search_space
+        dim = self.attr_size
         if candidate is None or s_space is None or valid_bins_dict is None:
             return s_space
 
@@ -189,9 +190,10 @@ class BaseGrad(DataGP):
         self._cost_function(candidate, time_data)
         if candidate.cost == 1:
             s_space.invalid_count += 1
-        if candidate.cost is not None and s_space.best_sol.cost is not None:
-            if candidate.cost < s_space.best_sol.cost:
-                s_space.best_sol = BaseGrad.Candidate(position=candidate.position, cost=candidate.cost)
+        if candidate.cost is not None and s_space.best_candidate.cost is not None:
+            if candidate.cost < s_space.best_candidate.cost:
+                s_space.best_candidate = BaseGrad.Candidate(position=candidate.position, cost=candidate.cost)
+            support = float(1 / s_space.best_candidate.cost) / float(dim * (dim - 1.0) / 2.0)
         s_space.eval_count += 1
         return s_space
 
@@ -203,11 +205,11 @@ class BaseGrad(DataGP):
         if s_space is None:
             return repeat_count
 
-        best_gp: GP = self._decode_gp(s_space.best_sol.position)
-        best_gp.support = float(1 / s_space.best_sol.cost) / float(dim * (dim - 1.0) / 2.0)
+        best_gp: GP = self._decode_gp(s_space.best_candidate.position)
+        best_gp.support = float(1 / s_space.best_candidate.cost) / float(dim * (dim - 1.0) / 2.0)
 
-        is_present = best_gp.is_duplicate(s_space.best_patterns)
-        is_sub = best_gp.check_am(s_space.best_patterns, subset=True)
+        is_present = best_gp.is_duplicate(s_space.valid_patterns)
+        is_sub = best_gp.check_am(s_space.valid_patterns, subset=True)
 
         if is_present or is_sub:
             repeat_count += 1
@@ -218,10 +220,8 @@ class BaseGrad(DataGP):
                 return repeat_count
 
             if best_gp.support >= self.thd_supp or ignore_support:
-                s_space.best_patterns.append(best_gp)
-                s_space.str_best_gps.append(best_gp.print(self.titles))
+                s_space.valid_patterns.append(best_gp)
 
-        s_space.iter_count += 1
         return repeat_count
 
     @staticmethod

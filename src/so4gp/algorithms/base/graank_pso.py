@@ -85,9 +85,9 @@ class ParticleGRAANK(BaseGrad):
                         gbest_particle.position = part_pos
             # if abs(gbest_fitness_value - self.target) < self.target_error:
             #    break
-            if gbest_particle.cost is not None and s_space.best_sol.cost is not None:
-                if s_space.best_sol.cost > gbest_particle.cost:
-                    s_space.best_sol = BaseGrad.Candidate(position=gbest_particle.position, cost=gbest_particle.cost)
+            if gbest_particle.cost is not None and s_space.best_candidate.cost is not None:
+                if s_space.best_candidate.cost > gbest_particle.cost:
+                    s_space.best_candidate = BaseGrad.Candidate(position=gbest_particle.position, cost=gbest_particle.cost)
 
             for i in range(self._n_particles):
                 part_pos = s_space.pop[i].position
@@ -98,8 +98,8 @@ class ParticleGRAANK(BaseGrad):
                     s_space.pop[i].position = s_space.pop[i].position + new_velocity
 
             repeated = self.evaluate_gradual_pattern(repeated, ignore_support, target_col, exclude_target)
-            
-        for gp in s_space.best_patterns:
+            s_space.iter_count += 1
+        for gp in s_space.valid_patterns:
             self.add_gradual_pattern(gp)
 
         duration = time.time() - start

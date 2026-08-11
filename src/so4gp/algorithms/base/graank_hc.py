@@ -65,7 +65,7 @@ class HillClimbingGRAANK(BaseGrad):
             # take a step
             candidate.position = None
             if candidate.position is None:
-                best_pos = s_space.best_sol.position
+                best_pos = s_space.best_candidate.position
                 if best_pos is not None:
                     candidate.position = best_pos + (random.randrange(s_space.var_min, s_space.var_max) * self._step_size)
 
@@ -74,8 +74,8 @@ class HillClimbingGRAANK(BaseGrad):
 
             # Evaluate GP
             repeated = self.evaluate_gradual_pattern(repeated, ignore_support, target_col, exclude_target)
-
-        for gp in s_space.best_patterns:
+            s_space.iter_count += 1
+        for gp in s_space.valid_patterns:
             self.add_gradual_pattern(gp)
 
         duration = time.time() - start

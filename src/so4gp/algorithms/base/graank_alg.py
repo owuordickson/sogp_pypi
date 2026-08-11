@@ -34,17 +34,14 @@ class OrigGRAANK(BaseGrad):
         """
         super(OrigGRAANK, self).__init__(*args, **kwargs)
 
-    def _gen_apriori_candidates(self, gi_dict: dict|None, ignore_sup: bool = False,
-                                target_col: int | None = None, time_data: dict|None= None, exclude_target: bool = False) -> dict:
+    def _gen_apriori_candidates(self, gi_dict: dict|None, time_data: dict|None= None, exclude_target: bool = False) -> dict:
         """
         Generates Apriori GP candidates (w.r.t target-feature/reference-column if provided). If a user wishes to generate
         candidates that do not contain the target-feature, then they do so by specifying the exclude_target parameter.
 
         :param gi_dict: List of GIs together with bitmap arrays.
-        :param ignore_sup: Do not filter GPs based on the minimum support threshold.
-        :param target_col: Target feature's column index.
-
         :param exclude_target: Only accepts GP candidates that do not contain the target feature.
+
         :return: List of extracted GPs.
         """
 
@@ -64,6 +61,7 @@ class OrigGRAANK(BaseGrad):
                 return gi_item
 
         search_space = self.search_space
+        target_col = self._target_col
         min_sup = self.thd_supp
         n = self.attr_size
 
@@ -118,7 +116,7 @@ class OrigGRAANK(BaseGrad):
                             repeated_attr = k[0]
                     if test == 1:
                         res_pw_mat: PairwiseMatrix = GP.perform_and(gi_dict[gi_str_i], gi_dict[gi_str_j], n, time_data)
-                        if res_pw_mat.support > min_sup or ignore_sup:
+                        if res_pw_mat.support > min_sup:
                             res_dict[tuple(res_pw_mat.pattern)] = res_pw_mat
                         else:
                             if search_space is not None:
@@ -127,13 +125,12 @@ class OrigGRAANK(BaseGrad):
                     gc.collect()
         return res_dict
 
-    def discover(self, ignore_support: bool = False, apriori_level: int | None = None,
+    def discover(self, apriori_level: int | None = None,
                  target_col: int | None = None, time_data: dict|None= None, exclude_target: bool = False, compute_descriptors: bool = True) -> dict:
         """
         Uses apriori algorithm to find gradual pattern (GP) candidates. The candidates are validated if their computed
         support is greater than or equal to the minimum support threshold specified by the user.
 
-        :param ignore_support: Do not filter extracted GPs using a user-defined minimum support threshold.
         :param apriori_level: Maximum APRIORI level for generating candidates.
         :param target_col: Target feature's column index.
         :param time_data: (optional) time data for estimating time lag.
@@ -144,13 +141,10 @@ class OrigGRAANK(BaseGrad):
         """
 
         start = time.time()
-        try:
-            self.init_search_space(1)
-            s_space = self.search_space
-            if s_space is None:
-                return {"Error": "Search space is empty!"}
-        except ValueError as e:
-            return {"Error": e}
+        self._target_col = target_col
+        s_space = self.blank_search_space()
+        if s_space is None:
+            return {"Error": "Search space is empty!"}
         valid_bins_dict: dict|None = copy.deepcopy(self.valid_bins)
 
         if valid_bins_dict is None:
@@ -158,9 +152,7 @@ class OrigGRAANK(BaseGrad):
 
         candidate_level = 1
         while valid_bins_dict:
-            valid_bins_dict = self._gen_apriori_candidates(valid_bins_dict, ignore_sup=ignore_support,
-                                                                 target_col=target_col, time_data=time_data,
-                                                                 exclude_target=exclude_target)
+            valid_bins_dict = self._gen_apriori_candidates(valid_bins_dict, time_data=time_data, exclude_target=exclude_target)
 
             for gp_set, gi_data in (valid_bins_dict or {}).items():
                 self.remove_subsets(set(gp_set))

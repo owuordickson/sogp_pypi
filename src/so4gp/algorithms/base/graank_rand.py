@@ -33,12 +33,11 @@ class RandomGRAANK(BaseGrad):
         self._max_iteration: int = max_iter
         self._n_var: int = 1
 
-    def discover(self, ignore_support: bool = False, target_col: int | None = None, time_data: dict|None= None, exclude_target: bool = False) -> dict:
+    def discover(self, target_col: int | None = None, time_data: dict|None= None, exclude_target: bool = False) -> dict:
         """
         Uses random search to find GP candidates. The candidates are validated if their computed support is greater
         than or equal to the minimum support threshold specified by the user.
 
-        :param ignore_support: Do not filter extracted GPs using a user-defined minimum support threshold.
         :param target_col: Target feature's column index.
         :param time_data: (optional) time data for estimating time lag.
         :param exclude_target: Only accept GP candidates that do not contain the target feature.
@@ -47,13 +46,10 @@ class RandomGRAANK(BaseGrad):
         """
 
         start = time.time()
-        try:
-            self.init_search_space(1)
-            s_space = self.search_space
-            if s_space is None:
-                return {"Error": "Search space is empty!"}
-        except ValueError as e:
-            return {"Error": e}
+        self._target_col = target_col
+        s_space = self.blank_search_space()
+        if s_space is None:
+            return {"Error": "Search space is empty!"}
 
         candidate =BaseGrad.Candidate()
         while s_space.iter_count < self._max_iteration:
@@ -61,13 +57,10 @@ class RandomGRAANK(BaseGrad):
             candidate.position = ((s_space.var_min + random.random()) * (s_space.var_max - s_space.var_min))
 
             # Evaluate candidate
-            self.evaluate_candidate(candidate, time_data=time_data)
+            self.evaluate_candidate(candidate, exclude_target, time_data=time_data)
 
-            # Evaluate GP
-            self.evaluate_gradual_pattern(ignore_support, target_col, exclude_target)
+            # Increment iteration count
             s_space.iter_count += 1
-        for gp in s_space.valid_patterns:
-            self.add_gradual_pattern(gp)
 
         duration = time.time() - start
         out_dict: dict[str, str | list] = {

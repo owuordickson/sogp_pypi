@@ -74,17 +74,17 @@ class AntGRAANK(BaseGrad):
         self._attribute_keys: list[str] = attr_keys
         gc.collect()
 
-    def _gen_aco_candidates(self, p_matrix: np.ndarray, target_col: int | None = None, exclude_target: bool = True):
+    def _gen_aco_candidates(self, p_matrix: np.ndarray, exclude_target: bool = True):
         """
         Generates GP candidates based on the pheromone levels
 
         :param p_matrix: The pheromone matrix
-        :param target_col: Target feature's column index
         :param exclude_target: Only accepts GP candidates that do not contain the target feature
 
         :return: pheromone matrix (ndarray)
         """
         v_matrix = self._distance_matrix
+        target_col = self._target_col
         pattern: GP = GP()
         if v_matrix is None:
             return pattern, p_matrix
@@ -136,13 +136,12 @@ class AntGRAANK(BaseGrad):
                 p_matrix[j][i] += 1
         return p_matrix
 
-    def discover(self, ignore_support: bool = False, target_col: int|None = None, time_data: dict|None= None, exclude_target: bool = False) -> dict:
+    def discover(self, target_col: int|None = None, time_data: dict|None= None, exclude_target: bool = False) -> dict:
         """
         Applies ant-colony optimization algorithm and uses pheromone levels to find GP candidates. The candidates are
         validated if their computed support is greater than or equal to the minimum support threshold specified by the
         user.
 
-        :param ignore_support: Do not filter extracted GPs using a user-defined minimum support threshold.
         :param target_col: Target feature's column index.
         :param time_data: (optional) time data for estimating time lag.
         :param exclude_target: Only accept GP candidates that do not contain the target feature.
@@ -151,13 +150,10 @@ class AntGRAANK(BaseGrad):
         """
 
         start = time.time()
-        try:
-            self.init_search_space(1)
-            s_space = self.search_space
-            if s_space is None:
-                return {"Error": "Search space is empty!"}
-        except ValueError as e:
-            return {"Error": e}
+        self._target_col = target_col
+        s_space = self.blank_search_space()
+        if s_space is None:
+            return {"Error": "Search space is empty!"}
         self._fit()  # distance matrix (d) & attributes corresponding to d
 
         d = self._distance_matrix
@@ -178,7 +174,7 @@ class AntGRAANK(BaseGrad):
 
         # 4. Iterations for ACO
         while s_space.iter_count < self._max_iteration:
-            rand_gp, pheromones = self._gen_aco_candidates(pheromones, target_col, exclude_target)
+            rand_gp, pheromones = self._gen_aco_candidates(pheromones, exclude_target)
             if len(rand_gp.gradual_items) > 1:
                 # print(rand_gp.get_pattern())
                 exists = rand_gp.is_duplicate(self.gradual_patterns, s_space.loser_gps)
@@ -189,7 +185,7 @@ class AntGRAANK(BaseGrad):
                     if is_super or is_sub:
                         continue
                     gen_gp: GP|TGP = rand_gp.validate_graank(self, target_col=target_col, time_data=time_data)
-                    if gen_gp.support >= self.thd_supp or ignore_support:
+                    if gen_gp.support >= self.thd_supp:
                         is_present = gen_gp.is_duplicate(self.gradual_patterns, s_space.loser_gps)
                         is_sub = gen_gp.check_am(self.gradual_patterns, subset=True)
                         if not is_present and not is_sub:

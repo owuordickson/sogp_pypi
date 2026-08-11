@@ -330,22 +330,22 @@ class GP:
         params = self.get_computed_descriptors(descriptor_title)
         return pattern, params
 
-    def validate_graank(self, d_gp, target_col:int|None, time_data: dict|None=None) -> "GP|TGP":
+    def validate_graank(self, data_gp, target_col: int | None, time_data: dict | None=None) -> "GP|TGP":
         """
         Validates a candidate gradual pattern (GP) based on support computation. A GP is invalid if its support value is
         less than the minimum support threshold set by the user. It uses a breath-first approach to compute support.
 
-        :param d_gp: a DataGP object
-        :type d_gp: so4gp.DataGP # noinspection PyTypeChecker
+        :param data_gp: a :class:`so4gp.DataGP` object
+        :type data_gp: so4gp.DataGP # noinspection PyTypeChecker
         :param target_col: (optional) target column for estimating time lag.
         :param time_data: (optional) time data for estimating time lag.
 
         :return: A valid GP or an empty GP
         """
         # pattern = [('2', "+"), ('4', "+")]
-        min_supp = d_gp.thd_supp
-        n = d_gp.attr_size
-        gi_dict = copy.deepcopy(d_gp.valid_bins)
+        min_supp = data_gp.thd_supp
+        n = data_gp.attr_size
+        gi_dict = copy.deepcopy(data_gp.valid_bins)
 
         if time_data is not None:
             gen_pattern: TGP = TGP()
@@ -375,6 +375,9 @@ class GP:
         if len(gen_pattern.gradual_items) <= 1:
             return self
         else:
+            # if compute_descriptors:
+            #    warping_set_arr: np.ndarray = np.array(DataGP.gen_gradual_warping_set(pw_mat.bin_mat, as_array=True))
+            #    rand_gp.compute_descriptors(warping_set_arr, obj_count=self.row_count)
             return gen_pattern
 
     def validate_tree(self, d_gp):

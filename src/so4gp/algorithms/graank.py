@@ -125,8 +125,7 @@ class GRAANK:
 
     def discover(self,
                  search_type: str = "apriori",
-                 ignore_support: bool = False, max_iteration: int | None = None,
-                 target_col: int | None = None, exclude_target: bool = False,
+                 max_iteration: int | None = None, target_col: int | None = None, exclude_target: bool = False,
                  time_data: dict | None = None,
                  compute_descriptors: bool = True, save_results: bool = False,
                  **kwargs) -> str:
@@ -187,10 +186,6 @@ class GRAANK:
                 * ``pso``
                 * ``hc``
                 * ``random``
-
-            ignore_support:
-                If ``True``, discovered patterns are returned regardless of the
-                minimum support threshold.
 
             max_iteration:
                 Maximum number of search iterations.
@@ -322,11 +317,11 @@ class GRAANK:
             raise ValueError("Invalid search type!")
 
         if isinstance(self._mine_obj, OrigGRAANK):
-            res_dict = self._mine_obj.discover(ignore_support=ignore_support, target_col=target_col, time_data=time_data,
+            res_dict = self._mine_obj.discover( target_col=target_col, time_data=time_data,
                                                exclude_target=exclude_target, apriori_level=max_iteration,
                                                compute_descriptors=compute_descriptors)
         else:
-            res_dict = self._mine_obj.discover(ignore_support=ignore_support, target_col=target_col, time_data=time_data,
+            res_dict = self._mine_obj.discover(target_col=target_col, time_data=time_data,
                                                exclude_target=exclude_target)
 
         try:

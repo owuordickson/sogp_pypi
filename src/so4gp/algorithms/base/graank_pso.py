@@ -42,12 +42,11 @@ class ParticleGRAANK(BaseGrad):
         self._coeff_p: float = coeff_p
         self._coeff_g: float = coeff_g
 
-    def discover(self, ignore_support: bool = False, target_col: int | None = None, time_data: dict|None= None, exclude_target: bool = False) -> dict:
+    def discover(self, target_col: int | None = None, time_data: dict|None= None, exclude_target: bool = False) -> dict:
         """
         Searches through particle positions to find GP candidates. The candidates are validated if their computed
         support is greater than or equal to the minimum support threshold specified by the user.
 
-        :param ignore_support: Do not filter extracted GPs using a user-defined minimum support threshold.
         :param target_col: Target feature's column index.
         :param time_data: (optional) time data for estimating time lag.
         :param exclude_target: Only accept GP candidates that do not contain the target feature.
@@ -56,6 +55,7 @@ class ParticleGRAANK(BaseGrad):
         """
 
         start = time.time()
+        self._target_col = target_col
         try:
             self.init_search_space(self._n_particles)
             s_space = self.search_space
@@ -71,7 +71,7 @@ class ParticleGRAANK(BaseGrad):
             # while eval_count < max_evaluations:
             # while repeated < 1:
             for i in range(self._n_particles):
-                self.evaluate_candidate(s_space.pop[i], time_data=time_data)
+                self.evaluate_candidate(s_space.pop[i], exclude_target, time_data=time_data)
                 part_cost = s_space.pop[i].cost
                 part_pos = s_space.pop[i].position
                 if part_cost is not None and pbest_pop[i].cost is not None and gbest_particle.cost is not None:
@@ -96,10 +96,8 @@ class ParticleGRAANK(BaseGrad):
                                (self._coeff_g * random.random()) * (gbest_particle.position - part_pos)
                     s_space.pop[i].position = s_space.pop[i].position + new_velocity
 
-            self.evaluate_gradual_pattern(ignore_support, target_col, exclude_target)
+            # Increment iteration count
             s_space.iter_count += 1
-        for gp in s_space.valid_patterns:
-            self.add_gradual_pattern(gp)
 
         duration = time.time() - start
         out_dict: dict[str, str | list] = {

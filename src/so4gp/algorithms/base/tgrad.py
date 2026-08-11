@@ -32,7 +32,6 @@ class TGrad(OrigGRAANK):
         """
 
         super(TGrad, self).__init__(*args, **kwargs)
-        self._target_col: int|None = None
         self._search_algorithm: str = "apriori"
         self._min_rep: float = min_rep
         self._max_step: int = self.row_count - int(min_rep * self.row_count)

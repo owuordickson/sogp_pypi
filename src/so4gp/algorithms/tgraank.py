@@ -245,13 +245,15 @@ class TGRAANK:
         try:
 
             if transformations == 'all':
-                res_dict = self._mine_obj.discover_tgp(target_col=target_col, search_algorithm=search_algorithm, **kwargs)
+                res_dict = self._mine_obj.discover_tgp(target_col=target_col, search_algorithm=search_algorithm,
+                                                       max_iteration=max_iteration, **kwargs)
             elif transformations == 'ami':
                 from .base.tgrad_ami import TGradAMI
                 self._mine_obj = TGradAMI(self._data_src, min_sup=self._min_supp, min_rep=self._min_rep, eq=self._eq,
                                           add_time=True)
                 res_dict = self._mine_obj.discover_tgp_ami(target_col=target_col,
                                                             transformation_steps=transformation_steps,
+                                                            max_iteration=max_iteration,
                                                             search_algorithm = search_algorithm,
                                                             eval_mode=eval_mode, **kwargs)
             else:
@@ -294,6 +296,9 @@ class TGRAANK:
         For every discovered causal relationship, the support value is accumulated
         into an adjacency matrix representing the strength of the dependency from
         each cause feature to each effect feature.
+
+        The Genetic GRAANK search is configured with a maximum of three
+    optimization iterations for each target feature.
 
         The resulting matrix is returned as a ``pandas.DataFrame`` whose:
 
@@ -340,7 +345,7 @@ class TGRAANK:
 
         for target in feature_cols:
             result = json.loads(
-                self.discover(target_col=target, transformations="ami", compute_causality=True)
+                self.discover(target_col=target, transformations="ami", search_algorithm='ga', max_iteration=3, compute_causality=True)
             )
 
             for relation in result.get("Causality", []):

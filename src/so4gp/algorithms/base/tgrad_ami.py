@@ -136,7 +136,7 @@ class TGradAMI(TGrad):
         self.min_rep = round(((self.row_count - max_step) / self.row_count), 5)
         return optimal_dict, max_step
 
-    def gather_delayed_data(self, optimal_dict: dict, max_step: int):
+    def gather_delayed_data(self, optimal_dict: dict, max_step: int) -> tuple[np.ndarray|None, dict]:
         """
         A method that combined attribute data with different data transformations and computes the corresponding
         time-delay values for each attribute.
@@ -147,25 +147,23 @@ class TGradAMI(TGrad):
         """
 
         delayed_data: np.ndarray|None = None
-        time_data = []
+        time_data: dict = {}  # {col1: [time-lags], col2: [time-lags]}
         n = self.row_count
         k = (n - max_step)  # Number of rows created by the largest step-delay
         for col_index in range(self.col_count):
             if (col_index == self._target_col) or (col_index in self.time_cols):
                 # date-time column OR target column
-                temp_row = self.full_attr_data[col_index][0: k]
+                temp_col = self.full_attr_data[col_index][0: k]
             else:
                 # other attributes
                 step = optimal_dict[col_index]
-                temp_row = self.full_attr_data[col_index][step: n]
-                _, time_diffs = self.get_time_diffs(step)
+                temp_col = self.full_attr_data[col_index][step: n]
+                _, _, time_diffs_arr = self.get_time_diffs(step)
+                time_data[col_index] = time_diffs_arr
 
                 # Get first k items for delayed data
-                temp_row = temp_row[0: k]
+                temp_col = temp_col[0: k]
 
-                # Get first k items for time-lag data
-                temp_diffs = [(time_diffs[i]) for i in range(k)]
-                time_data.append(temp_diffs)
 
                 # for i in range(k):
                 #    if i in time_dict:
@@ -174,15 +172,14 @@ class TGradAMI(TGrad):
                 #        time_dict[i] = [time_diffs[i]]
                 # print(f"{time_diffs}\n")
                 # WHAT ABOUT TIME DIFFERENCE/DELAY? It is different for every step!!!
-            delayed_data = temp_row if (delayed_data is None) \
-                else np.vstack((delayed_data, temp_row))
-
-        time_data = np.array(time_data)
+            delayed_data = temp_col if (delayed_data is None) \
+                else np.vstack((delayed_data, temp_col))
         return delayed_data, time_data
 
-    def discover_tgp_ami(self, target_col: int, use_clustering: bool = False, transformation_steps: dict|None = None,
-                     error_margin: float = 0.0001,
-                     eval_mode: bool = False) -> dict:
+    def discover_tgp_ami(self, target_col: int, use_clustering: bool = False, search_algorithm: str = "apriori",
+                         max_iteration: int=3, transformation_steps: dict|None = None,
+                         error_margin: float = 0.0001,
+                         eval_mode: bool = False) -> dict:
         """
         A method that applies mutual information concept, clustering, and hill-climbing algorithm to find the best data
         transformation that maintains MI and estimate the best time-delay value of the mined Fuzzy Temporal Gradual
@@ -191,6 +188,9 @@ class TGradAMI(TGrad):
         :param target_col: [required] Index of the target attribute/feature/column. Temporal transformations are
         estimated relative to this attribute.
         :param use_clustering: Use a clustering algorithm to estimate the best time-delay value.
+        :param search_algorithm: Gradual pattern mining algorithm to apply to the transformed dataset. Supported values
+        are ``apriori``, ``ga``, ``aco``, ``pso``, ``hc``, ``random``, and ``clustergp``. Defaults to ``"apriori"``.
+        :param max_iteration: Maximum number of iterations to run the search algorithm.
         :param transformation_steps: Data transformation steps (used to override the computed transformation steps).
         :param error_margin: [optional] minimum Mutual Information error margin.
         :param eval_mode: Run algorithm in evaluation mode.
@@ -200,6 +200,8 @@ class TGradAMI(TGrad):
 
         start = time.time()
         self._target_col = target_col
+        self._search_algorithm = search_algorithm
+        self._algorithm_max_iter = max_iteration
         self.clear_gradual_patterns()
         # 1. Compute and find the lowest mutual information
         if transformation_steps is not None:
@@ -231,10 +233,11 @@ class TGradAMI(TGrad):
                 title_row.append(txt)
                 if (col != self._target_col) and (col not in self.time_cols):
                     time_title.append(txt)
+            str_time_data = {"".join(self.titles[k]): v for k, v in time_data.items()}
             self._transformation_data = {
                 'Patterns': self.display_patterns,
                 'Transformation Steps': optimal_dict,
-                'Time Data': np.vstack((np.array(time_title), time_data.T)),
+                'Time Data': str_time_data,
                 'Transformed Data': np.vstack(
                     (np.array(title_row), delayed_data.T if delayed_data is not None else np.array([]))),
             }
@@ -243,6 +246,8 @@ class TGradAMI(TGrad):
         out_dict: dict[str, str | list | np.ndarray | None | dict] = {
             "Algorithm": "TGradAMI",
             # "Memory Usage (MiB)": f{mem_use)}",
+            "GP Search Algorithm": f"{self._search_algorithm}",
+            "Maximum Iteration for Search Algorithm": f"{self._algorithm_max_iter}",
             "Minimum Representation": f"{self.min_rep:.2f}",
             "MI Minimum Error": f"{error_margin:.2f}",
             "MI Error": f"{self.mi_error:.2f}",

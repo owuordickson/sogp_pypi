@@ -14,7 +14,11 @@
 
 A collection of Gradual Pattern classes and methods.
 """
+
+
+import copy
 import numpy as np
+import skfuzzy as fuzzy
 from dataclasses import dataclass
 
 
@@ -25,6 +29,8 @@ class PairwiseMatrix:
     """A data-class for storing pairwise (bitmap) matrix and its support value."""
     bin_mat: np.ndarray
     support: float
+    pattern: set[str]
+    time_lag: TimeDelay|None=None
 
 
 class GI:
@@ -199,15 +205,24 @@ class GP:
     def singularity_score(self) -> float:
         return self._singularity_score
 
-    def add_gradual_item(self, item: GI) -> bool:
+    def add_gradual_item(self, item: GI) -> None|bool:
         """
-        Adds a gradual item (GI) into the gradual pattern (GP)
-        :param item: gradual item
+        Add a gradual item to this gradual pattern.
 
-        :return: True if gradual item is added, None otherwise
+        Args:
+            item:
+                Gradual item to add.
+
+        Returns:
+            True if the item was added successfully, None otherwise.
+
+        Raises:
+            TypeError:
+                If ``item`` is not a :class:`GI`.
         """
         if not isinstance(item, GI):
-            raise TypeError("Invalid gradual item")
+            raise TypeError("item must be an instance of GI.")
+
         self._gradual_items.append(item)
         return True
 
@@ -315,44 +330,57 @@ class GP:
         params = self.get_computed_descriptors(descriptor_title)
         return pattern, params
 
-    def validate_graank(self, d_gp) -> "GP":
+    def validate_via_graank(self, data_gp, target_col: int | None, time_data: dict | None=None) -> "GP|TGP":
         """
         Validates a candidate gradual pattern (GP) based on support computation. A GP is invalid if its support value is
         less than the minimum support threshold set by the user. It uses a breath-first approach to compute support.
 
-        :param d_gp: Data_GP object
-        :type d_gp: so4gp.DataGP # noinspection PyTypeChecker
+        :param data_gp: a :class:`so4gp.DataGP` object
+        :type data_gp: so4gp.DataGP # noinspection PyTypeChecker
+        :param target_col: (optional) target column for estimating time lag.
+        :param time_data: (optional) time data for estimating time lag.
 
         :return: A valid GP or an empty GP
         """
         # pattern = [('2', "+"), ('4', "+")]
-        min_supp = d_gp.thd_supp
-        n = d_gp.attr_size
-        gi_dict = d_gp.valid_bins.copy()
-        gi_key_list = list(gi_dict.keys())
+        min_supp = data_gp.thd_supp
+        n = data_gp.attr_size
+        gi_dict = copy.deepcopy(data_gp.valid_bins)
 
-        gen_pattern: GP = GP()
-        pw_mat_1: PairwiseMatrix | None = None
+        if time_data is not None:
+            gen_pattern: TGP = TGP()
+        else:
+            gen_pattern: GP = GP()
+
+        target_gi = self.gradual_items[0]
+        if target_col is not None:
+            if f"{target_col}+" in self.as_set:
+                target_gi = GI(target_col, "+")
+            elif f"{target_col}-" in self.as_set:
+                target_gi = GI(target_col, "-")
+
+        pw_mat_1: PairwiseMatrix = gi_dict[target_gi.to_string()]
+        time_lag = gi_dict[target_gi.to_string()].time_lag
+        GP.add_gradual_item_strict(gen_pattern, target_gi, target_col=target_col, time_lag=time_lag)
+
         for gi in self.gradual_items:
-            arg = np.argwhere(np.isin(np.array(gi_key_list), gi.to_string()))
-            if len(arg) > 0:
-                i = arg[0][0]
-                if pw_mat_1 is None:
-                    pw_mat_1 = gi_dict[gi_key_list[i]]
-                    gen_pattern.add_gradual_item(gi)
-                else:
-                    pw_mat_2 = gi_dict[gi_key_list[i]]
-                    res_pw_mat = GP.perform_and(pw_mat_1, pw_mat_2, n)
-                    if res_pw_mat.support >= min_supp:
-                        pw_mat_1 = PairwiseMatrix(bin_mat=res_pw_mat.bin_mat.copy(), support=res_pw_mat.support)
-                        gen_pattern.add_gradual_item(gi)
-                        gen_pattern.support = res_pw_mat.support
+            if gi.to_string() == target_gi.to_string():
+                continue
+            else:
+                pw_mat_2 = gi_dict[gi.to_string()]
+                pw_mat_1 = GP.perform_and(pw_mat_1, pw_mat_2, n, time_data=time_data)
+                if pw_mat_1.support >= min_supp:
+                    GP.add_gradual_item_strict(gen_pattern, gi, target_col=target_col, time_lag=pw_mat_1.time_lag)
+                    gen_pattern.support = pw_mat_1.support
         if len(gen_pattern.gradual_items) <= 1:
             return self
         else:
+            # if compute_descriptors:
+            #    warping_set_arr: np.ndarray = np.array(DataGP.gen_gradual_warping_set(pw_mat.bin_mat, as_array=True))
+            #    rand_gp.compute_descriptors(warping_set_arr, obj_count=self.row_count)
             return gen_pattern
 
-    def validate_tree(self, d_gp):
+    def validate_via_tree(self, d_gp):
         """
         Validates a candidate gradual pattern (GP) based on support computation. A GP is invalid if its support value is
         less than the minimum support threshold set by the user. It applies a depth-first (FP-Growth) approach
@@ -380,11 +408,11 @@ class GP:
                         temp_tids = set(gi_tids)
                         gen_pattern.add_gradual_item(gi)
                     else:
-                        temp = set((temp_tids or {}).copy())
+                        temp = set(copy.deepcopy(temp_tids or {}))
                         temp = temp.intersection(set(gi_tids))
                         supp = float(len(temp)) / float(n * (n - 1.0) / 2.0)
                         if supp >= min_supp:
-                            temp_tids = temp.copy()
+                            temp_tids = copy.deepcopy(temp)
                             gen_pattern.add_gradual_item(gi)
                             gen_pattern.support = supp
         if len(gen_pattern.gradual_items) <= 1:
@@ -392,7 +420,7 @@ class GP:
         else:
             return gen_pattern
 
-    def check_am(self, gp_list: list["GP"] | None, subset: bool = True) -> bool:
+    def check_am(self, gp_list: list["GP|TGP"] | None, subset: bool = True) -> bool:
         """
         Anti-monotonicity check. Checks if a GP is a subset or superset of an already existing GP
 
@@ -420,7 +448,7 @@ class GP:
                     break
         return result
 
-    def is_duplicate(self, valid_gps: list["GP"] | None, invalid_gps: list["GP"]|None = None) -> bool:
+    def is_duplicate(self, valid_gps: list["GP|TGP"] | None, invalid_gps: list["GP|TGP"]|None = None) -> bool:
         """
         Checks if a pattern is in the list of winner GPs or loser GPs
 
@@ -592,6 +620,65 @@ class GP:
         return True
 
     @staticmethod
+    def add_gradual_item_strict(gp: GP|TGP, gi: GI, target_col: int|None = None, time_lag: TimeDelay|None = None) -> GP|TGP:
+        """
+        Add a gradual item to a gradual pattern using pattern-aware placement.
+
+        Handles the structural differences between regular gradual patterns (GPs) and
+        temporal gradual patterns (TGPs). For a TGP, the gradual item is
+        assigned as the target gradual item when its attribute corresponds
+        to ``target_col``; otherwise, it is added as a temporal gradual item
+        together with its associated time lag.
+
+        For a regular GP, the gradual item is added directly to the pattern.
+
+        Args:
+            gp:
+                Gradual pattern to which the gradual item should be added.
+                Must be an instance of :class:`GP` or :class:`TGP`.
+
+            gi:
+                Gradual item to add to the pattern.
+
+            target_col:
+                Column index of the target attribute. When ``gp`` is a
+                :class:`TGP` and ``gi.attribute_col`` matches this value,
+                ``gi`` is assigned as the TGP's target gradual item.
+
+            time_lag:
+                Temporal delay associated with ``gi`` when it is added to a
+                TGP as a temporal gradual item.
+
+        Returns:
+            The modified gradual pattern with the added gradual item.
+
+        Raises:
+            TypeError:
+                If ``gp`` is not a :class:`GP` or :class:`TGP`, or if ``gi``
+                is not a valid gradual item.
+
+            ValueError:
+                If a temporal gradual item requires a time lag but
+                ``time_lag`` is not provided.
+        """
+        if not isinstance(gp, (GP, TGP)):
+            raise TypeError("gp must be an instance of GP or TGP.")
+
+        if not isinstance(gi, GI):
+            raise TypeError("gi must be an instance of GI.")
+
+        if isinstance(gp, TGP) and target_col is not None:
+            if gi.attribute_col == target_col:
+                gp.target_gradual_item = gi
+            else:
+                if time_lag is None:
+                    raise ValueError("time_lag must be provided for temporal gradual items.")
+                gp.add_temporal_gradual_item(gi, time_lag)
+        else:
+            gp.add_gradual_item(gi)
+        return gp
+
+    @staticmethod
     def swap_gp_symbols(gp_obj: "GP") -> "GP":
         """
         Swaps the variation symbols of all the gradual items (GIs) in a gradual pattern (GP)
@@ -602,19 +689,28 @@ class GP:
         return new_gp
 
     @staticmethod
-    def perform_and(bin_data_1: "PairwiseMatrix|None", bin_data_2: "PairwiseMatrix|None", dim: int) -> "PairwiseMatrix":
+    def perform_and(bin_data_1: "PairwiseMatrix|None", bin_data_2: "PairwiseMatrix|None", dim: int, time_data: dict|None=None) -> "PairwiseMatrix":
         """
         Perform logical AND operation on two bitmaps.
 
         :param bin_data_1: Bitmap 1
         :param bin_data_2: bitmap 2
         :param dim: dimension of the bitmaps
+        :param time_data: (optional) time data for estimating time lag
         """
         if bin_data_1 is None or bin_data_2 is None:
-            return PairwiseMatrix(bin_mat=np.zeros((dim, dim)), support=0)
+            return PairwiseMatrix(bin_mat=np.zeros((dim, dim)), support=0, pattern=set())
         bin_mat = bin_data_1.bin_mat * bin_data_2.bin_mat
+        gp = bin_data_1.pattern | bin_data_2.pattern  # union of both sets to create a GP with only unique GIs
         sup = float(np.sum(bin_mat)) / float(dim * (dim - 1.0) / 2.0)
-        return PairwiseMatrix(bin_mat=bin_mat, support=sup)
+        if time_data is not None:
+            t_data = time_data["time_data"]
+            use_gp = time_data["use_gp"]
+            fuzzy_mf = time_data["tri_mf"]
+            gp_set = gp if use_gp else None
+            t_lag = TimeDelay.approx_time_lag(bin_mat, t_data, gi_arr=gp_set, tri_mf_data=fuzzy_mf)
+            return PairwiseMatrix(bin_mat=bin_mat, support=sup, time_lag=t_lag, pattern=gp)
+        return PairwiseMatrix(bin_mat=bin_mat, support=sup, pattern=gp)
 
 
 class TimeDelay:
@@ -727,6 +823,170 @@ class TimeDelay:
             txt = "No time lag found!"
         return txt
 
+    @classmethod
+    def approx_time_lag(cls, bin_data: np.ndarray, time_data: dict|np.ndarray|None, gi_arr: set|None = None, tri_mf_data: np.ndarray|None = None) -> "TimeDelay":
+        """
+        A method that uses a fuzzy membership function to select the most accurate time-delay value. We implement two
+        methods: (1) uses classical slide and re-calculate dynamic programming to find the best time-delay value and,
+        (2) uses metaheuristic hill-climbing to find the best time-delay value.
+
+        :param bin_data: Gradual item pairwise matrix.
+        :param time_data: Time-delay values.
+        :param gi_arr: Gradual item object.
+        :param tri_mf_data: The 'a,b,c' values of the triangular MF. Used to find and approximate the best time-delay value
+        using KMeans and Hill-climbing approach.
+
+        :return: TimeDelay object.
+        """
+
+        if time_data is None:
+            return cls(-1, 0)
+
+        def approx_time_slide_calculate(time_lag_arr: np.ndarray) -> TimeDelay:
+            """
+
+            A method that selects the most appropriate time-delay value from a list of possible values.
+
+            :param time_lag_arr: An array of all the possible time-delay values.
+            :return: The approximated TimeDelay object.
+            """
+
+            if len(time_lag_arr) <= 0:
+                # if time_lags is blank, return nothing
+                return cls()
+            else:
+                time_lag_arr = np.absolute(np.array(time_lag_arr))
+                min_a = np.min(time_lag_arr)
+                max_c = np.max(time_lag_arr)
+                count = time_lag_arr.size + 3
+                tot_boundaries = np.linspace(min_a / 2, max_c + 1, num=count)
+
+                highest_sup = 0
+                center = time_lag_arr[0]
+                size = len(tot_boundaries)
+                for i in range(0, size, 2):
+                    if (i + 3) <= size:
+                        boundaries = tot_boundaries[i:i + 3:1]
+                    else:
+                        boundaries = tot_boundaries[size - 3:size:1]
+                    memberships = fuzzy.membership.trimf(time_lag_arr, boundaries)
+
+                    # Compute Support
+                    sup_count = np.count_nonzero(memberships > 0)
+                    total = memberships.size
+                    curr_sup = sup_count / total
+                    # curr_sup = calculate_support(memberships)
+
+                    if curr_sup > highest_sup:
+                        highest_sup = curr_sup
+                        center = boundaries[1]
+                    if curr_sup >= 0.5:
+                        # print(boundaries[1])
+                        return cls(int(boundaries[1]), curr_sup)
+                return cls(center, highest_sup)
+
+        def approx_time_hill_climbing(x_train: np.ndarray, initial_bias: float = 0, step_size: float = 0.9,
+                                      max_iterations: int = 10):
+            """
+            A method that uses Hill-climbing algorithm to approximate the best time-delay value given a fuzzy triangular
+            membership function.
+
+            :param x_train: Initial time-delay values as an array.
+            :param initial_bias: (hyperparameter) initial bias value for the hill-climbing algorithm.
+            :param step_size: (hyperparameter) step size for the hill-climbing algorithm.
+            :param max_iterations: (hyperparameter) maximum number of iterations for the hill-climbing algorithm.
+            :return: Best position to move the triangular MF with its mean-squared-error.
+            """
+
+            def hill_climbing_cost_function(min_membership: float = 0):
+                """
+                Computes the logistic regression cost function for a fuzzy set created from a
+                triangular membership function.
+
+                :param min_membership: The minimum accepted value to allow membership in a fuzzy set.
+                :return: Cost function values.
+                """
+                # 1. Generate fuzzy data set using MF from x_data
+                memberships = np.where(y_train <= b,
+                                       (y_train - a) / (b - a),
+                                       (c - y_train) / (c - b))
+
+                # 2. Generate y_train based on the given criteria (x>minimum_membership)
+                y_hat: np.ndarray = np.where(memberships >= min_membership, 1, 0)  # type: ignore
+
+                # 3. Compute loss_val
+                hat_count = np.count_nonzero(y_hat)
+                true_count = len(y_hat)
+                loss_val: float = (((true_count - hat_count) / true_count) ** 2) ** 0.5
+                # loss_val = abs(true_count - hat_count)
+                return loss_val
+
+            # 1. Normalize x_train
+            x_train = np.array(x_train, dtype=float)
+
+            # 2. Perform hill climbing to find the optimal bias
+            bias = initial_bias
+            y_train = x_train + bias
+            best_mse = hill_climbing_cost_function()
+            for iteration in range(max_iterations):
+                # a. Generate a new candidate bias by perturbing the current bias
+                new_bias = bias + step_size * np.random.randn()
+
+                # b. Compute the predictions and the MSE with the new bias
+                y_train = x_train + new_bias
+                new_mse = hill_climbing_cost_function()
+
+                # c. If the new MSE is lower, update the bias
+                if new_mse < best_mse:
+                    bias = new_bias
+                    best_mse = new_mse
+
+            # Make predictions using the optimal bias
+            return bias, best_mse
+
+        # 1. Get Indices
+        indices = np.argwhere(bin_data == 1)
+
+        # 2. Get TimeDelay Array
+        selected_rows = np.unique(indices.flatten())
+        if gi_arr is not None and isinstance(time_data, dict):
+            ## time_data = {col1: [row time-lags], col2: [row time-lags]}
+            t_lag_lst = []
+            sel_cols: set = set(time_data.keys())
+            for gi_str in gi_arr:
+                col = GI.from_string(gi_str).attribute_col
+                if col in sel_cols:
+                    t_lag_lst.append(time_data[col])
+            t_lag_arr = np.array(t_lag_lst)
+            t_lag_arr = t_lag_arr[:, selected_rows]
+        else:
+            ## time_data = [row time-lags]
+            t_lag_arr = [time_data[selected_rows]]
+
+        # 3. Approximate TimeDelay value
+        best_time_lag: TimeDelay = cls(-1, 0)
+        if tri_mf_data is not None:
+            # 3b. Learn the best MF through KMeans and Hill-Climbing
+            a, b, c = tri_mf_data
+            best_time_lag = cls(-1, -1)
+            fuzzy_set = []
+            for t_lags in t_lag_arr:
+                init_bias = abs(b - np.median(t_lags))
+                slide_val, loss = approx_time_hill_climbing(t_lags, initial_bias=init_bias)
+                tstamp = int(b - slide_val)
+                sup = float(1 - loss)
+                fuzzy_set.append([tstamp, float(loss)])
+                if sup >= best_time_lag.support and abs(tstamp) > abs(best_time_lag.timestamp):
+                    best_time_lag = cls(tstamp, sup)
+                # print(f"New Membership Fxn: {a - slide_val}, {b - slide_val}, {c - slide_val}")
+        else:
+            # 3a. Learn the best MF through slide-descent/sliding
+            for t_lags in t_lag_arr:
+                time_lag = approx_time_slide_calculate(t_lags)
+                if time_lag.support >= best_time_lag.support:
+                    best_time_lag = time_lag
+        return best_time_lag
+
 
 class TGP(GP):
     @dataclass
@@ -764,12 +1024,13 @@ class TGP(GP):
         if not isinstance(item, GI):
             raise TypeError("Target gradual item must be of type GI")
         self._target_gradual_item = item
+        self.add_gradual_item(item)
 
     @property
     def temporal_gradual_items(self) -> list[TemporalGI]:
         return self._temporal_gradual_items
 
-    def add_temporal_gradual_item(self, item: GI, time_delay: TimeDelay):
+    def add_temporal_gradual_item(self, item: GI, time_delay: TimeDelay|None):
         """
             Adds a fuzzy temporal gradual item (fTGI) into the fuzzy temporal gradual pattern (fTGP)
             :param item: gradual item
@@ -780,9 +1041,13 @@ class TGP(GP):
 
             :return: void
         """
+        if item is None or time_delay is None:
+            return
+
         if isinstance(item, GI) and isinstance(time_delay, TimeDelay):
             temp_gi = TGP.TemporalGI(gradual_item=item, time_delay=time_delay)
             self._temporal_gradual_items.append(temp_gi)
+            self.add_gradual_item(item)
         else:
             raise TypeError("Invalid arguments - require GI and TimeDelay objects")
 

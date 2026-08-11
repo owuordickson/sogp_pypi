@@ -125,8 +125,8 @@ class GRAANK:
 
     def discover(self,
                  search_type: str = "apriori",
-                 ignore_support: bool = False, max_iteration: int | None = None,
-                 target_col: int | None = None, exclude_target: bool = False,
+                 max_iteration: int | None = None, target_col: int | None = None, exclude_target: bool = False,
+                 time_data: dict | None = None,
                  compute_descriptors: bool = True, save_results: bool = False,
                  **kwargs) -> str:
         """
@@ -187,10 +187,6 @@ class GRAANK:
                 * ``hc``
                 * ``random``
 
-            ignore_support:
-                If ``True``, discovered patterns are returned regardless of the
-                minimum support threshold.
-
             max_iteration:
                 Maximum number of search iterations.
 
@@ -212,6 +208,20 @@ class GRAANK:
                 * ``True``:
                   only patterns **not** containing the target attribute are
                   accepted.
+
+            time_data:
+                Time delay data required to compute the time lag of the gradual patterns. It consists of a dictionary
+                with the following keys:
+
+                * ``"time_delay_data"``:
+                The time delays after transformation of the data at specific steps. It is either a dictionary or NumPy array.
+
+                * ``"tri_mf"``:
+                The triangular membership function used to compute the time lag. It is either None or a NumPy array.
+
+                * ``"use_gp"``:
+                Whether to use the gradual items of the GP to compute the time lag. It is a boolean.
+
 
             compute_descriptors:
                 Compute additional descriptors for each gradual pattern.
@@ -307,9 +317,12 @@ class GRAANK:
             raise ValueError("Invalid search type!")
 
         if isinstance(self._mine_obj, OrigGRAANK):
-            res_dict = self._mine_obj.discover(ignore_support=ignore_support, target_col=target_col, exclude_target=exclude_target, apriori_level=max_iteration, compute_descriptors=compute_descriptors)
+            res_dict = self._mine_obj.discover( target_col=target_col, time_data=time_data,
+                                               exclude_target=exclude_target, apriori_level=max_iteration,
+                                               compute_descriptors=compute_descriptors)
         else:
-            res_dict = self._mine_obj.discover(ignore_support=ignore_support, target_col=target_col, exclude_target=exclude_target)
+            res_dict = self._mine_obj.discover(target_col=target_col, time_data=time_data,
+                                               exclude_target=exclude_target)
 
         try:
             if save_results:

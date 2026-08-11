@@ -102,7 +102,8 @@ class TGRAANK:
         return self._mine_obj
 
     def discover(self, target_col: int, transformations: str = 'ami', transformation_steps: dict | None = None,
-                 eval_mode: bool = False, save_results: bool = False, **kwargs) -> str:
+                 search_algorithm: str = "apriori", max_iteration: int = 3,
+                 eval_mode: bool = False, compute_causality: bool = False, save_results: bool = False, **kwargs) -> str:
         """
         Discover fuzzy temporal gradual patterns.
 
@@ -130,6 +131,39 @@ class TGRAANK:
                 Optionally, clustering can be used to reduce the number of
                 candidate transformations that must be evaluated.
 
+        The gradual pattern mining algorithm can use the classical APRIORI (GRAANK) algorithm or
+        one of several metaheuristic and alternative search strategies.
+
+        Supported search algorithms are:
+
+            ``apriori``:
+                Classical GRAANK uses APRIORI level-wise search for exhaustive gradual pattern
+                candidate generation.
+
+            ``ga``:
+                Genetic GRAANK. Uses a genetic algorithm to search the gradual pattern
+                space.
+
+            ``aco``:
+                ACO-GRAANK. Uses Ant Colony Optimization and pheromone-guided search
+                to identify promising gradual pattern candidates.
+
+            ``pso``:
+                PSO-GRAANK. Uses Particle Swarm Optimization to search for high-support
+                gradual patterns.
+
+            ``hc``:
+                Hill-Climbing GRAANK. Iteratively searches neighboring candidates and
+                moves toward patterns with improved support.
+
+            ``random``:
+                Random Search GRAANK. Randomly samples and evaluates gradual pattern
+                candidates.
+
+            ``clustergp``:
+                ClusterGP. Uses clustering-based search to identify gradual patterns
+                from the transformed dataset.
+
         Args:
             target_col:
                 [required] Index of the target attribute/feature/column.
@@ -149,10 +183,24 @@ class TGRAANK:
 
                 If omitted, all possible transformations are considered.
 
+            search_algorithm:
+                Gradual pattern mining algorithm to apply to the transformed
+                dataset. Supported values are ``apriori``, ``ga``, ``aco``,
+                ``pso``, ``hc``, ``random``, and ``clustergp``.
+                Defaults to ``"apriori"``.
+
+            max_iteration:
+                The maximum number of iterations to run the search algorithm.
+
             eval_mode:
                 Enables evaluation mode.
 
                 Intended for benchmarking and experimental studies.
+
+            compute_causality:
+                Whether to compute causal relations between attributes based on the valid extracted gradual pattern.
+
+                The target column/attribute is taken as the "cause" and the other attributes the "effects".
 
             save_results:
                 Whether to generate CSV output files.
@@ -197,14 +245,17 @@ class TGRAANK:
         try:
 
             if transformations == 'all':
-                res_dict = self._mine_obj.discover_tgp(target_col=target_col, **kwargs)
+                res_dict = self._mine_obj.discover_tgp(target_col=target_col, search_algorithm=search_algorithm,
+                                                       max_iteration=max_iteration, **kwargs)
             elif transformations == 'ami':
                 from .base.tgrad_ami import TGradAMI
                 self._mine_obj = TGradAMI(self._data_src, min_sup=self._min_supp, min_rep=self._min_rep, eq=self._eq,
                                           add_time=True)
                 res_dict = self._mine_obj.discover_tgp_ami(target_col=target_col,
-                                                           transformation_steps=transformation_steps,
-                                                           eval_mode=eval_mode, **kwargs)
+                                                            transformation_steps=transformation_steps,
+                                                            max_iteration=max_iteration,
+                                                            search_algorithm = search_algorithm,
+                                                            eval_mode=eval_mode, **kwargs)
             else:
                 raise ValueError("Invalid transformation algorithm")
 
@@ -212,25 +263,27 @@ class TGRAANK:
                 self._mine_obj.generate_output_files(res_dict, target_col=target_col)
             res_dict.update({"Patterns": self._mine_obj.display_patterns})
 
-            # Causal Inference
-            causal_relations = []
-            for tgp in self._mine_obj.gradual_patterns or []:
-                res = tgp.get_causal_relations(self._mine_obj.titles)
-                causal_relations.extend(res)
+            if compute_causality:
+                # Causal Inference
+                from ..gradual_patterns import TGP
+                causal_relations = []
+                for tgp in self._mine_obj.gradual_patterns or []:
+                    if isinstance(tgp, TGP):
+                        res = tgp.get_causal_relations(self._mine_obj.titles)
+                        causal_relations.extend(res)
 
-            # Only retain the best causal relations (due to GP subsets)
-            best = {}
-            for relation in causal_relations:
-                key = tuple(relation["correlation"])  # e.g. (4, 1)
+                # Only retain the best causal relations (due to GP subsets)
+                best = {}
+                for relation in causal_relations:
+                    key = tuple(relation["correlation"])  # e.g. (4, 1)
 
-                if key not in best or relation["support"] > best[key]["support"]:
-                    best[key] = relation
-            filtered_causality = list(best.values())
-            res_dict.update({"Causality": filtered_causality})
+                    if key not in best or relation["support"] > best[key]["support"]:
+                        best[key] = relation
+                filtered_causality = list(best.values())
+                res_dict.update({"Causality": filtered_causality})
         except Exception as e:
             res_dict = {"Error": str(e)}
 
-        import json
         out: str = json.dumps(res_dict, indent=4)
         return out
 
@@ -243,6 +296,10 @@ class TGRAANK:
         For every discovered causal relationship, the support value is accumulated
         into an adjacency matrix representing the strength of the dependency from
         each cause feature to each effect feature.
+
+        The Genetic GRAANK search is configured with a maximum of three
+    optimization iterations for each target feature. This search algorithm is the
+    fastest for mining gradual patterns with a large number of features.
 
         The resulting matrix is returned as a ``pandas.DataFrame`` whose:
 
@@ -289,7 +346,7 @@ class TGRAANK:
 
         for target in feature_cols:
             result = json.loads(
-                self.discover(target_col=target, transformations="ami")
+                self.discover(target_col=target, transformations="ami", search_algorithm='ga', max_iteration=3, compute_causality=True)
             )
 
             for relation in result.get("Causality", []):

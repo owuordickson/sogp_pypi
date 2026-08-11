@@ -284,7 +284,8 @@ class TGRAANK:
         except Exception as e:
             res_dict = {"Error": str(e)}
 
-        out: str = json.dumps(res_dict, indent=4)
+        out: str = json.dumps(res_dict, indent=4,
+                              default=lambda obj: obj.item() if isinstance(obj, np.generic) else obj.tolist(),)
         return out
 
     def get_lagged_dependencies(self, max_lag: int = 0) -> pandas.DataFrame:

@@ -10,7 +10,7 @@ import numpy as np
 from typing import cast
 
 from .graank_base import BaseGrad
-from ...gradual_patterns import GI, GP, PairwiseMatrix
+from ...gradual_patterns import GI, GP, TGP, PairwiseMatrix
 
 
 class AntGRAANK(BaseGrad):
@@ -74,17 +74,17 @@ class AntGRAANK(BaseGrad):
         self._attribute_keys: list[str] = attr_keys
         gc.collect()
 
-    def _gen_aco_candidates(self, p_matrix: np.ndarray, target_col: int | None = None, exclude_target: bool = True):
+    def _gen_aco_candidates(self, p_matrix: np.ndarray, exclude_target: bool = True):
         """
         Generates GP candidates based on the pheromone levels
 
         :param p_matrix: The pheromone matrix
-        :param target_col: Target feature's column index
         :param exclude_target: Only accepts GP candidates that do not contain the target feature
 
         :return: pheromone matrix (ndarray)
         """
         v_matrix = self._distance_matrix
+        target_col = self._target_col
         pattern: GP = GP()
         if v_matrix is None:
             return pattern, p_matrix
@@ -116,7 +116,7 @@ class AntGRAANK(BaseGrad):
         p_matrix = (1 - self._evaporation_factor) * p_matrix
         return pattern, p_matrix
 
-    def _update_pheromones(self, pattern: GP, p_matrix: np.ndarray):
+    def _update_pheromones(self, pattern: GP|TGP, p_matrix: np.ndarray):
         """
         Updates the pheromone level of the pheromone matrix
 
@@ -136,21 +136,24 @@ class AntGRAANK(BaseGrad):
                 p_matrix[j][i] += 1
         return p_matrix
 
-    def discover(self, ignore_support: bool = False, target_col: int | None = None, exclude_target: bool = False) -> dict:
+    def discover(self, target_col: int|None = None, time_data: dict|None= None, exclude_target: bool = False) -> dict:
         """
         Applies ant-colony optimization algorithm and uses pheromone levels to find GP candidates. The candidates are
         validated if their computed support is greater than or equal to the minimum support threshold specified by the
         user.
 
-        :param ignore_support: Do not filter extracted GPs using a user-defined minimum support threshold.
         :param target_col: Target feature's column index.
+        :param time_data: (optional) time data for estimating time lag.
         :param exclude_target: Only accept GP candidates that do not contain the target feature.
 
         :return: A dict object
         """
 
         start = time.time()
-        self.init_search_space(0, 0)
+        self._target_col = target_col
+        s_space = self.blank_search_space()
+        if s_space is None:
+            return {"Error": "Search space is empty!"}
         self._fit()  # distance matrix (d) & attributes corresponding to d
 
         d = self._distance_matrix
@@ -159,11 +162,6 @@ class AntGRAANK(BaseGrad):
             return out_dict
 
         a = self.attr_size
-        loser_gps = list()  # supersets
-        repeated = 0
-        it_count = 0
-        counter = 0
-
         if self.valid_bins is None:
             return {"Error": "Pairwise matrices not available!"}
 
@@ -174,51 +172,38 @@ class AntGRAANK(BaseGrad):
         # 3. Initialize pheromones (p_matrix)
         pheromones = np.ones(d.shape, dtype=float)
 
-        invalid_count = 0
         # 4. Iterations for ACO
-        # while repeated < 1:
-        while counter < self._max_iteration:
-            rand_gp, pheromones = self._gen_aco_candidates(pheromones, target_col, exclude_target)
+        while s_space.iter_count < self._max_iteration:
+            rand_gp, pheromones = self._gen_aco_candidates(pheromones, exclude_target)
             if len(rand_gp.gradual_items) > 1:
                 # print(rand_gp.get_pattern())
-                exits = rand_gp.is_duplicate(self.gradual_patterns, loser_gps)
-                if not exits:
-                    repeated = 0
+                exists = rand_gp.is_duplicate(self.gradual_patterns, s_space.loser_gps)
+                if not exists:
                     # check for anti-monotony
-                    is_super = rand_gp.check_am(loser_gps, subset=False)
+                    is_super = rand_gp.check_am(s_space.loser_gps, subset=False)
                     is_sub = rand_gp.check_am(self.gradual_patterns, subset=True)
                     if is_super or is_sub:
                         continue
-                    gen_gp: GP = rand_gp.validate_graank(self)
-                    is_present = gen_gp.is_duplicate(self.gradual_patterns, loser_gps)
-                    is_sub = gen_gp.check_am(self.gradual_patterns, subset=True)
-                    if is_present or is_sub:
-                        repeated += 1
-                    else:
-                        if gen_gp.support >= self.thd_supp or ignore_support:
+                    gen_gp: GP|TGP = rand_gp.validate_via_graank(self, target_col=target_col, time_data=time_data)
+                    if gen_gp.support >= self.thd_supp:
+                        is_present = gen_gp.is_duplicate(self.gradual_patterns, s_space.loser_gps)
+                        is_sub = gen_gp.check_am(self.gradual_patterns, subset=True)
+                        if not is_present and not is_sub:
                             pheromones = self._update_pheromones(gen_gp, pheromones)
                             self.add_gradual_pattern(gen_gp)
-                        else:
-                            loser_gps.append(gen_gp)
-                            invalid_count += 1
-                    if gen_gp.as_set != rand_gp.as_set:
-                        loser_gps.append(rand_gp)
-                else:
-                    repeated += 1
+                    else:
+                        s_space.invalid_count += 1
+                        s_space.loser_gps.append(gen_gp)
             else:
-                invalid_count += 1
-            it_count += 1
-            if self._max_iteration == 1:
-                counter = repeated
-            else:
-                counter = it_count
+                s_space.invalid_count += 1
+            s_space.iter_count += 1
 
         duration = time.time() - start
         out_dict: dict[str, str | list] = {
             "Algorithm": "ACO-GRAANK",
             # "Memory Usage (MiB)": f{mem_use)}"
             "Evaporation factor": f"{self._evaporation_factor}",
-            "Number of iterations": f"{it_count}",
+            "Number of iterations": f"{s_space.iter_count}",
             "Run-time": f"{duration:.6f} seconds",
-            "Invalid Count": f"{invalid_count}"}
+            "Invalid Count": f"{s_space.invalid_count}"}
         return out_dict

@@ -35,43 +35,40 @@ class HillClimbingGRAANK(BaseGrad):
         self._max_iteration: int = max_iter
         self._n_var: int = 1
 
-    def discover(self, ignore_support: bool = False, target_col: int | None = None, exclude_target: bool = False) -> dict:
+    def discover(self, target_col: int | None = None, time_data: dict|None= None, exclude_target: bool = False) -> dict:
         """
         Uses hill-climbing algorithm to find GP candidates. The candidates are validated if their computed support is
         greater than or equal to the minimum support threshold specified by the user.
 
-        :param ignore_support: Do not filter extracted GPs using a user-defined minimum support threshold.
         :param target_col: Target feature's column index.
+        :param time_data: (optional) time data for estimating time lag.
         :param exclude_target: Only accept GP candidates that do not contain the target feature.
 
         :return: A dict object
         """
 
         start = time.time()
-        s_space = self.init_search_space(1, self._max_iteration)
-        if isinstance(s_space, str):
-            return {"Error": s_space}
+        self._target_col = target_col
+        s_space = self.blank_search_space()
+        if s_space is None:
+            return {"Error": "Search space is empty!"}
 
         # run the hill climb
-        repeated = 0
         candidate = BaseGrad.Candidate()
-        while s_space.counter < self._max_iteration:
+        while s_space.iter_count < self._max_iteration:
             # while eval_count < max_evaluations:
             # take a step
             candidate.position = None
             if candidate.position is None:
-                best_pos = s_space.best_sol.position
+                best_pos = s_space.best_candidate.position
                 if best_pos is not None:
                     candidate.position = best_pos + (random.randrange(s_space.var_min, s_space.var_max) * self._step_size)
 
             # Evaluate candidate
-            BaseGrad.evaluate_candidate(candidate, s_space, self.valid_bins)
+            self.evaluate_candidate(candidate, exclude_target, time_data=time_data)
 
-            # Evaluate GP
-            _, repeated = BaseGrad.evaluate_gradual_pattern(repeated, s_space, self, ignore_support, target_col, exclude_target)
-
-        for gp in s_space.best_patterns:
-            self.add_gradual_pattern(gp)
+            # Increment iteration count
+            s_space.iter_count += 1
 
         duration = time.time() - start
         out_dict: dict[str, str | list] = {

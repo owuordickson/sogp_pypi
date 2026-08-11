@@ -24,14 +24,15 @@ datasets. By integrating advanced computation techniques and data management str
 reduces processing time and memory overhead during knowledge discovery. 
 
 ## Implemented Extraction Algorithms
-The library provides native Python implementations for the following core and meta-heuristic gradual pattern mining algorithms:
+The library provides native Python implementations for the core and meta-heuristic gradual pattern mining algorithms. Here are some examples:
 
 * **GRAANK**: The foundational classical approach for mining gradual patterns.
-* **Ant Colony Optimization (AntGRAANK)**: Meta-heuristic swarm optimization for search-space pruning.
-* **Genetic Algorithm (GeneticGRAANK)**: Evolutionary search strategy for optimized pattern extraction.
-* **Particle Swarm Optimization (ParticleGRAANK)**: Swarm intelligence framework for fast convergence.
-* **Random Search (HillClimbingGRAANK)**: Baseline stochastic search variant.
-* **Clustering-based Mining (ClusterGP)**: Data partitioning to accelerate pattern discovery.
+* **Ant Colony Optimization (AntGRAANK)**: Meta-heuristic ACO algorithm for search-space pruning GP candidates.
+* **Genetic Algorithm (GeneticGRAANK)**: Meta-heuristic GA for search-space pruning GP candidates.
+* **Particle Swarm Optimization (ParticleGRAANK)**: Meta-heuristic PSO algorithm for search-space pruning GP candidates.
+* **Random Search (HillClimbingGRAANK)**: Baseline stochastic search variant for pruning GP candidates.
+* **Clustering-based Mining (ClusterGP)**: Applies K-Means clustering approximation to mine GPs.
+* **TGRAANK**: extends GRAANK to mine GPs with temporal lags.
 
 ### What are Gradual Patterns?
 A **Gradual Pattern (GP)** is a co-occurring set of **gradual items (GI)** that captures covariations between attributes. 
@@ -60,7 +61,7 @@ First and foremost, import the **so4gp** python package via:
 ```python
 import so4gp as sgp
 # OR 
-from so4gp.algorithms import GRAANKAlg
+from so4gp.algorithms import GRAANK, TGRAANK, ClusterGP
 ```
 
 ### GRAdual rANKing Algorithm for GPs (GRAANK)
@@ -70,15 +71,27 @@ are variants of this algorithm.
 
 ```python
 import pandas as pd
-from so4gp.algorithms import GRAANKAlg
+from so4gp.algorithms import GRAANK
 
-dummy_data = [["2021-03", 30, 3, 1, 10], ["2021-04", 35, 2, 2, 8], ["2021-05", 40, 4, 2, 7], ["2021-06", 50, 1, 1, 6],
-              ["2021-07", 52, 7, 1, 2]]
-dummy_df = pd.DataFrame(dummy_data, columns=['Date', 'Age', 'Salary', 'Cars', 'Expenses'])
+df = pd.DataFrame(
+    [
+        [30, 3, 1, 10],
+        [35, 2, 2, 8],
+        [40, 4, 2, 7],
+        [50, 1, 1, 6],
+        [52, 7, 1, 2],
+    ],
+    columns=["Age", "Salary", "Cars", "Expenses"],
+)
 
-mine_obj = GRAANKAlg(data_source=dummy_df, min_sup=0.5, eq=False)
-gp_json = mine_obj.discover()
-print(gp_json)
+miner_gp = GRAANK(
+    data_source=df,
+    min_sup=0.5,
+)
+
+results = miner_gp.discover()
+
+print(results)
 
 ```
 
@@ -95,11 +108,10 @@ The default output is the format of JSON:
 ```json
 {
 	"Algorithm": "GRAANK",
-	"Best Patterns": [
+	"Patterns": [
             [["Age+", "Salary+"], 0.6], 
             [["Expenses-", "Age+", "Salary+"], 0.6]
-	],
-	"Iterations": 20
+	]
 }
 ```
 

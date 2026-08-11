@@ -1,6 +1,7 @@
 .idea/
 test.py
-*.csv
+#*.csv
+**.pyc
 *.egg-info/
 .pypirc
 token*

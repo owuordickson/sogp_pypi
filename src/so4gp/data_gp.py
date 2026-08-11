@@ -62,7 +62,7 @@ class DataGP:
         self._warping_set: dict | None = None
         self._attr_size: int = 0
         self._gradual_patterns = None
-        """:type _gradual_patterns: list[GP] | None"""
+        """:type _gradual_patterns: list[GP|TGP] | None"""
         self._init_attributes(create_time_index=add_time)
 
     @property
@@ -106,7 +106,7 @@ class DataGP:
         return self._attr_size
 
     @property
-    def gradual_patterns(self) -> list | None:
+    def gradual_patterns(self) -> list[GP|TGP] | None:
         return self._gradual_patterns
 
     @property
@@ -254,8 +254,8 @@ class DataGP:
                 # 2b. Check support of each generated item set
                 supp = float(np.sum(temp_pos)) / float(n * (n - 1.0) / 2.0)
                 if (supp >= self._thd_supp )and (self._valid_bins is not None):
-                    self._valid_bins[f"{col}+"] = PairwiseMatrix(bin_mat=temp_pos, support=supp)
-                    self._valid_bins[f"{col}-"] = PairwiseMatrix(bin_mat=temp_pos.T, support=supp)
+                    self._valid_bins[f"{col}+"] = PairwiseMatrix(bin_mat=temp_pos, support=supp, pattern={f"{col}+"})
+                    self._valid_bins[f"{col}-"] = PairwiseMatrix(bin_mat=temp_pos.T, support=supp, pattern={f"{col}-"})
         # print(self._valid_bins)
         valid_bins_len = len(self._valid_bins) if self._valid_bins is not None else 0
         if valid_bins_len < 3:
@@ -428,9 +428,9 @@ class DataGP:
             est_sup = est_gp.support
             est_gp.support = 0
             if approach == 'dfs':
-                true_gp = est_gp.validate_tree(d_set)
+                true_gp = est_gp.validate_via_tree(d_set)
             else:
-                true_gp = est_gp.validate_graank(d_set)
+                true_gp = est_gp.validate_via_graank(d_set, target_col=None)
             true_sup = true_gp.support
 
             if true_sup == 0:

@@ -166,8 +166,6 @@ class AntGRAANK(BaseGrad):
             return out_dict
 
         a = self.attr_size
-        loser_gps = list()  # supersets
-
         if self.valid_bins is None:
             return {"Error": "Pairwise matrices not available!"}
 
@@ -183,26 +181,23 @@ class AntGRAANK(BaseGrad):
             rand_gp, pheromones = self._gen_aco_candidates(pheromones, target_col, exclude_target)
             if len(rand_gp.gradual_items) > 1:
                 # print(rand_gp.get_pattern())
-                exits = rand_gp.is_duplicate(self.gradual_patterns, loser_gps)
-                if not exits:
-                    repeated = 0
+                exists = rand_gp.is_duplicate(self.gradual_patterns, s_space.loser_gps)
+                if not exists:
                     # check for anti-monotony
-                    is_super = rand_gp.check_am(loser_gps, subset=False)
+                    is_super = rand_gp.check_am(s_space.loser_gps, subset=False)
                     is_sub = rand_gp.check_am(self.gradual_patterns, subset=True)
                     if is_super or is_sub:
                         continue
                     gen_gp: GP|TGP = rand_gp.validate_graank(self, target_col=target_col, time_data=time_data)
-                    is_present = gen_gp.is_duplicate(self.gradual_patterns, loser_gps)
-                    is_sub = gen_gp.check_am(self.gradual_patterns, subset=True)
-                    if not is_present and not is_sub:
-                        if gen_gp.support >= self.thd_supp or ignore_support:
+                    if gen_gp.support >= self.thd_supp or ignore_support:
+                        is_present = gen_gp.is_duplicate(self.gradual_patterns, s_space.loser_gps)
+                        is_sub = gen_gp.check_am(self.gradual_patterns, subset=True)
+                        if not is_present and not is_sub:
                             pheromones = self._update_pheromones(gen_gp, pheromones)
                             self.add_gradual_pattern(gen_gp)
-                        else:
-                            loser_gps.append(gen_gp)
-                            s_space.invalid_count += 1
-                    if gen_gp.as_set != rand_gp.as_set:
-                        loser_gps.append(rand_gp)
+                    else:
+                        s_space.invalid_count += 1
+                        s_space.loser_gps.append(gen_gp)
             else:
                 s_space.invalid_count += 1
             s_space.iter_count += 1

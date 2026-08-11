@@ -35,7 +35,7 @@ class OrigGRAANK(BaseGrad):
         super(OrigGRAANK, self).__init__(*args, **kwargs)
 
     def _gen_apriori_candidates(self, gi_dict: dict|None, ignore_sup: bool = False,
-                                target_col: int | None = None, time_data: dict|None= None, exclude_target: bool = False):
+                                target_col: int | None = None, time_data: dict|None= None, exclude_target: bool = False) -> dict:
         """
         Generates Apriori GP candidates (w.r.t target-feature/reference-column if provided). If a user wishes to generate
         candidates that do not contain the target-feature, then they do so by specifying the exclude_target parameter.
@@ -45,7 +45,7 @@ class OrigGRAANK(BaseGrad):
         :param target_col: Target feature's column index.
 
         :param exclude_target: Only accepts GP candidates that do not contain the target feature.
-        :return: List of extracted GPs and the invalid count.
+        :return: List of extracted GPs.
         """
 
         def invert_symbol(gi_item: str) -> str:
@@ -63,14 +63,14 @@ class OrigGRAANK(BaseGrad):
             else:
                 return gi_item
 
+        search_space = self.search_space
         min_sup = self.thd_supp
         n = self.attr_size
 
         if gi_dict is None:
-            return {}, 0
+            return {}
 
         all_candidates = []
-        invalid_count = 0
         res_dict = {}
 
         gi_key_list = list(gi_dict.keys())
@@ -121,10 +121,11 @@ class OrigGRAANK(BaseGrad):
                         if res_pw_mat.support > min_sup or ignore_sup:
                             res_dict[tuple(res_pw_mat.pattern)] = res_pw_mat
                         else:
-                            invalid_count += 1
+                            if search_space is not None:
+                                search_space.invalid_count += 1
                     all_candidates.append(gp_cand)
                     gc.collect()
-        return res_dict, invalid_count
+        return res_dict
 
     def discover(self, ignore_support: bool = False, apriori_level: int | None = None,
                  target_col: int | None = None, time_data: dict|None= None, exclude_target: bool = False, compute_descriptors: bool = True) -> dict:
@@ -157,12 +158,10 @@ class OrigGRAANK(BaseGrad):
 
         candidate_level = 1
         while valid_bins_dict:
-            valid_bins_dict, inv_count = self._gen_apriori_candidates(valid_bins_dict,
-                                                                 ignore_sup=ignore_support,
-                                                                 target_col=target_col,
-                                                                 time_data=time_data,
+            valid_bins_dict = self._gen_apriori_candidates(valid_bins_dict, ignore_sup=ignore_support,
+                                                                 target_col=target_col, time_data=time_data,
                                                                  exclude_target=exclude_target)
-            s_space.invalid_count += inv_count
+
             for gp_set, gi_data in (valid_bins_dict or {}).items():
                 self.remove_subsets(set(gp_set))
                 if time_data is not None:

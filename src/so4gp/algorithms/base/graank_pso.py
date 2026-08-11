@@ -56,9 +56,13 @@ class ParticleGRAANK(BaseGrad):
         """
 
         start = time.time()
-        s_space = self.init_search_space(self._n_particles, self._max_iteration)
-        if isinstance(s_space, str):
-            return {"Error": s_space}
+        try:
+            self.init_search_space(self._n_particles, self._max_iteration)
+            s_space = self.search_space
+            if s_space is None:
+                return {"Error": "Search space is empty!"}
+        except ValueError as e:
+            return {"Error": e}
 
         pbest_pop = s_space.pop.copy()
         gbest_particle = pbest_pop[0]
@@ -68,21 +72,9 @@ class ParticleGRAANK(BaseGrad):
             # while eval_count < max_evaluations:
             # while repeated < 1:
             for i in range(self._n_particles):
-                part_pos = s_space.pop[i].position
-                if part_pos is None:
-                    s_space.pop[i].cost = self.cost_function(part_pos, time_data=time_data)
-                    if s_space.pop[i].cost == 1:
-                        s_space.invalid_count += 1
-                    s_space.eval_count += 1
-                elif part_pos < s_space.var_min or part_pos > s_space.var_max:
-                    s_space.pop[i].cost = 1
-                else:
-                    s_space.pop[i].cost = self.cost_function(part_pos, time_data=time_data)
-                    if s_space.pop[i].cost == 1:
-                        s_space.invalid_count += 1
-                    s_space.eval_count += 1
-
+                self.evaluate_candidate(s_space.pop[i], time_data=time_data)
                 part_cost = s_space.pop[i].cost
+                part_pos = s_space.pop[i].position
                 if part_cost is not None and pbest_pop[i].cost is not None and gbest_particle.cost is not None:
                     if pbest_pop[i].cost > part_cost:
                         pbest_pop[i].cost = part_cost
@@ -105,7 +97,7 @@ class ParticleGRAANK(BaseGrad):
                                (self._coeff_g * random.random()) * (gbest_particle.position - part_pos)
                     s_space.pop[i].position = s_space.pop[i].position + new_velocity
 
-            _, repeated = self.evaluate_gradual_pattern(repeated, s_space, ignore_support, target_col, exclude_target)
+            repeated = self.evaluate_gradual_pattern(repeated, ignore_support, target_col, exclude_target)
             
         for gp in s_space.best_patterns:
             self.add_gradual_pattern(gp)

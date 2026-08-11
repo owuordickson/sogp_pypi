@@ -109,9 +109,13 @@ class GeneticGRAANK(BaseGrad):
         """
 
         start = time.time()
-        s_space = self.init_search_space(self._parent_pop, self._max_iteration)
-        if isinstance(s_space, str):
-            return {"Error": s_space}
+        try:
+            self.init_search_space(self._parent_pop, self._max_iteration)
+            s_space = self.search_space
+            if s_space is None:
+                return {"Error": "Search space is empty!"}
+        except ValueError as e:
+            return {"Error": e}
 
         num_children = int(np.round(self._children_pop * self._parent_pop / 2) * 2)  # Number of children np.round is used to get an even number
         repeated = 0
@@ -126,14 +130,14 @@ class GeneticGRAANK(BaseGrad):
 
                 # a. Perform Crossover
                 c1, c2 = self._crossover(p1, p2)
-                self.evaluate_candidate(c1, s_space, time_data=time_data)
-                self.evaluate_candidate(c2, s_space, time_data=time_data)
+                self.evaluate_candidate(c1, time_data=time_data)
+                self.evaluate_candidate(c2, time_data=time_data)
 
                 # b. Perform Mutation
                 c1 = self._mutate(c1)
                 c2 = self._mutate(c2)
-                self.evaluate_candidate(c1, s_space, time_data=time_data)
-                self.evaluate_candidate(c2, s_space, time_data=time_data)
+                self.evaluate_candidate(c1, time_data=time_data)
+                self.evaluate_candidate(c2, time_data=time_data)
 
                 # c. Add Offsprings to c_pop
                 c_pop.append(c1)
@@ -145,7 +149,7 @@ class GeneticGRAANK(BaseGrad):
             s_space.pop = s_space.pop[0:self._parent_pop]
 
             # Evaluate GP
-            _, repeated = self.evaluate_gradual_pattern(repeated, s_space, ignore_support, target_col, exclude_target)
+            repeated = self.evaluate_gradual_pattern(repeated, ignore_support, target_col, exclude_target)
 
         for gp in s_space.best_patterns:
             self.add_gradual_pattern(gp)

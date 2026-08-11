@@ -47,9 +47,13 @@ class RandomGRAANK(BaseGrad):
         """
 
         start = time.time()
-        s_space = self.init_search_space(1, self._max_iteration)
-        if isinstance(s_space, str):
-            return {"Error": s_space}
+        try:
+            self.init_search_space(1, self._max_iteration)
+            s_space = self.search_space
+            if s_space is None:
+                return {"Error": "Search space is empty!"}
+        except ValueError as e:
+            return {"Error": e}
 
         repeated, candidate = 0, BaseGrad.Candidate()
         while s_space.counter < self._max_iteration:
@@ -57,10 +61,10 @@ class RandomGRAANK(BaseGrad):
             candidate.position = ((s_space.var_min + random.random()) * (s_space.var_max - s_space.var_min))
 
             # Evaluate candidate
-            self.evaluate_candidate(candidate, s_space, time_data=time_data)
+            self.evaluate_candidate(candidate, time_data=time_data)
 
             # Evaluate GP
-            _, repeated = self.evaluate_gradual_pattern(repeated, s_space, ignore_support, target_col, exclude_target)
+            repeated = self.evaluate_gradual_pattern(repeated, ignore_support, target_col, exclude_target)
 
         for gp in s_space.best_patterns:
             self.add_gradual_pattern(gp)

@@ -298,7 +298,8 @@ class TGRAANK:
         each cause feature to each effect feature.
 
         The Genetic GRAANK search is configured with a maximum of three
-    optimization iterations for each target feature.
+    optimization iterations for each target feature. This search algorithm is the
+    fastest for mining gradual patterns with a large number of features.
 
         The resulting matrix is returned as a ``pandas.DataFrame`` whose:
 

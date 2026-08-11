@@ -33,6 +33,7 @@ class TGrad(OrigGRAANK):
 
         super(TGrad, self).__init__(*args, **kwargs)
         self._search_algorithm: str = "apriori"
+        self._algorithm_max_iter: int = 3
         self._min_rep: float = min_rep
         self._max_step: int = self.row_count - int(min_rep * self.row_count)
         self._full_attr_data: np.ndarray = copy.deepcopy(self.data).T
@@ -61,7 +62,7 @@ class TGrad(OrigGRAANK):
         if 0 < value <= 1:
             self._min_rep = value
 
-    def discover_tgp(self, target_col: int, search_algorithm: str="apriori", num_cores: int = 1) -> dict:
+    def discover_tgp(self, target_col: int, search_algorithm: str="apriori", max_iteration: int=3, num_cores: int = 1) -> dict:
         """
         Mine Fuzzy Temporal Gradual Patterns (FTGPs) from a temporal dataset.
 
@@ -115,6 +116,9 @@ class TGrad(OrigGRAANK):
                 ``pso``, ``hc``, ``random``, and ``clustergp``.
                 Defaults to ``"apriori"``.
 
+            max_iteration:
+                The maximum number of iterations to run the search algorithm.
+
             num_cores:
                 Number of CPU cores available for parallel computation during
                 temporal transformation and pattern mining.
@@ -145,6 +149,7 @@ class TGrad(OrigGRAANK):
         start = time.time()
         self._target_col = target_col
         self._search_algorithm = search_algorithm
+        self._algorithm_max_iter = max_iteration
         self.clear_gradual_patterns()
         # 1. Mine FTGPs (using parallel multi-processing)
         with mp.Pool(num_cores) as pool:
@@ -168,6 +173,7 @@ class TGrad(OrigGRAANK):
             "Algorithm": "TGrad",
             # "Memory Usage (MiB)": f{mem_use)}",
             "GP Search Algorithm": f"{self._search_algorithm}",
+            "Maximum Iteration for Search Algorithm": f"{self._algorithm_max_iter}",
             "Minimum Representation": f"{self.min_rep:.2f}",
             "Target Column": f"{target_col}",
             "Run-time": f"{duration:.6f} seconds"}
@@ -271,46 +277,8 @@ class TGrad(OrigGRAANK):
         data_df = pd.DataFrame(attr_data.T, columns=self.titles)
         mine_obj = GRAANK(data_df, min_sup=self.thd_supp, eq=self._include_equal_values)
         mine_obj.discover(search_type=self._search_algorithm, target_col=self._target_col, time_data=time_data,
-                          compute_descriptors=False, max_iteration=10)
+                          compute_descriptors=False, max_iteration=self._algorithm_max_iter,)
         return mine_obj.mining_engine.gradual_patterns
-        for raw_gp in mine_obj.mining_engine.gradual_patterns:
-            # t_lag = TimeDelay(6400, 0.5)
-            if raw_gp.time_lag.valid:
-                tgp: TGP = TGP()
-                for gi in raw_gp.gradual_items:
-                    if gi.attribute_col == self._target_col:
-                        tgp.target_gradual_item = gi
-                    else:
-                        tgp.add_temporal_gradual_item(gi, raw_gp.time_lag)
-                tgp.support = raw_gp.support
-                #warping_set_arr = np.array(DataGP.gen_gradual_warping_set(gi_data.bin_mat, as_array=True))
-                #tgp.compute_descriptors(warping_set_arr, obj_count=self.row_count)
-                t_gps.append(tgp)
-        return t_gps
-
-        invalid_count = 0
-        while valid_bins_dict:
-            valid_bins_dict, inv_count = self._gen_apriori_candidates(valid_bins_dict, target_col=self._target_col)
-            invalid_count += inv_count
-            for gp_set, gi_data in (valid_bins_dict or {}).items():
-                if type(self) is TGrad:
-                    t_lag = TimeDelay.approx_time_lag(gi_data.bin_mat, time_delay_data, gi_arr=None, tri_mf_data=None)
-                else:
-                    t_lag = TimeDelay.approx_time_lag(gi_data.bin_mat, time_delay_data, gi_arr=gp_set, tri_mf_data=tri_mf_data)
-
-                if t_lag.valid:
-                    tgp: TGP = TGP()
-                    for gi_str in gp_set:
-                        gi: GI = GI.from_string(gi_str)
-                        if gi.attribute_col == self._target_col:
-                            tgp.target_gradual_item = gi
-                        else:
-                            tgp.add_temporal_gradual_item(gi, t_lag)
-                    tgp.support = gi_data.support
-                    warping_set_arr = np.array(DataGP.gen_gradual_warping_set(gi_data.bin_mat, as_array=True))
-                    tgp.compute_descriptors(warping_set_arr, obj_count=self.row_count)
-                    t_gps.append(tgp)
-        return t_gps
 
     def get_time_diffs(self, step: int) -> tuple[bool, dict, np.ndarray]:  # optimized
         """

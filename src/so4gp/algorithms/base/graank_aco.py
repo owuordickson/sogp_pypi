@@ -184,7 +184,7 @@ class AntGRAANK(BaseGrad):
                     is_sub = rand_gp.check_am(self.gradual_patterns, subset=True)
                     if is_super or is_sub:
                         continue
-                    gen_gp: GP|TGP = rand_gp.validate_graank(self, target_col=target_col, time_data=time_data)
+                    gen_gp: GP|TGP = rand_gp.validate_via_graank(self, target_col=target_col, time_data=time_data)
                     if gen_gp.support >= self.thd_supp:
                         is_present = gen_gp.is_duplicate(self.gradual_patterns, s_space.loser_gps)
                         is_sub = gen_gp.check_am(self.gradual_patterns, subset=True)

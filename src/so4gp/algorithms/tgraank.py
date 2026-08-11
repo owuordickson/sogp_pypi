@@ -102,7 +102,7 @@ class TGRAANK:
         return self._mine_obj
 
     def discover(self, target_col: int, transformations: str = 'ami', transformation_steps: dict | None = None,
-                 search_algorithm: str = "apriori",
+                 search_algorithm: str = "apriori", max_iteration: int = 3,
                  eval_mode: bool = False, compute_causality: bool = False, save_results: bool = False, **kwargs) -> str:
         """
         Discover fuzzy temporal gradual patterns.
@@ -188,6 +188,9 @@ class TGRAANK:
                 dataset. Supported values are ``apriori``, ``ga``, ``aco``,
                 ``pso``, ``hc``, ``random``, and ``clustergp``.
                 Defaults to ``"apriori"``.
+
+            max_iteration:
+                The maximum number of iterations to run the search algorithm.
 
             eval_mode:
                 Enables evaluation mode.

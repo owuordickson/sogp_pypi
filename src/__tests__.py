@@ -26,8 +26,8 @@ if __name__ == "__main__":
     # result_json = mine_obj.discover(search_type='hc', target_col=1, exclude_target=False, max_iteration=10)     # HL
     # result_json = mine_obj.discover(search_type='random', target_col=1, exclude_target=False, max_iteration=10) # Random
 
-    # result_json = mine_obj1.discover(target_col=1, transformations='all')                                      # TGRAANK
-    result_json = mine_obj1.discover(target_col=1, transformations='ami', search_algorithm='aco', use_clustering=False, eval_mode=True, compute_causality=False)  # TGRAANK-AMI
+    # result_json = mine_obj1.discover(target_col=1, transformations='all', search_algorithm='ga', max_iteration=5)                                      # TGRAANK
+    result_json = mine_obj1.discover(target_col=1, transformations='ami', search_algorithm='apriori', max_iteration=10, use_clustering=False, eval_mode=True, compute_causality=False)  # TGRAANK-AMI
     print(f"{result_json}\n")
     # corr_df = mine_obj1.get_lagged_dependencies(max_lag=3)
     # print(corr_df)

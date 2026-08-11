@@ -177,7 +177,7 @@ class TGradAMI(TGrad):
         return delayed_data, time_data
 
     def discover_tgp_ami(self, target_col: int, use_clustering: bool = False, search_algorithm: str = "apriori",
-                         transformation_steps: dict|None = None,
+                         max_iteration: int=3, transformation_steps: dict|None = None,
                          error_margin: float = 0.0001,
                          eval_mode: bool = False) -> dict:
         """
@@ -190,6 +190,7 @@ class TGradAMI(TGrad):
         :param use_clustering: Use a clustering algorithm to estimate the best time-delay value.
         :param search_algorithm: Gradual pattern mining algorithm to apply to the transformed dataset. Supported values
         are ``apriori``, ``ga``, ``aco``, ``pso``, ``hc``, ``random``, and ``clustergp``. Defaults to ``"apriori"``.
+        :param max_iteration: Maximum number of iterations to run the search algorithm.
         :param transformation_steps: Data transformation steps (used to override the computed transformation steps).
         :param error_margin: [optional] minimum Mutual Information error margin.
         :param eval_mode: Run algorithm in evaluation mode.
@@ -200,6 +201,7 @@ class TGradAMI(TGrad):
         start = time.time()
         self._target_col = target_col
         self._search_algorithm = search_algorithm
+        self._algorithm_max_iter = max_iteration
         self.clear_gradual_patterns()
         # 1. Compute and find the lowest mutual information
         if transformation_steps is not None:
@@ -245,6 +247,7 @@ class TGradAMI(TGrad):
             "Algorithm": "TGradAMI",
             # "Memory Usage (MiB)": f{mem_use)}",
             "GP Search Algorithm": f"{self._search_algorithm}",
+            "Maximum Iteration for Search Algorithm": f"{self._algorithm_max_iter}",
             "Minimum Representation": f"{self.min_rep:.2f}",
             "MI Minimum Error": f"{error_margin:.2f}",
             "MI Error": f"{self.mi_error:.2f}",

@@ -428,9 +428,9 @@ class DataGP:
             est_sup = est_gp.support
             est_gp.support = 0
             if approach == 'dfs':
-                true_gp = est_gp.validate_tree(d_set)
+                true_gp = est_gp.validate_via_tree(d_set)
             else:
-                true_gp = est_gp.validate_graank(d_set, target_col=None)
+                true_gp = est_gp.validate_via_graank(d_set, target_col=None)
             true_sup = true_gp.support
 
             if true_sup == 0:

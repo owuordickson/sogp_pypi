@@ -112,7 +112,39 @@ class BaseGrad(DataGP):
         pop: list["BaseGrad.Candidate"]
 
     def __init__(self, *args, **kwargs):
-        # Initialize DataGP
+        """
+            Initialize the base gradual-pattern optimization algorithm.
+
+            The constructor delegates dataset and gradual-pattern mining
+            initialization to :class:`DataGP` and initializes the state required
+            by optimization-based search algorithms.
+
+            Args:
+                *args:
+                    Positional arguments forwarded to :class:`DataGP`.
+
+                **kwargs:
+                    Keyword arguments forwarded to :class:`DataGP`. These typically
+                    include the data source and mining parameters such as minimum
+                    support and equality handling.
+
+            Attributes:
+                _target_col:
+                    Index of the target attribute used during target-oriented
+                    gradual pattern mining. Initialized to ``None`` until a target
+                    attribute is specified.
+
+                _search_space:
+                    Current optimization search-space state. Initialized to
+                    ``None`` and created when an optimization-based mining
+                    algorithm starts its search.
+
+            Notes:
+                This constructor is intended to initialize shared state for
+                subclasses implementing optimization-based gradual pattern
+                mining strategies such as Genetic GRAANK, ACO-GRAANK,
+                PSO-GRAANK, Hill-Climbing GRAANK, and Random GRAANK.
+        """
         super(BaseGrad, self).__init__(*args, **kwargs)
         self._target_col: int | None = None
         self._search_space: "BaseGrad.SearchSpace|None" = None
@@ -258,7 +290,7 @@ class BaseGrad(DataGP):
                 return False
 
         # 4. validate the GP
-        gen_gp: GP|TGP = rand_gp.validate_graank(self, target_col=target_col, time_data=time_data)
+        gen_gp: GP|TGP = rand_gp.validate_via_graank(self, target_col=target_col, time_data=time_data)
 
         # 5. Compute the cost of the GP
         candidate.cost = (1.0 - gen_gp.support) ** 2  # penalize low-support patterns more strongly
@@ -266,7 +298,42 @@ class BaseGrad(DataGP):
         return True
 
     def evaluate_candidate(self, candidate: "BaseGrad.Candidate|None", exclude_target: bool, time_data: dict|None= None):
-        """"""
+        """
+        Evaluate a gradual-pattern candidate against the mining constraints.
+
+        The candidate is evaluated to determine whether it represents a valid
+        gradual pattern for the current search. When target-oriented mining is
+        enabled, the candidate can be required to either contain or exclude the
+        target attribute according to ``exclude_target``.
+
+        Optional temporal data can be supplied when evaluating candidates that
+        require time-dependent information.
+
+        Args:
+            candidate:
+                Candidate solution to evaluate. ``None`` indicates that there is
+                no candidate available for evaluation.
+
+            exclude_target:
+                Determines how the target attribute is handled during evaluation.
+                When ``True``, candidates containing the target attribute are
+                excluded. When ``False``, target-oriented evaluation is applied
+                according to the configured target attribute.
+
+            time_data:
+                Optional temporal data required for evaluating time-dependent
+                candidates. The dictionary structure depends on the temporal
+                mining algorithm.
+
+        Returns:
+            The result of evaluating the candidate. The returned value depends on
+            the candidate evaluation strategy implemented by the subclass.
+
+        Notes:
+            This method is intended to be used by optimization-based gradual
+            pattern mining algorithms to validate and evaluate candidate
+            solutions during the search process.
+        """
 
         s_space = self.search_space
         valid_bins_dict = self.valid_bins

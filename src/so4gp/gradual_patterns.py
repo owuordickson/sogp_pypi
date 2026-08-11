@@ -330,7 +330,7 @@ class GP:
         params = self.get_computed_descriptors(descriptor_title)
         return pattern, params
 
-    def validate_graank(self, data_gp, target_col: int | None, time_data: dict | None=None) -> "GP|TGP":
+    def validate_via_graank(self, data_gp, target_col: int | None, time_data: dict | None=None) -> "GP|TGP":
         """
         Validates a candidate gradual pattern (GP) based on support computation. A GP is invalid if its support value is
         less than the minimum support threshold set by the user. It uses a breath-first approach to compute support.
@@ -380,7 +380,7 @@ class GP:
             #    rand_gp.compute_descriptors(warping_set_arr, obj_count=self.row_count)
             return gen_pattern
 
-    def validate_tree(self, d_gp):
+    def validate_via_tree(self, d_gp):
         """
         Validates a candidate gradual pattern (GP) based on support computation. A GP is invalid if its support value is
         less than the minimum support threshold set by the user. It applies a depth-first (FP-Growth) approach

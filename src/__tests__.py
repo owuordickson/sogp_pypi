@@ -22,7 +22,7 @@ if __name__ == "__main__":
     #result_json = mine_obj.discover()                                          # GRAANK/ClusterGP
     result_json = mine_obj.discover(search_type='aco', target_col=1, exclude_target=False, max_iteration=10)    # ACO
     # result_json = mine_obj.discover(search_type='ga', target_col=1, exclude_target=False, n_pop=10, max_iteration=10)     # GA
-    #result_json = mine_obj.discover(search_type='pso', target_col=1, exclude_target=False, max_iteration=10)    # PSO
+    # result_json = mine_obj.discover(search_type='pso', target_col=1, exclude_target=False, max_iteration=10)    # PSO
     # result_json = mine_obj.discover(search_type='hc', target_col=1, exclude_target=False, max_iteration=10)     # HL
     # result_json = mine_obj.discover(search_type='random', target_col=1, exclude_target=False, max_iteration=10) # Random
 

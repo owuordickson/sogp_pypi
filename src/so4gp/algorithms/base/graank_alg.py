@@ -144,15 +144,17 @@ class OrigGRAANK(BaseGrad):
 
         start = time.time()
         try:
-            self.init_search_space(0)
-        except ValueError:
-            pass
+            self.init_search_space(1)
+            s_space = self.search_space
+            if s_space is None:
+                return {"Error": "Search space is empty!"}
+        except ValueError as e:
+            return {"Error": e}
         valid_bins_dict: dict|None = copy.deepcopy(self.valid_bins)
 
         if valid_bins_dict is None:
             return {"Error": "Pairwise matrices not available!"}
 
-        invalid_count = 0
         candidate_level = 1
         while valid_bins_dict:
             valid_bins_dict, inv_count = self._gen_apriori_candidates(valid_bins_dict,
@@ -160,7 +162,7 @@ class OrigGRAANK(BaseGrad):
                                                                  target_col=target_col,
                                                                  time_data=time_data,
                                                                  exclude_target=exclude_target)
-            invalid_count += inv_count
+            s_space.invalid_count += inv_count
             for gp_set, gi_data in (valid_bins_dict or {}).items():
                 self.remove_subsets(set(gp_set))
                 if time_data is not None:
@@ -185,5 +187,5 @@ class OrigGRAANK(BaseGrad):
             "Algorithm": "GRAANK",
             # "Memory Usage (MiB)": f{mem_use)}"
             "Run-time": f"{duration:.6f} seconds",
-            "Invalid Count": f"{invalid_count}"}
+            "Invalid Count": f"{s_space.invalid_count}"}
         return out_dict

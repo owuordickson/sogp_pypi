@@ -58,7 +58,6 @@ class HillClimbingGRAANK(BaseGrad):
             return {"Error": e}
 
         # run the hill climb
-        repeated = 0
         candidate = BaseGrad.Candidate()
         while s_space.iter_count < self._max_iteration:
             # while eval_count < max_evaluations:
@@ -73,7 +72,7 @@ class HillClimbingGRAANK(BaseGrad):
             self.evaluate_candidate(candidate, time_data=time_data)
 
             # Evaluate GP
-            repeated = self.evaluate_gradual_pattern(repeated, ignore_support, target_col, exclude_target)
+            self.evaluate_gradual_pattern(ignore_support, target_col, exclude_target)
             s_space.iter_count += 1
         for gp in s_space.valid_patterns:
             self.add_gradual_pattern(gp)

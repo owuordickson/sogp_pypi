@@ -6,8 +6,6 @@
 
 
 import random
-from wsgiref import validate
-
 import numpy as np
 from dataclasses import dataclass
 from ...data_gp import DataGP
@@ -172,7 +170,7 @@ class BaseGrad(DataGP):
 
         valid_bins_dict = self.valid_bins
         s_space = self.search_space
-        dim = self.attr_size
+        #dim = self.attr_size
         if candidate is None or s_space is None or valid_bins_dict is None:
             return s_space
 
@@ -193,17 +191,17 @@ class BaseGrad(DataGP):
         if candidate.cost is not None and s_space.best_candidate.cost is not None:
             if candidate.cost < s_space.best_candidate.cost:
                 s_space.best_candidate = BaseGrad.Candidate(position=candidate.position, cost=candidate.cost)
-            support = float(1 / s_space.best_candidate.cost) / float(dim * (dim - 1.0) / 2.0)
+            #support = float(1 / s_space.best_candidate.cost) / float(dim * (dim - 1.0) / 2.0)
         s_space.eval_count += 1
         return s_space
 
-    def evaluate_gradual_pattern(self, repeat_count: int, ignore_support: bool = False, target_col: int | None=None, exclude_target: bool = False) -> int:
+    def evaluate_gradual_pattern(self, ignore_support: bool = False, target_col: int|None=None, exclude_target: bool = False):
         """"""
 
         dim = self.attr_size
         s_space = self.search_space
         if s_space is None:
-            return repeat_count
+            return
 
         best_gp: GP = self._decode_gp(s_space.best_candidate.position)
         best_gp.support = float(1 / s_space.best_candidate.cost) / float(dim * (dim - 1.0) / 2.0)
@@ -211,18 +209,14 @@ class BaseGrad(DataGP):
         is_present = best_gp.is_duplicate(s_space.valid_patterns)
         is_sub = best_gp.check_am(s_space.valid_patterns, subset=True)
 
-        if is_present or is_sub:
-            repeat_count += 1
-        else:
-            # Apply target-feature search
+        if not is_present and not is_sub:
             target_col_ok = BaseGrad.apply_target_feature(best_gp, target_col=target_col, exclude_target=exclude_target)
             if not target_col_ok:
-                return repeat_count
+                return
 
             if best_gp.support >= self.thd_supp or ignore_support:
                 s_space.valid_patterns.append(best_gp)
-
-        return repeat_count
+        return
 
     @staticmethod
     def apply_target_feature(gp_cand: set | GP, target_col: int | None = None, exclude_target: bool = False):

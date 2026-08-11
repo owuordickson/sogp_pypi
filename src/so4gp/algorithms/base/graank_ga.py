@@ -118,7 +118,6 @@ class GeneticGRAANK(BaseGrad):
             return {"Error": e}
 
         num_children = int(np.round(self._children_pop * self._parent_pop / 2) * 2)  # Number of children np.round is used to get an even number
-        repeated = 0
         while s_space.iter_count < self._max_iteration:
 
             c_pop = []  # Children population
@@ -149,7 +148,7 @@ class GeneticGRAANK(BaseGrad):
             s_space.pop = s_space.pop[0:self._parent_pop]
 
             # Evaluate GP
-            repeated = self.evaluate_gradual_pattern(repeated, ignore_support, target_col, exclude_target)
+            self.evaluate_gradual_pattern(ignore_support, target_col, exclude_target)
             s_space.iter_count += 1
         for gp in s_space.valid_patterns:
             self.add_gradual_pattern(gp)

@@ -152,9 +152,12 @@ class AntGRAANK(BaseGrad):
 
         start = time.time()
         try:
-            self.init_search_space(0)
-        except ValueError:
-            pass
+            self.init_search_space(1)
+            s_space = self.search_space
+            if s_space is None:
+                return {"Error": "Search space is empty!"}
+        except ValueError as e:
+            return {"Error": e}
         self._fit()  # distance matrix (d) & attributes corresponding to d
 
         d = self._distance_matrix
@@ -164,9 +167,6 @@ class AntGRAANK(BaseGrad):
 
         a = self.attr_size
         loser_gps = list()  # supersets
-        repeated = 0
-        it_count = 0
-        counter = 0
 
         if self.valid_bins is None:
             return {"Error": "Pairwise matrices not available!"}
@@ -178,10 +178,8 @@ class AntGRAANK(BaseGrad):
         # 3. Initialize pheromones (p_matrix)
         pheromones = np.ones(d.shape, dtype=float)
 
-        invalid_count = 0
         # 4. Iterations for ACO
-        # while repeated < 1:
-        while counter < self._max_iteration:
+        while s_space.iter_count < self._max_iteration:
             rand_gp, pheromones = self._gen_aco_candidates(pheromones, target_col, exclude_target)
             if len(rand_gp.gradual_items) > 1:
                 # print(rand_gp.get_pattern())
@@ -196,33 +194,25 @@ class AntGRAANK(BaseGrad):
                     gen_gp: GP|TGP = rand_gp.validate_graank(self, target_col=target_col, time_data=time_data)
                     is_present = gen_gp.is_duplicate(self.gradual_patterns, loser_gps)
                     is_sub = gen_gp.check_am(self.gradual_patterns, subset=True)
-                    if is_present or is_sub:
-                        repeated += 1
-                    else:
+                    if not is_present and not is_sub:
                         if gen_gp.support >= self.thd_supp or ignore_support:
                             pheromones = self._update_pheromones(gen_gp, pheromones)
                             self.add_gradual_pattern(gen_gp)
                         else:
                             loser_gps.append(gen_gp)
-                            invalid_count += 1
+                            s_space.invalid_count += 1
                     if gen_gp.as_set != rand_gp.as_set:
                         loser_gps.append(rand_gp)
-                else:
-                    repeated += 1
             else:
-                invalid_count += 1
-            it_count += 1
-            if self._max_iteration == 1:
-                counter = repeated
-            else:
-                counter = it_count
+                s_space.invalid_count += 1
+            s_space.iter_count += 1
 
         duration = time.time() - start
         out_dict: dict[str, str | list] = {
             "Algorithm": "ACO-GRAANK",
             # "Memory Usage (MiB)": f{mem_use)}"
             "Evaporation factor": f"{self._evaporation_factor}",
-            "Number of iterations": f"{it_count}",
+            "Number of iterations": f"{s_space.iter_count}",
             "Run-time": f"{duration:.6f} seconds",
-            "Invalid Count": f"{invalid_count}"}
+            "Invalid Count": f"{s_space.invalid_count}"}
         return out_dict

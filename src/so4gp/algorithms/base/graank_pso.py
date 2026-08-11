@@ -67,7 +67,6 @@ class ParticleGRAANK(BaseGrad):
         pbest_pop = s_space.pop.copy()
         gbest_particle = pbest_pop[0]
         velocity_vector = np.ones(self._n_particles)
-        repeated = 0
         while s_space.iter_count < self._max_iteration:
             # while eval_count < max_evaluations:
             # while repeated < 1:
@@ -97,7 +96,7 @@ class ParticleGRAANK(BaseGrad):
                                (self._coeff_g * random.random()) * (gbest_particle.position - part_pos)
                     s_space.pop[i].position = s_space.pop[i].position + new_velocity
 
-            repeated = self.evaluate_gradual_pattern(repeated, ignore_support, target_col, exclude_target)
+            self.evaluate_gradual_pattern(ignore_support, target_col, exclude_target)
             s_space.iter_count += 1
         for gp in s_space.valid_patterns:
             self.add_gradual_pattern(gp)

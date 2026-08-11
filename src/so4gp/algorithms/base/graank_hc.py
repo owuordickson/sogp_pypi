@@ -50,7 +50,7 @@ class HillClimbingGRAANK(BaseGrad):
 
         start = time.time()
         try:
-            self.init_search_space(1, self._max_iteration)
+            self.init_search_space(1)
             s_space = self.search_space
             if s_space is None:
                 return {"Error": "Search space is empty!"}
@@ -60,7 +60,7 @@ class HillClimbingGRAANK(BaseGrad):
         # run the hill climb
         repeated = 0
         candidate = BaseGrad.Candidate()
-        while s_space.counter < self._max_iteration:
+        while s_space.iter_count < self._max_iteration:
             # while eval_count < max_evaluations:
             # take a step
             candidate.position = None

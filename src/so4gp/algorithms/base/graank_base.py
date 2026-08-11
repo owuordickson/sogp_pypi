@@ -9,13 +9,14 @@ import random
 import numpy as np
 from dataclasses import dataclass
 from ...data_gp import DataGP
-from ...gradual_patterns import GI, GP, PairwiseMatrix
+from ...gradual_patterns import GI, GP, TGP, PairwiseMatrix
 
 
 class BaseGrad(DataGP):
 
     @dataclass
     class Candidate:
+        gp_set: set|None=None
         position: float|None=None
         cost: float|None=None
 
@@ -25,11 +26,9 @@ class BaseGrad(DataGP):
         var_max: int
         iter_count: int
         eval_count: int
-        counter: int
         invalid_count: int
         best_sol: "BaseGrad.Candidate"
-        best_costs: np.ndarray
-        best_patterns: list[GP]
+        best_patterns: list[GP|TGP]
         str_best_gps: list
         pop: list["BaseGrad.Candidate"]
 
@@ -42,11 +41,10 @@ class BaseGrad(DataGP):
     def search_space(self) -> "BaseGrad.SearchSpace|None":
         return self._search_space
 
-    def init_search_space(self, pop_size: int, max_iter: int) -> bool:
+    def init_search_space(self, pop_size: int) -> bool:
         """
         Initialize the search space with pairwise matrices
         :param pop_size: population size
-        :param max_iter: maximum number of iterations
 
         :return: Search space or error message
         """
@@ -60,12 +58,12 @@ class BaseGrad(DataGP):
             raise ValueError("Population size is zero!")
 
         # Initialize search space
-        self._search_space = self._initialize_numeric_search_space(pop_size, max_iter)
+        self._search_space = self._initialize_numeric_search_space(pop_size)
         if self._search_space is None:
             return False
         return True
 
-    def _initialize_numeric_search_space(self, total_pop: int, max_iter: int):
+    def _initialize_numeric_search_space(self, total_pop: int):
         """Create a population of candidate solutions."""
         valid_bins_dict = self.valid_bins
         if valid_bins_dict is None:
@@ -90,19 +88,17 @@ class BaseGrad(DataGP):
         # Initialize best candidate
         best_candidate = BaseGrad.Candidate(
             position=pop[0].position,
-            cost = self.cost_function(pop[0].position)
+            cost = self._cost_function(pop[0])
         )
 
         # Initialize SearchSpace parameters
         search_space = BaseGrad.SearchSpace(
             iter_count=0,
             eval_count=0,
-            counter=0,
             invalid_count=0,
             var_min=var_min,
             var_max=var_max,
             best_sol=best_candidate,
-            best_costs=np.empty(max_iter),
             best_patterns=[],
             str_best_gps=[],
             pop=pop,
@@ -136,22 +132,24 @@ class BaseGrad(DataGP):
                     # GP.add_gradual_item_strict(temp_gp, gi, target_col=target_col, time_lag=res_pw_mat.time_lag)
         return temp_gp
 
-    def cost_function(self, position: float|None, time_data: dict|None= None) -> float:
+    def _cost_function(self, candidate: "BaseGrad.Candidate|None", time_data: dict|None= None) -> float:
         """Description
 
         Computes the fitness of a GP
 
-        :param position: a value in the numeric search space
+        :param candidate: a candidate GP in the search space
         :param time_data: (optional) time data for estimating time lag
         :return: a floating point value that represents the fitness of the position
         """
 
         cost = 1
         valid_bins_dict = self.valid_bins
-        if valid_bins_dict is None or position is None:
+        if valid_bins_dict is None or candidate is None:
+            return cost
+        if candidate.position is None:
             return cost
 
-        pattern = self._decode_gp(position)
+        pattern = self._decode_gp(candidate.position)
         pw_mat: PairwiseMatrix|None = None
         for gi in pattern.gradual_items:
             bin_dict = valid_bins_dict[gi.to_string()]
@@ -164,7 +162,9 @@ class BaseGrad(DataGP):
             cost = (1 / bin_sum)
             # if compute_descriptors:
             #    warping_set_arr: np.ndarray = np.array(DataGP.gen_gradual_warping_set(pw_mat.bin_mat, as_array=True))
-            #    gp.compute_descriptors(warping_set_arr, obj_count=self.row_count)
+            #    pattern.compute_descriptors(warping_set_arr, obj_count=self.row_count)
+        candidate.cost = cost
+        candidate.gp_set = pattern.as_set
         return cost
 
     def evaluate_candidate(self, candidate: "BaseGrad.Candidate|None", time_data: dict|None= None):
@@ -186,7 +186,7 @@ class BaseGrad(DataGP):
         apply_bound()
         # Update: What about duplicate candidate (position already exists in the search-space)?
         
-        candidate.cost = self.cost_function(candidate.position, time_data)
+        self._cost_function(candidate, time_data)
         if candidate.cost == 1:
             s_space.invalid_count += 1
         if candidate.cost is not None and s_space.best_sol.cost is not None:
@@ -221,14 +221,7 @@ class BaseGrad(DataGP):
                 s_space.best_patterns.append(best_gp)
                 s_space.str_best_gps.append(best_gp.print(self.titles))
 
-        try:
-            # Show Iteration Information (store Best Cost)
-            s_space.best_costs[s_space.iter_count] = s_space.best_sol.cost
-        except IndexError:
-            pass
         s_space.iter_count += 1
-
-        s_space.counter = s_space.iter_count
         return repeat_count
 
     @staticmethod

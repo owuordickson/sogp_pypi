@@ -151,7 +151,10 @@ class AntGRAANK(BaseGrad):
         """
 
         start = time.time()
-        self.init_search_space(0, 0)
+        try:
+            self.init_search_space(0)
+        except ValueError:
+            pass
         self._fit()  # distance matrix (d) & attributes corresponding to d
 
         d = self._distance_matrix

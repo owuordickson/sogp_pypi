@@ -110,7 +110,7 @@ class GeneticGRAANK(BaseGrad):
 
         start = time.time()
         try:
-            self.init_search_space(self._parent_pop, self._max_iteration)
+            self.init_search_space(self._parent_pop)
             s_space = self.search_space
             if s_space is None:
                 return {"Error": "Search space is empty!"}
@@ -119,7 +119,7 @@ class GeneticGRAANK(BaseGrad):
 
         num_children = int(np.round(self._children_pop * self._parent_pop / 2) * 2)  # Number of children np.round is used to get an even number
         repeated = 0
-        while s_space.counter < self._max_iteration:
+        while s_space.iter_count < self._max_iteration:
 
             c_pop = []  # Children population
             for _ in range(num_children // 2):

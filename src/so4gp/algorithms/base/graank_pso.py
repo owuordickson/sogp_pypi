@@ -57,7 +57,7 @@ class ParticleGRAANK(BaseGrad):
 
         start = time.time()
         try:
-            self.init_search_space(self._n_particles, self._max_iteration)
+            self.init_search_space(self._n_particles)
             s_space = self.search_space
             if s_space is None:
                 return {"Error": "Search space is empty!"}
@@ -68,7 +68,7 @@ class ParticleGRAANK(BaseGrad):
         gbest_particle = pbest_pop[0]
         velocity_vector = np.ones(self._n_particles)
         repeated = 0
-        while s_space.counter < self._max_iteration:
+        while s_space.iter_count < self._max_iteration:
             # while eval_count < max_evaluations:
             # while repeated < 1:
             for i in range(self._n_particles):

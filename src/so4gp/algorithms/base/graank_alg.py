@@ -119,7 +119,6 @@ class OrigGRAANK(BaseGrad):
                     if test == 1:
                         res_pw_mat: PairwiseMatrix = GP.perform_and(gi_dict[gi_str_i], gi_dict[gi_str_j], n, time_data)
                         if res_pw_mat.support > min_sup or ignore_sup:
-                            # res_dict.append([gp_cand, bin_mat, sup])
                             res_dict[tuple(res_pw_mat.pattern)] = res_pw_mat
                         else:
                             invalid_count += 1
@@ -144,7 +143,10 @@ class OrigGRAANK(BaseGrad):
         """
 
         start = time.time()
-        self.init_search_space(0, 0)
+        try:
+            self.init_search_space(0)
+        except ValueError:
+            pass
         valid_bins_dict: dict|None = copy.deepcopy(self.valid_bins)
 
         if valid_bins_dict is None:

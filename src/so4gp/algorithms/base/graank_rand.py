@@ -48,7 +48,7 @@ class RandomGRAANK(BaseGrad):
 
         start = time.time()
         try:
-            self.init_search_space(1, self._max_iteration)
+            self.init_search_space(1)
             s_space = self.search_space
             if s_space is None:
                 return {"Error": "Search space is empty!"}
@@ -56,7 +56,7 @@ class RandomGRAANK(BaseGrad):
             return {"Error": e}
 
         repeated, candidate = 0, BaseGrad.Candidate()
-        while s_space.counter < self._max_iteration:
+        while s_space.iter_count < self._max_iteration:
             # while eval_count < max_evaluations:
             candidate.position = ((s_space.var_min + random.random()) * (s_space.var_max - s_space.var_min))
 

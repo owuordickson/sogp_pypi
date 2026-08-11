@@ -360,38 +360,21 @@ class GP:
                 target_gi = GI(target_col, "-")
 
         pw_mat_1: PairwiseMatrix = gi_dict[target_gi.to_string()]
-        # gen_pattern.add_gradual_item(gi)
-        # print(f"First GI: {target_gi.to_string()} to {gen_pattern.as_set}")
         time_lag = gi_dict[target_gi.to_string()].time_lag
         GP.add_gradual_item_strict(gen_pattern, target_gi, target_col=target_col, time_lag=time_lag)
 
-        #print(f"Validate: {self.as_set}")
         for gi in self.gradual_items:
             if gi.to_string() == target_gi.to_string():
-                ## gen_pattern.add_gradual_item(gi)
-                #print(f"First GI: {gi.to_string()} to {gen_pattern.as_set}")
-                #time_lag = gi_dict[target_gi.to_string()].time_lag
-                #GP.add_gradual_item_strict(gen_pattern, gi, target_col=target_col, time_lag=time_lag)
                 continue
             else:
                 pw_mat_2 = gi_dict[gi.to_string()]
-                # print(f"Adding GI: {gi.to_string()} to {gen_pattern.as_set}")
-                res_pw_mat = GP.perform_and(pw_mat_1, pw_mat_2, n, time_data=time_data)
-                if res_pw_mat.support >= min_supp:
-                    #gen_pattern.add_gradual_item(gi)
-                    #gen_pattern.time_lag = res_pw_mat.time_lag
-                    GP.add_gradual_item_strict(gen_pattern, gi, target_col=target_col, time_lag=res_pw_mat.time_lag)
-                    gen_pattern.support = res_pw_mat.support
-                    pw_mat_1 = PairwiseMatrix(
-                        bin_mat=copy.deepcopy(res_pw_mat.bin_mat),
-                        support=res_pw_mat.support,
-                        pattern=res_pw_mat.pattern,
-                        time_lag=res_pw_mat.time_lag)
-        #print("\n")
+                pw_mat_1 = GP.perform_and(pw_mat_1, pw_mat_2, n, time_data=time_data)
+                if pw_mat_1.support >= min_supp:
+                    GP.add_gradual_item_strict(gen_pattern, gi, target_col=target_col, time_lag=pw_mat_1.time_lag)
+                    gen_pattern.support = pw_mat_1.support
         if len(gen_pattern.gradual_items) <= 1:
             return self
         else:
-            # print(f"Gen GIs: {gen_pattern.gradual_items}")
             return gen_pattern
 
     def validate_tree(self, d_gp):

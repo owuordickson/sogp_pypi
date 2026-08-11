@@ -5,6 +5,7 @@
 
 
 import json
+import numpy as np
 from .base.graank_alg import OrigGRAANK
 
 
@@ -330,6 +331,7 @@ class GRAANK:
             res_dict.update({"Patterns": self._mine_obj.display_patterns})
         except Exception as e:
             res_dict.update({"Error": str(e)})
-        out:str = json.dumps(res_dict,indent=4)
+        out:str = json.dumps(res_dict,indent=4,
+                             default=lambda obj: obj.item() if isinstance(obj, np.generic) else obj.tolist(),)
         return out
 

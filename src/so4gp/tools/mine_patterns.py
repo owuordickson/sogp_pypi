@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
-# SPDX-License-Identifier: GPL-3.0-or-later
+# SPDX-License-Identifier: MIT
 # Copyright (c) 2021 Dickson Owuor
-# License: GNU General Public License v3.0 or later
 # See the LICENSE file at the root of this repository for complete details.
 
 """Gradual Pattern Mining Tools for MCP.

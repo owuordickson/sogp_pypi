@@ -1,16 +1,14 @@
 # -*- coding: utf-8 -*-
-# SPDX-License-Identifier: GNU GPL v3
-# This file is licensed under the terms of the GNU GPL v3.0.
+# SPDX-License-Identifier: MIT
 # See the LICENSE file at the root of this
 # repository for complete details.
 
 """
 @author: Dickson Owuor
 @credits: Thomas Runkler, Edmond Menya, and Anne Laurent
-@license: GNU GPL v3
+@license: MIT
 @email: owuordickson@gmail.com
 @created: 21 July 2021
-@modified: 02 August 2025
 
 A collection of Gradual Pattern classes and methods.
 """

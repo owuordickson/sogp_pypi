@@ -1,16 +1,14 @@
 # -*- coding: utf-8 -*-
-# SPDX-License-Identifier: GNU GPL v3
-# This file is licensed under the terms of the GNU GPL v3.0.
+# SPDX-License-Identifier: MIT
 # See the LICENSE file at the root of this
 # repository for complete details.
 
 """
 @author: Dickson Owuor
 @credits: Thomas Runkler, Edmond Menya, and Anne Laurent
-@license: GNU GPL v3
+@license: MIT
 @email: owuordickson@gmail.com
 @created: 21 July 2021
-@modified: 27 October 2022
 
 A collection of classes for pre-processing data for mining gradual patterns.
 """

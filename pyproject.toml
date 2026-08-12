@@ -26,7 +26,7 @@ maintainers = [
 ]
 description = "A Python library for gradual pattern mining algorithms."
 readme =  "README.md"
-license = "GPL-3.0-only"
+license = "MIT"
 license-files = ["LICENSE*"]
 keywords = ["gradual patterns", "GRAANK", "ant-colony-optimization", "data-mining", "swarm-intelligence"]
 classifiers = [

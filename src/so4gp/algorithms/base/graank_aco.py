@@ -83,7 +83,6 @@ class AntGRAANK(BaseGrad):
         :return: pheromone matrix (ndarray)
         """
         v_matrix = self._distance_matrix
-        target_col = self._target_col
         pattern: GP = GP()
         if v_matrix is None:
             return pattern, p_matrix
@@ -101,13 +100,13 @@ class AntGRAANK(BaseGrad):
                 j = np.nonzero(cum_prob > r)[0][0]
                 gi_str: str = cast(str, self._attribute_keys[j]) if self._attribute_keys is not None else ""
                 gi: GI = GI.from_string(gi_str)
-                if not pattern.contains_attr(gi):
-                    pattern.add_gradual_item(gi)
+                #if not pattern.contains_attr(gi):
+                pattern.add_gradual_item(gi)
             except IndexError:
                 continue
 
         # 2. Apply target-feature search
-        target_col_ok = BaseGrad.apply_target_feature(pattern, target_col=target_col, exclude_target=exclude_target)
+        target_col_ok = self.check_target_feature(pattern, exclude_target=exclude_target)
         if not target_col_ok:
             return GP(), p_matrix
 

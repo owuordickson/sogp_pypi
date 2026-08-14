@@ -174,6 +174,11 @@ class GRAANK:
                 Randomly samples gradual pattern candidates and evaluates them
                 independently without maintaining search history.
 
+            ``clustergp``:
+                ClusterGP.
+
+                Uses clustering-based approach to approximate gradual patterns.
+
         Args:
             search_type:
                 Search algorithm to use.
@@ -276,6 +281,11 @@ class GRAANK:
                 * **coeff_g** (*float*, default=0.9):
                   Social (global best) acceleration coefficient.
 
+                **ClusterGP (`search_type="clustergp"`):**
+
+                * **e_prob** (*float*, default=0.01):
+                Erasure probability.
+
         Returns:
             JSON-formatted string containing the mining results, including the
             discovered gradual patterns, statistics, descriptors, and metadata.
@@ -313,6 +323,10 @@ class GRAANK:
             from .base.graank_rand import RandomGRAANK
             max_iteration = max_iteration if max_iteration is not None else 1
             self._mine_obj = RandomGRAANK(self._data_src, min_sup=self._min_supp, eq=self._eq, max_iter=max_iteration)
+        elif search_type == "clustergp":
+            from .cluster_gp import ClusterGP
+            max_iteration = max_iteration if max_iteration is not None else 1
+            self._mine_obj = ClusterGP(self._data_src, min_sup=self._min_supp, eq=self._eq, max_iter=max_iteration, **kwargs)
         else:
             raise ValueError("Invalid search type!")
 

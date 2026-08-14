@@ -4,13 +4,12 @@
 # repository for complete details.
 
 import math
-import json
 import time
 import numpy as np
 from sklearn.cluster import KMeans
 
 from .base.graank_base import BaseGrad
-from ..gradual_patterns import GI, GP
+from ..gradual_patterns import GI, GP, TGP, TimeDelay
 
 
 class ClusterGP(BaseGrad):
@@ -43,7 +42,7 @@ class ClusterGP(BaseGrad):
         super(ClusterGP, self).__init__(*args, **kwargs)
         self._erasure_probability: float = e_prob
         self._max_iteration: int = max_iter
-        self._gradual_items: np.ndarray|None = None
+        self._gradual_items: list[GI] = []
         self._win_mat: np.ndarray|None = None
         self._cum_wins: np.ndarray|None = None
         self._net_win_mat: np.ndarray|None = None
@@ -78,7 +77,6 @@ class ClusterGP(BaseGrad):
 
         # 2. Variable declarations
         attr_data = self.data.T  # Feature data objects
-        lst_gis = []  # List of GIs
         s_mat = []  # S-Matrix (made up of S-Vectors)
         w_mat = []  # win matrix
         cum_wins = []  # Cumulative wins
@@ -109,26 +107,28 @@ class ClusterGP(BaseGrad):
                 s_vec[s_vec > 0] = 1  # Normalize net wins
                 s_vec[s_vec < 0] = -1  # Normalize net loses
 
-                lst_gis.append(GI(col, '+'))
+                self._gradual_items .append(GI(col, '+'))
                 cum_wins.append(temp_cum_wins)
                 s_mat.append(s_vec)
 
-                lst_gis.append(GI(col, '-'))
+                self._gradual_items .append(GI(col, '-'))
                 cum_wins.append(-temp_cum_wins)
                 s_mat.append(-s_vec)
 
-        self._gradual_items = np.array(lst_gis)
         self._win_mat = np.array(w_mat)
         self._cum_wins = np.array(cum_wins)
         self._net_win_mat = np.array(s_mat)
         self._ij = pair_ij
 
-    def _infer_gps(self, clusters: np.ndarray) -> list[GP]:
+    def _infer_gps(self, clusters: np.ndarray, exclude_target:bool=False, time_data: dict|None=None) -> bool:
         """
         A function that infers GPs from clusters of gradual items.
 
         :param clusters: [required] groups of gradual items clustered through K-MEANS algorithm
-        :return: List of (str) patterns, list of GP objects
+        :param exclude_target: Only accept GP candidates that do not contain the target feature.
+        :param time_data: (optional) time data for estimating time lag.
+
+        :return: True if GPs are inferred successfully, False otherwise
         """
 
         def estimate_score_vector(c_win_vec: np.ndarray) -> np.ndarray:
@@ -191,7 +191,8 @@ class ClusterGP(BaseGrad):
             support = float(np.sum(bin_mat)) / float(n * (n - 1.0) / 2.0)
             return support
 
-        lst_gps = []
+        time_lag = None
+        target_col = self._target_col
         all_gis = self._gradual_items
         cum_wins = self._cum_wins
 
@@ -199,8 +200,8 @@ class ClusterGP(BaseGrad):
         for grp_idx in lst_indices:
             if grp_idx.size > 1:
                 # 1. Retrieve all cluster-pairs and the corresponding GIs
-                cluster_gis = all_gis[grp_idx] if all_gis is not None else []
-                cluster_cum_wins = cum_wins[grp_idx] if cum_wins is not None else [] # All the rows of selected groups
+                cluster_gis = [all_gis[idx] for idx in grp_idx]
+                cluster_cum_wins = cum_wins[grp_idx] if cum_wins is not None else np.array([]) # All the rows of selected groups
 
                 # 2. Compute score vector from R matrix
                 score_vectors = []  # Approach 2
@@ -211,35 +212,54 @@ class ClusterGP(BaseGrad):
                 # 3. Estimate support
                 est_sup = estimate_support(score_vectors)
 
-                # 4. Infer GPs from the clusters
-                if est_sup >= self.thd_supp:
-                    gp = GP()
-                    for gi in cluster_gis:
-                        gp.add_gradual_item(gi)
-                    gp.support = est_sup
-                    lst_gps.append(gp)
-        return lst_gps
+                # 4. Estimate Time Delay
+                if time_data is not None:
+                    t_data = time_data["time_data"]
+                    use_gp = time_data["use_gp"]
+                    fuzzy_mf = time_data["tri_mf"]
+                    gp_set = set([gi.to_string() for gi in cluster_gis]) if use_gp else None
+                    time_lag = TimeDelay.approx_time_lag(cluster_cum_wins, t_data, gi_arr=gp_set, tri_mf_data=fuzzy_mf)
 
-    def discover(self, save_results: bool = True) -> str:
+                # 5. Infer GPs from the clusters
+                # print(f"{cluster_gis} -> {est_sup}")
+                if est_sup >= self.thd_supp:
+                    # Create GP object
+                    gp: GP|TGP = TGP() if time_data is not None else GP()
+                    for gi in cluster_gis:
+                        GP.add_gradual_item_strict(gp, gi, target_col=target_col , time_lag=time_lag)
+                    gp.support = est_sup
+
+                    # 4a. Check if the GP candidate is valid (has more than one GI)
+                    length_ok = (len(gp.gradual_items) > 1)
+                    # 4b. Check if target-feature is present in the GP candidate
+                    target_col_ok = self.check_target_feature(gp, exclude_target=exclude_target)
+                    is_valid = (length_ok and target_col_ok)
+                    if is_valid:
+                        self.add_gradual_pattern(gp)
+        return True
+
+    def discover(self, target_col: int | None = None, time_data: dict|None= None, exclude_target: bool = False) -> dict:
         """
         Applies spectral clustering to determine which gradual items belong to the same group based on the similarity
         of net-win vectors. Gradual items in the same cluster should have almost the same score vector. The candidates
         are validated if their computed support is greater than or equal to the minimum support threshold specified by
         the user.
 
-        :param save_results: [optional] Save results to a csv file.
+        :param target_col: Target feature's column index.
+        :param time_data: (optional) time data for estimating time lag.
+        :param exclude_target: Only accept GP candidates that do not contain the target feature.
 
-        :return: JSON string
+        :return: A dict object
         """
 
         start_time = time.time()
+        self._target_col = target_col
         self.clear_gradual_patterns()
         # 1. Generate net-win matrices
         s_matrix = self._net_win_mat  # Net-win matrix (S)
         s_matrix_size = s_matrix.size if s_matrix is not None else 0
         if s_matrix_size < 1:
             raise Exception("Erasure probability is too high, consider reducing it.")
-        # print(s_matrix)
 
         # 2a. Spectral Clustering: perform SVD to determine the independent rows
         u, s, vt = np.linalg.svd(s_matrix)
@@ -255,9 +275,7 @@ class ClusterGP(BaseGrad):
         y_predicted = kmeans.fit_predict(s_matrix_approx)
 
         # 3. Infer GPs
-        estimated_gps = self._infer_gps(y_predicted)
-        for gp in estimated_gps:
-            self.add_gradual_pattern(gp)
+        self._infer_gps(y_predicted, exclude_target=exclude_target, time_data=time_data)
 
         duration = time.time() - start_time
         out_dict: dict[str, str | list] = {
@@ -265,10 +283,7 @@ class ClusterGP(BaseGrad):
             # "Memory Usage (MiB)": f{mem_use)}"
             "Erasure probability": f"{self._erasure_probability}",
             "Number of iterations": f"{self._max_iteration}",
-            "Run-time": f"{duration:.6f} seconds"}
-        if save_results:
-            self.generate_output_files(out_dict)
+            "Run-time": f"{duration:.6f} seconds",
+            "Invalid Count": f"{0}"}
 
-        out_dict.update({"Best Patterns": self.display_patterns, "Invalid Count": str(0)})
-        out: str = json.dumps(out_dict, indent=4)
-        return out
+        return out_dict

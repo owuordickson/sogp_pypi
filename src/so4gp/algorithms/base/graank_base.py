@@ -255,8 +255,8 @@ class BaseGrad(DataGP):
                 bin_val = bin_arr[i]
                 if bin_val == 1:
                     temp_gi = GI.from_string(attr_keys[i])
-                    if not temp_gp.contains_attr(temp_gi):
-                        temp_gp.add_gradual_item(temp_gi)
+                    #if not temp_gp.contains_attr(temp_gi):
+                    temp_gp.add_gradual_item(temp_gi)
             return temp_gp
 
         s_space = self.search_space
@@ -273,7 +273,7 @@ class BaseGrad(DataGP):
         rand_gp = _decode_gp(candidate.position)
 
         # 2. Check is target-column is present in the GP
-        target_col_ok = BaseGrad.apply_target_feature(rand_gp, target_col=target_col, exclude_target=exclude_target)
+        target_col_ok = self.check_target_feature(rand_gp, exclude_target=exclude_target)
         if not target_col_ok:
             return False
 
@@ -335,8 +335,7 @@ class BaseGrad(DataGP):
         """
 
         s_space = self.search_space
-        valid_bins_dict = self.valid_bins
-        if candidate is None or s_space is None or valid_bins_dict is None:
+        if candidate is None or s_space is None or self.valid_bins is None:
             return s_space
 
         def apply_bound() -> None:
@@ -363,7 +362,8 @@ class BaseGrad(DataGP):
             # 2. Check if it is a valid GP and is NOT a duplicate candidate
             if candidate.gp is not None:
                 gen_gp = candidate.gp
-                if gen_gp.support >= self.thd_supp:
+                length_ok = (len(gen_gp.gradual_items) > 1)
+                if (gen_gp.support >= self.thd_supp) and length_ok:
                     is_present = gen_gp.is_duplicate(self.gradual_patterns)
                     is_sub = gen_gp.check_am(self.gradual_patterns, subset=True)
                     if not is_present and not is_sub:
@@ -374,8 +374,7 @@ class BaseGrad(DataGP):
         s_space.eval_count += 1
         return s_space
 
-    @staticmethod
-    def apply_target_feature(gp_cand: set | GP, target_col: int | None = None, exclude_target: bool = False):
+    def check_target_feature(self, gp_cand: set | GP, exclude_target: bool = False):
         """
         Applies the target-feature constraint to a gradual pattern candidate.
 
@@ -383,8 +382,6 @@ class BaseGrad(DataGP):
         ----------
         gp_cand : set
             Candidate gradual pattern.
-        target_col : int, optional
-            Target feature column. If None, no target filtering is applied.
         exclude_target : bool, default=False
             If True, candidates containing the target feature are rejected.
             If False, candidates must contain the target feature.
@@ -395,6 +392,8 @@ class BaseGrad(DataGP):
             True if the candidate passes the target-feature constraint,
             otherwise False.
         """
+
+        target_col = self._target_col
         if target_col is None:
             return True
 

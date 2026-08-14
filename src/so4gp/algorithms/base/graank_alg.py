@@ -3,14 +3,14 @@
 # See the LICENSE file at the root of this
 # repository for complete details.
 
-import gc
 import copy
 import time
 import numpy as np
+from itertools import combinations
 
 from .graank_base import BaseGrad
 from ...data_gp import DataGP
-from ...gradual_patterns import GI, GP, TGP, PairwiseMatrix
+from ...gradual_patterns import GI, GP, TGP
 
 
 class OrigGRAANK(BaseGrad):
@@ -33,95 +33,55 @@ class OrigGRAANK(BaseGrad):
         """
         super(OrigGRAANK, self).__init__(*args, **kwargs)
 
-    def _gen_apriori_candidates(self, gi_dict: dict|None, time_data: dict|None= None, exclude_target: bool = False) -> dict:
+    def _gen_apriori_candidates(self, valid_dict: dict|None, time_data: dict|None= None, exclude_target: bool = False) -> dict:
         """
         Generates Apriori GP candidates (w.r.t target-feature/reference-column if provided). If a user wishes to generate
         candidates that do not contain the target-feature, then they do so by specifying the exclude_target parameter.
 
-        :param gi_dict: List of GIs together with bitmap arrays.
+        :param valid_dict: List of GIs/GPs together with bitmap arrays.
         :param exclude_target: Only accepts GP candidates that do not contain the target feature.
 
         :return: List of extracted GPs.
         """
 
-        def invert_symbol(gi_item: str) -> str:
-            """Description
-
-            Computes the inverse of a GI formatted as an array or tuple
-
-            :param gi_item: gradual item as a string (e.g., '1+' or '1-')
-            :return: inverted gradual item
-            """
-            if gi_item.endswith("+"):
-                return gi_item.replace("+", "-")
-            elif gi_item.endswith("-"):
-                return gi_item.replace("-", "+")
-            else:
-                return gi_item
+        res_dict = {}
+        if valid_dict is None:
+            return res_dict
 
         search_space = self.search_space
-        target_col = self._target_col
         min_sup = self.thd_supp
-        n = self.attr_size
-
-        if gi_dict is None:
-            return {}
-
+        dim = self.attr_size
         all_candidates = []
-        res_dict = {}
 
-        gi_key_list = list(gi_dict.keys())
-        for i in range(len(gi_dict) - 1):
-            for j in range(i + 1, len(gi_dict)):
-                # 1. Fetch pairwise matrix
-                gi_str_i = gi_key_list[i]
-                gi_str_j = gi_key_list[j]
+        for key1, key2 in combinations(valid_dict, 2):
+            pw_mat1 = valid_dict[key1]
+            pw_mat2 = valid_dict[key2]
 
-                if isinstance(gi_str_i, (tuple, list)):
-                    gi_i = set(gi_str_i)
-                    gi_o = set(gi_key_list[0])
-                else:
-                    gi_i = {gi_str_i}
-                    gi_o = {gi_key_list[0]}
+            # 1. Create a GP candidate by union of both sets
+            gp_cand: GP = GP()
+            gp_cand_set = set(pw_mat1.pattern) | set(pw_mat2.pattern)
+            for gi_str in gp_cand_set:
+                gi: GI = GI.from_string(gi_str)
+                gp_cand.add_gradual_item(gi)
 
-                if isinstance(gi_str_j, (tuple, list)):
-                    gi_j = set(gi_str_j)
-                else:
-                    gi_j = {gi_str_j}
+            # 2a. Check if the GP candidate is valid (has more than one GI)
+            length_ok = (len(gp_cand.gradual_items) > 1)
+            # 2b. Check if target-feature is present in the GP candidate
+            target_col_ok = self.check_target_feature(gp_cand, exclude_target=exclude_target)
+            # 2c. Check if the GP candidate is already present in the list of candidates
+            not_exists = (not gp_cand.is_duplicate(all_candidates))
+            is_valid = (length_ok and target_col_ok and not_exists)
+            if not is_valid:
+                continue
 
-                # 2. Identify a GP candidate (create its inverse)
-                gp_cand = gi_i | gi_j  # Union of both sets
-                inv_gp_cand = {invert_symbol(x) for x in gp_cand}
-
-                # 3. Apply target-feature search
-                target_col_ok = BaseGrad.apply_target_feature(gp_cand, target_col=target_col, exclude_target=exclude_target)
-                if not target_col_ok:
-                    continue
-
-                # 4. Verify the validity of the GP candidate through the following conditions
-                is_length_valid = (len(gp_cand) == len(gi_o) + 1)
-                is_unique_candidate = ((not (all_candidates != [] and gp_cand in all_candidates)) and
-                                    (not (all_candidates != [] and inv_gp_cand in all_candidates)))
-
-                # 4. Validate GP and save it
-                if is_length_valid and is_unique_candidate:
-                    test = 1
-                    repeated_attr = -1
-                    for k in gp_cand:
-                        if k[0] == repeated_attr:
-                            test = 0
-                            break
-                        else:
-                            repeated_attr = k[0]
-                    if test == 1:
-                        res_pw_mat: PairwiseMatrix = GP.perform_and(gi_dict[gi_str_i], gi_dict[gi_str_j], n, time_data)
-                        if res_pw_mat.support > min_sup:
-                            res_dict[tuple(res_pw_mat.pattern)] = res_pw_mat
-                        else:
-                            if search_space is not None:
-                                search_space.invalid_count += 1
-                    all_candidates.append(gp_cand)
-                    gc.collect()
+            # 3. Compute the support of the GP candidate
+            all_candidates.append(gp_cand)
+            pw_mat = GP.perform_and(pw_mat1, pw_mat2, dim, time_data)
+            if pw_mat.support > min_sup:
+                res_dict[tuple(pw_mat.pattern)] = pw_mat
+            else:
+                if search_space is not None:
+                    search_space.invalid_count += 1
         return res_dict
 
     def discover(self, apriori_level: int | None = None,
@@ -155,10 +115,7 @@ class OrigGRAANK(BaseGrad):
 
             for gp_set, gi_data in (valid_bins_dict or {}).items():
                 self.remove_subsets(set(gp_set))
-                if time_data is not None:
-                    gp: TGP = TGP()
-                else:
-                    gp: GP = GP()
+                gp: GP|TGP = TGP() if time_data is not None else GP()
 
                 for gi_str in gp_set:
                     gi: GI = GI.from_string(gi_str)

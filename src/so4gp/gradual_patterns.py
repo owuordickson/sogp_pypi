@@ -205,7 +205,7 @@ class GP:
 
     def add_gradual_item(self, item: GI) -> None|bool:
         """
-        Add a gradual item to this gradual pattern.
+        Add a gradual item to this gradual pattern. First checks if the gradual item's column already exists in the GP.
 
         Args:
             item:
@@ -221,7 +221,8 @@ class GP:
         if not isinstance(item, GI):
             raise TypeError("item must be an instance of GI.")
 
-        self._gradual_items.append(item)
+        if not self.contains_attr(item):
+            self._gradual_items.append(item)
         return True
 
     @property
@@ -345,11 +346,7 @@ class GP:
         n = data_gp.attr_size
         gi_dict = copy.deepcopy(data_gp.valid_bins)
 
-        if time_data is not None:
-            gen_pattern: TGP = TGP()
-        else:
-            gen_pattern: GP = GP()
-
+        gen_pattern: GP | TGP = TGP() if time_data is not None else GP()
         target_gi = self.gradual_items[0]
         if target_col is not None:
             if f"{target_col}+" in self.as_set:
@@ -446,7 +443,7 @@ class GP:
                     break
         return result
 
-    def is_duplicate(self, valid_gps: list["GP|TGP"] | None, invalid_gps: list["GP|TGP"]|None = None) -> bool:
+    def is_duplicate(self, valid_gps: list["GP|TGP"]|None, invalid_gps: list["GP|TGP"]|None = None) -> bool:
         """
         Checks if a pattern is in the list of winner GPs or loser GPs
 

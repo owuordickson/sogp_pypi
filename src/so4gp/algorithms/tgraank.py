@@ -338,6 +338,7 @@ class TGRAANK:
         if max_lag > 0:
             self._min_rep = (self._mine_obj.row_count - max_lag) / self._mine_obj.row_count
 
+        self._min_supp = 0.005
         feature_cols = self._mine_obj.attr_cols
 
         # Full adjacency matrix indexed by original column numbers

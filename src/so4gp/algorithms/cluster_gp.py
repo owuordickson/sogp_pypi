@@ -218,10 +218,10 @@ class ClusterGP(BaseGrad):
                     use_gp = time_data["use_gp"]
                     fuzzy_mf = time_data["tri_mf"]
                     gp_set = set([gi.to_string() for gi in cluster_gis]) if use_gp else None
-                    time_lag = TimeDelay.approx_time_lag(cluster_cum_wins, t_data, gi_arr=gp_set, tri_mf_data=fuzzy_mf)
+                    bin_data = np.ones([self.row_count, self.row_count], dtype=bool)
+                    time_lag = TimeDelay.approx_time_lag(bin_data, t_data, gi_arr=gp_set, tri_mf_data=fuzzy_mf)
 
                 # 5. Infer GPs from the clusters
-                # print(f"{cluster_gis} -> {est_sup}")
                 if est_sup >= self.thd_supp:
                     # Create GP object
                     gp: GP|TGP = TGP() if time_data is not None else GP()

@@ -74,8 +74,8 @@ def run_t_graank(df):
     """
         T-GRAANK correctly discovers directional gradual dependencies with time shifts
     """
-    mine_obj = TGRAANK(df, min_sup=0.5, min_rep=0.5)
-    corr_df = mine_obj.get_lagged_dependencies(max_lag=0)
+    mine_obj = TGRAANK(df, min_sup=0.005)
+    corr_df = mine_obj.get_lagged_dependencies(max_lag=3)
     corr_arr = corr_df.values
     # print(f"\n\nTGRAANK Corr:\n{corr_df}\n\n")
 

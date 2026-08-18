@@ -15,7 +15,7 @@ from ...gradual_patterns import GI, GP, TGP
 
 class OrigGRAANK(BaseGrad):
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, max_apriori_level: int|None=None, **kwargs):
         """
         Extracts gradual patterns (GPs) from a numeric dataset using the GRAANK algorithm. The algorithm relies on the
         APRIORI approach for generating GP candidates. This work was proposed by Anne Laurent
@@ -30,8 +30,11 @@ class OrigGRAANK(BaseGrad):
 
         :param args: [required] data source path of Pandas DataFrame, [optional] minimum-support, [optional] eq
 
+        :param max_apriori_level: [optional] Maximum APRIORI level for generating candidates.
+
         """
         super(OrigGRAANK, self).__init__(*args, **kwargs)
+        self._max_apriori_level: int|None = max_apriori_level
 
     def _gen_apriori_candidates(self, valid_dict: dict|None, time_data: dict|None= None, exclude_target: bool = False) -> dict:
         """
@@ -112,7 +115,6 @@ class OrigGRAANK(BaseGrad):
         candidate_level = 1
         while valid_bins_dict:
             valid_bins_dict = self._gen_apriori_candidates(valid_bins_dict, time_data=time_data, exclude_target=exclude_target)
-            print(f"Candidates: {valid_bins_dict.keys()}\n")
 
             for gp_set, gi_data in (valid_bins_dict or {}).items():
                 self.remove_subsets(set(gp_set))

@@ -188,7 +188,7 @@ class ClusterGP(BaseGrad):
                 temp_bin = vec < vec[:, np.newaxis]
                 bin_mat = np.multiply(bin_mat, temp_bin)
 
-            support = float(np.sum(bin_mat)) / float(n * (n - 1.0) / 2.0)
+            support = float(np.sum(bin_mat)) / GP.pair_count(n)
             return support
 
         time_lag = None

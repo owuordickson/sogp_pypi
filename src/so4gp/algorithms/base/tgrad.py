@@ -150,9 +150,10 @@ class TGrad(OrigGRAANK):
         self._search_algorithm = search_algorithm
         self._algorithm_max_iter = max_iteration
         self.clear_gradual_patterns()
+
         # 1. Mine FTGPs (using parallel multi-processing)
         with mp.Pool(num_cores) as pool:
-            steps = range(self._max_step)
+            steps = range(1, self._max_step)
             pattern_data = pool.map(self._safe_transform_and_mine, steps)
 
         # 2. Organize FTGPs into a single list

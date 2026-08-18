@@ -302,7 +302,7 @@ class GRAANK:
         """
 
         if search_type == "apriori":
-            pass
+            self._mine_obj = OrigGRAANK(self._data_src, min_sup=self._min_supp, eq=self._eq)
         elif search_type == "ga":
             from .base.graank_ga import GeneticGRAANK
             max_iteration = max_iteration if max_iteration is not None else 1

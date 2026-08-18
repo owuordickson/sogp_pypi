@@ -405,7 +405,7 @@ class GP:
                     else:
                         temp = set(copy.deepcopy(temp_tids or {}))
                         temp = temp.intersection(set(gi_tids))
-                        supp = float(len(temp)) / float(n * (n - 1.0) / 2.0)
+                        supp = float(len(temp)) / GP.pair_count(n)
                         if supp >= min_supp:
                             temp_tids = copy.deepcopy(temp)
                             gen_pattern.add_gradual_item(gi)
@@ -615,6 +615,19 @@ class GP:
         return True
 
     @staticmethod
+    def pair_count(n: int) -> float:
+        """
+        Get the total number of pairs in a given number of objects (n)
+
+        :param n: Number of objects (or attribute size)
+
+        :return: Total number of pairs in the dataset
+        """
+        if n < 2:
+            return 1.0
+        return float(n * (n - 1.0) / 2.0)
+
+    @staticmethod
     def add_gradual_item_strict(gp: GP|TGP, gi: GI, target_col: int|None = None, time_lag: TimeDelay|None = None) -> GP|TGP:
         """
         Add a gradual item to a gradual pattern using pattern-aware placement.
@@ -697,7 +710,7 @@ class GP:
             return PairwiseMatrix(bin_mat=np.zeros((dim, dim)), support=0, pattern=set())
         bin_mat = bin_data_1.bin_mat * bin_data_2.bin_mat
         gp = bin_data_1.pattern | bin_data_2.pattern  # union of both sets to create a GP with only unique GIs
-        sup = float(np.sum(bin_mat)) / float(dim * (dim - 1.0) / 2.0)
+        sup = float(np.sum(bin_mat)) / GP.pair_count(n=dim)
         if time_data is not None:
             t_data = time_data["time_data"]
             use_gp = time_data["use_gp"]
@@ -799,7 +812,7 @@ class TimeDelay:
                 return [round(years, 0), "years"]
 
         self._sign: str = delay_sign()
-        self._formatted_time: dict = {}
+        self._formatted_time: dict = {'value': 0, 'duration': ''}
         if self._timestamp != 0:
             time_arr = format_time()
             self._formatted_time = {'value': time_arr[0], 'duration': time_arr[1]}

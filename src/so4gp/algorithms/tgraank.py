@@ -244,6 +244,8 @@ class TGRAANK:
         try:
 
             if transformations == 'all':
+                self._mine_obj = TGrad(self._data_src, min_sup=self._min_supp, min_rep=self._min_rep, eq=self._eq,
+                                       add_time=True)
                 res_dict = self._mine_obj.discover_tgp(target_col=target_col, search_algorithm=search_algorithm,
                                                        max_iteration=max_iteration, **kwargs)
             elif transformations == 'ami':
@@ -278,8 +280,8 @@ class TGRAANK:
 
                     if key not in best or relation["support"] > best[key]["support"]:
                         best[key] = relation
-                filtered_causality = list(best.values())
-                res_dict.update({"Causality": filtered_causality})
+                best_correlations = list(best.values())
+                res_dict.update({"Causality": causal_relations})
         except Exception as e:
             res_dict = {"Error": str(e)}
 
@@ -349,6 +351,7 @@ class TGRAANK:
             result = json.loads(
                 self.discover(target_col=target, transformations="all", search_algorithm='apriori', max_iteration=1, compute_causality=True)
             )
+            print(f"Target: {target}\n{result['Causality']}\n")
 
             for relation in result.get("Causality", []):
                 cause_col, effect_col = relation["correlation"]

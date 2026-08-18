@@ -235,8 +235,7 @@ class DataGP:
         else:
             self._attr_size = len(attr_data[self._attr_cols[0]])
 
-        # 2. Construct and store 1-item_set valid bins
-        # execute binary rank to calculate support of a pattern
+        # 2. Construct and store 1-item_set valid bins: execute binary rank to calculate support of a pattern
         n = self._attr_size
         self._valid_bins = {}
         for col in self._attr_cols:
@@ -250,7 +249,7 @@ class DataGP:
                     np.fill_diagonal(temp_pos, False)
 
                 # 2b. Check support of each generated item set
-                supp = float(np.sum(temp_pos)) / float(n * (n - 1.0) / 2.0)
+                supp = float(np.sum(temp_pos)) / GP.pair_count(n)
                 if (supp >= self._thd_supp )and (self._valid_bins is not None):
                     self._valid_bins[f"{col}+"] = PairwiseMatrix(bin_mat=temp_pos, support=supp, pattern={f"{col}+"})
                     self._valid_bins[f"{col}-"] = PairwiseMatrix(bin_mat=temp_pos.T, support=supp, pattern={f"{col}-"})
@@ -283,7 +282,7 @@ class DataGP:
             lst_ij: list = list(DataGP.gen_gradual_warping_set(gi_data.bin_mat))
             # set_ij = set(sorted(list(lst_ij), key=lambda x: x[0])) ## Messes with the order of the items in the set
             tids_len = len(lst_ij)
-            supp = float((tids_len*0.5) * (tids_len - 1)) / float(n * (n - 1.0) / 2.0)
+            supp = float((tids_len*0.5) * (tids_len - 1)) / GP.pair_count(n)
             if (supp >= self._thd_supp) and self._warping_set is not None:
                 self._warping_set[gi_str] = lst_ij
 

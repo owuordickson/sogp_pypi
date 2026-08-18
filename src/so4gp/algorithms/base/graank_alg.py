@@ -84,13 +84,13 @@ class OrigGRAANK(BaseGrad):
                     search_space.invalid_count += 1
         return res_dict
 
-    def discover(self, apriori_level: int | None = None,
-                 target_col: int | None = None, time_data: dict|None= None, exclude_target: bool = False, compute_descriptors: bool = True) -> dict:
+    def discover(self, max_apriori_level: int|None = None, target_col: int|None = None, time_data: dict|None= None,
+                 exclude_target: bool = False, compute_descriptors: bool = True) -> dict:
         """
         Uses apriori algorithm to find gradual pattern (GP) candidates. The candidates are validated if their computed
         support is greater than or equal to the minimum support threshold specified by the user.
 
-        :param apriori_level: Maximum APRIORI level for generating candidates.
+        :param max_apriori_level: Maximum APRIORI level for generating candidates.
         :param target_col: Target feature's column index.
         :param time_data: (optional) time data for estimating time lag.
         :param exclude_target: Only accept GP candidates that do not contain the target feature.
@@ -112,6 +112,7 @@ class OrigGRAANK(BaseGrad):
         candidate_level = 1
         while valid_bins_dict:
             valid_bins_dict = self._gen_apriori_candidates(valid_bins_dict, time_data=time_data, exclude_target=exclude_target)
+            print(f"Candidates: {valid_bins_dict.keys()}\n")
 
             for gp_set, gi_data in (valid_bins_dict or {}).items():
                 self.remove_subsets(set(gp_set))
@@ -126,7 +127,7 @@ class OrigGRAANK(BaseGrad):
                     gp.compute_descriptors(warping_set_arr, obj_count=self.row_count)
                 self.add_gradual_pattern(gp)
             candidate_level += 1
-            if (apriori_level is not None) and candidate_level >= apriori_level:
+            if (max_apriori_level is not None) and candidate_level >= max_apriori_level:
                 break
 
         duration = time.time() - start

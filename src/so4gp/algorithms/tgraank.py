@@ -347,7 +347,7 @@ class TGRAANK:
 
         for target in feature_cols:
             result = json.loads(
-                self.discover(target_col=target, transformations="ami", search_algorithm='ga', max_iteration=3, compute_causality=True)
+                self.discover(target_col=target, transformations="all", search_algorithm='apriori', max_iteration=1, compute_causality=True)
             )
 
             for relation in result.get("Causality", []):

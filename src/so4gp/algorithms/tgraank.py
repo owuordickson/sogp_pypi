@@ -344,13 +344,13 @@ class TGRAANK:
             )
             #print(f"Target: {target}\n{result['Causality']}")
 
-            min_corr = {}
+            max_corr = {}
             for item in result['Causality']:
                 key = tuple(item["correlation"])
 
-                if key not in min_corr or item["support"] < min_corr[key]["support"]:
-                    min_corr[key] = item
-            computed_relations = list(min_corr.values())
+                if key not in max_corr or item["support"] > max_corr[key]["support"]:
+                    max_corr[key] = item
+            computed_relations = list(max_corr.values())
             #print(f"{computed_relations}\n")
 
             for relation in computed_relations:# result.get("Causality", []):

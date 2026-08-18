@@ -302,7 +302,7 @@ class GRAANK:
         """
 
         if search_type == "apriori":
-            self._mine_obj = OrigGRAANK(self._data_src, min_sup=self._min_supp, eq=self._eq)
+            self._mine_obj = OrigGRAANK(self._data_src, min_sup=self._min_supp, eq=self._eq, max_apriori_level=max_iteration, **kwargs)
         elif search_type == "ga":
             from .base.graank_ga import GeneticGRAANK
             max_iteration = max_iteration if max_iteration is not None else 1
@@ -332,7 +332,7 @@ class GRAANK:
 
         if isinstance(self._mine_obj, OrigGRAANK):
             res_dict = self._mine_obj.discover(target_col=target_col, time_data=time_data,
-                                               exclude_target=exclude_target, max_apriori_level=max_iteration,
+                                               exclude_target=exclude_target,
                                                compute_descriptors=compute_descriptors)
         else:
             res_dict = self._mine_obj.discover(target_col=target_col, time_data=time_data,

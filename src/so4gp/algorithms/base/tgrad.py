@@ -14,7 +14,7 @@ from sklearn.preprocessing import MinMaxScaler
 from .graank_alg import OrigGRAANK
 from ..graank import GRAANK
 from ...data_gp import DataGP
-from ...gradual_patterns import GI, TGP, TimeDelay, NO_TIME_LABEL
+from ...gradual_patterns import TGP, NO_TIME_LABEL
 
 
 class TGrad(OrigGRAANK):

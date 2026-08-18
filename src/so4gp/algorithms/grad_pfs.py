@@ -76,10 +76,10 @@ class GradPFS:
         """
 
         # 1. Instantiate GRAANK object and extract GPs
-        grad = OrigGRAANK(self.data_src, min_sup=0.005)
+        grad = OrigGRAANK(self.data_src, min_sup=0.005, max_apriori_level=2)
         self.titles = grad.titles
         self.data = grad.data
-        grad.discover(max_apriori_level=2, target_col=self.target_col)
+        grad.discover(target_col=self.target_col)
 
         # 2. Create a correlation matrix
         n = grad.col_count

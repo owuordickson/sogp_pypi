@@ -272,15 +272,6 @@ class TGRAANK:
                     if isinstance(tgp, TGP):
                         res = tgp.get_causal_relations(self._mine_obj.titles)
                         causal_relations.extend(res)
-
-                # Only retain the best causal relations (due to GP subsets)
-                best = {}
-                for relation in causal_relations:
-                    key = tuple(relation["correlation"])  # e.g. (4, 1)
-
-                    if key not in best or relation["support"] > best[key]["support"]:
-                        best[key] = relation
-                best_correlations = list(best.values())
                 res_dict.update({"Causality": causal_relations})
         except Exception as e:
             res_dict = {"Error": str(e)}
@@ -351,9 +342,18 @@ class TGRAANK:
             result = json.loads(
                 self.discover(target_col=target, transformations="all", search_algorithm='apriori', max_iteration=1, compute_causality=True)
             )
-            print(f"Target: {target}\n{result['Causality']}\n")
+            #print(f"Target: {target}\n{result['Causality']}")
 
-            for relation in result.get("Causality", []):
+            min_corr = {}
+            for item in result['Causality']:
+                key = tuple(item["correlation"])
+
+                if key not in min_corr or item["support"] < min_corr[key]["support"]:
+                    min_corr[key] = item
+            computed_relations = list(min_corr.values())
+            #print(f"{computed_relations}\n")
+
+            for relation in computed_relations:# result.get("Causality", []):
                 cause_col, effect_col = relation["correlation"]
                 support = relation["support"]
 
